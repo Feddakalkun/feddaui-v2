@@ -281,10 +281,12 @@
         "ltx",
         "ltx-img2vid",
         "ltx-flf",
+        "ltx-flf3",
         "ltx-ai2v"
       ],
       "workflows": [
         "ltx-flf",
+        "ltx-flf3",
         "ltx-img2vid",
         "ltx-ai2v",
         "ltx-img2vid-gguf",
@@ -311,10 +313,12 @@
       "enabled": true,
       "tabs": [
         "flux",
-        "flux-txt2img"
+        "flux-txt2img",
+        "flux-headswap"
       ],
       "workflows": [
-        "flux2klein-txt2img"
+        "flux2klein-txt2img",
+        "flux-headswap"
       ],
       "custom_nodes": [
         "rgthree-comfy",
