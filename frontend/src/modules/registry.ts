@@ -638,6 +638,20 @@ export const FEDDA_MODULES: FeddaModule[] = [
     card: veniceCard(23),
   },
   {
+    id: 'ltx-multi-frame',
+    sourceModuleId: 'ltx-video',
+    label: 'LTX Multi-Keyframe',
+    description: 'Drive a clip through up to 5 keyframes, not just first and last.',
+    area: 'video',
+    pack: 'booster',
+
+    tabs: ['ltx-flf3'],
+    workflows: ['ltx-flf3'],
+    defaultTab: 'ltx-flf3',
+    Icon: Film,
+    card: veniceCard(23),
+  },
+  {
     id: 'ltx-audio-img2vid',
     hidden: true,
     sourceModuleId: 'ltx-video',
