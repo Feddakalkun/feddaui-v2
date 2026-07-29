@@ -1,0 +1,18 @@
+# Models for the Z-Image flagship workflow family (detailed txt2img + shared).
+# Format: URL folder [target-filename]
+#
+# The workflow's own HuggingFaceDownloader node already fetches most models
+# (z-image base unet/clip/vae, lotus-depth, face_yolov8m, sam) at run time.
+# These three are the gaps it does NOT cover — verified missing on a fresh
+# install and HEAD-checked live (all 302).
+
+# ControlNet-Union model patch (ModelPatchLoader). The repo file has NO "-2.1"
+# suffix, but the workflow references "...-2.1.safetensors", so save it under
+# that name so the loader finds it.
+https://huggingface.co/alibaba-pai/Z-Image-Turbo-Fun-Controlnet-Union/resolve/main/Z-Image-Turbo-Fun-Controlnet-Union.safetensors model_patches Z-Image-Turbo-Fun-Controlnet-Union-2.1.safetensors
+
+# UltimateSDUpscale upscale model
+https://huggingface.co/FacehugmanIII/4x_foolhardy_Remacri/resolve/main/4x_foolhardy_Remacri.pth upscale_models
+
+# LLM (GGUF) for the prompt-generator group
+https://huggingface.co/MaziyarPanahi/Mistral-7B-Instruct-v0.3-GGUF/resolve/main/Mistral-7B-Instruct-v0.3.Q4_K_M.gguf llm_gguf

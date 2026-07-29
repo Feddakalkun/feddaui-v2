@@ -1,0 +1,395 @@
+{
+  "1": {
+    "inputs": {
+      "unet_name": "z_image_turbo_bf16.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "1. Load Base Diffusion Model (UNET)"
+    }
+  },
+  "2": {
+    "inputs": {
+      "clip_name": "qwen_3_4b.safetensors",
+      "type": "lumina2",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "2. Load CLIP Model"
+    }
+  },
+  "3": {
+    "inputs": {
+      "vae_name": "z-image-vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "3. Load VAE"
+    }
+  },
+  "4": {
+    "inputs": {
+      "lora_name": "YOUR_LORA_1.safetensors  ← Main Generation LoRA",
+      "strength_model": 1.0,
+      "strength_clip": 1.0,
+      "model": [
+        "1",
+        0
+      ],
+      "clip": [
+        "2",
+        0
+      ]
+    },
+    "class_type": "LoraLoader",
+    "_meta": {
+      "title": "4. LoRA Slot 1 - Main Generation (e.g. character for full scene)"
+    }
+  },
+  "5": {
+    "inputs": {
+      "lora_name": "YOUR_LORA_2.safetensors  ← Detailer / Inpaint LoRA",
+      "strength_model": 1.0,
+      "strength_clip": 1.0,
+      "model": [
+        "1",
+        0
+      ],
+      "clip": [
+        "2",
+        0
+      ]
+    },
+    "class_type": "LoraLoader",
+    "_meta": {
+      "title": "5. LoRA Slot 2 - Detailer / Inpaint (e.g. character for the woman)"
+    }
+  },
+  "10": {
+    "inputs": {
+      "text": "[YOUR NEGATIVE PROMPT HERE - or leave empty]",
+      "speak_and_recognation": {
+        "__value__": [
+          false,
+          true
+        ]
+      }
+    },
+    "class_type": "Text Multiline",
+    "_meta": {
+      "title": "10. Negative Prompt"
+    }
+  },
+  "12": {
+    "inputs": {
+      "text": [
+        "10",
+        0
+      ],
+      "clip": [
+        "4",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "12. CLIP Encode - Negative"
+    }
+  },
+  "30": {
+    "inputs": {
+      "model_name": "bbox/face_yolov8m.pt"
+    },
+    "class_type": "UltralyticsDetectorProvider",
+    "_meta": {
+      "title": "Face detector"
+    }
+  },
+  "31": {
+    "inputs": {
+      "bbox_detector": [
+        "30",
+        0
+      ],
+      "image": [
+        "60",
+        0
+      ],
+      "threshold": 0.45,
+      "dilation": 8,
+      "crop_factor": 3.0,
+      "drop_size": 10,
+      "labels": "all"
+    },
+    "class_type": "BboxDetectorSEGS",
+    "_meta": {
+      "title": "Detect faces"
+    }
+  },
+  "32": {
+    "inputs": {
+      "segs": [
+        "31",
+        0
+      ],
+      "target": "x1",
+      "order": false,
+      "take_start": 0,
+      "take_count": 1
+    },
+    "class_type": "ImpactSEGSOrderedFilter",
+    "_meta": {
+      "title": "LEFT face"
+    }
+  },
+  "33": {
+    "inputs": {
+      "segs": [
+        "31",
+        0
+      ],
+      "target": "x1",
+      "order": false,
+      "take_start": 1,
+      "take_count": 1
+    },
+    "class_type": "ImpactSEGSOrderedFilter",
+    "_meta": {
+      "title": "RIGHT face"
+    }
+  },
+  "40": {
+    "inputs": {
+      "guide_size": 512,
+      "guide_size_for": true,
+      "max_size": 1024,
+      "seed": 0,
+      "steps": 9,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "sgm_uniform",
+      "denoise": 0.75,
+      "feather": 5,
+      "noise_mask": true,
+      "force_inpaint": true,
+      "wildcard": "",
+      "cycle": 1,
+      "inpaint_model": false,
+      "noise_mask_feather": 20,
+      "tiled_encode": false,
+      "tiled_decode": false,
+      "image": [
+        "60",
+        0
+      ],
+      "segs": [
+        "32",
+        0
+      ],
+      "model": [
+        "4",
+        0
+      ],
+      "clip": [
+        "4",
+        1
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "positive": [
+        "42",
+        0
+      ],
+      "negative": [
+        "12",
+        0
+      ]
+    },
+    "class_type": "DetailerForEach",
+    "_meta": {
+      "title": "Refine LEFT (LoRA A)"
+    }
+  },
+  "41": {
+    "inputs": {
+      "guide_size": 512,
+      "guide_size_for": true,
+      "max_size": 1024,
+      "seed": 0,
+      "steps": 9,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "sgm_uniform",
+      "denoise": 0.75,
+      "feather": 5,
+      "noise_mask": true,
+      "force_inpaint": true,
+      "wildcard": "",
+      "cycle": 1,
+      "inpaint_model": false,
+      "noise_mask_feather": 20,
+      "tiled_encode": false,
+      "tiled_decode": false,
+      "image": [
+        "40",
+        0
+      ],
+      "segs": [
+        "33",
+        0
+      ],
+      "model": [
+        "5",
+        0
+      ],
+      "clip": [
+        "5",
+        1
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "positive": [
+        "43",
+        0
+      ],
+      "negative": [
+        "12",
+        0
+      ]
+    },
+    "class_type": "DetailerForEach",
+    "_meta": {
+      "title": "Refine RIGHT (LoRA B)"
+    }
+  },
+  "42": {
+    "inputs": {
+      "text": "a woman, face",
+      "clip": [
+        "4",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Left person cond"
+    }
+  },
+  "43": {
+    "inputs": {
+      "text": "a woman, face",
+      "clip": [
+        "5",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Right person cond"
+    }
+  },
+  "50": {
+    "inputs": {
+      "segs": [
+        "32",
+        0
+      ],
+      "alpha_mode": true,
+      "min_alpha": 0.35,
+      "fallback_image_opt": [
+        "60",
+        0
+      ]
+    },
+    "class_type": "SEGSPreview",
+    "_meta": {
+      "title": "Person 1 mask preview"
+    }
+  },
+  "51": {
+    "inputs": {
+      "segs": [
+        "33",
+        0
+      ],
+      "alpha_mode": true,
+      "min_alpha": 0.35,
+      "fallback_image_opt": [
+        "60",
+        0
+      ]
+    },
+    "class_type": "SEGSPreview",
+    "_meta": {
+      "title": "Person 2 mask preview"
+    }
+  },
+  "52": {
+    "inputs": {
+      "filename_prefix": "seg_preview_p1",
+      "images": [
+        "50",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save P1 mask preview"
+    }
+  },
+  "53": {
+    "inputs": {
+      "filename_prefix": "seg_preview_p2",
+      "images": [
+        "51",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save P2 mask preview"
+    }
+  },
+  "27": {
+    "inputs": {
+      "images": [
+        "41",
+        0
+      ],
+      "filename_prefix": "final_refined"
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save"
+    }
+  },
+  "28": {
+    "inputs": {
+      "filename_prefix": "main_before_detail",
+      "images": [
+        "60",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "28. Save Main Image (Before Detailer - for comparison)"
+    }
+  },
+  "60": {
+    "inputs": {
+      "image": "example.png",
+      "upload": "image"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Uploaded 2-person photo"
+    }
+  }
+}
