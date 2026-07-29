@@ -1,0 +1,483 @@
+{
+  "1": {
+    "inputs": {
+      "noise_seed": 275792986913051
+    },
+    "class_type": "RandomNoise",
+    "_meta": {
+      "title": "RandomNoise"
+    }
+  },
+  "2": {
+    "inputs": {
+      "text": "head_swap: start with Picture 1 as the base image, keeping its lighting, environment, and background. remove the head from Picture 1 completely and replace it with the head from Picture 2, strictly preserving the hair, eye color, nose structure of Picture 2. copy the direction of the eye, head rotation, face emotion expressions from Picture 1, high quality, sharp details, 4k.",
+      "clip": [
+        "6",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "3": {
+    "inputs": {
+      "samples": [
+        "30",
+        0
+      ],
+      "vae": [
+        "23",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "4": {
+    "inputs": {
+      "UNKNOWN": "#000000",
+      "image": [
+        "28",
+        0
+      ]
+    },
+    "_meta": {}
+  },
+  "5": {
+    "inputs": {
+      "direction": "down",
+      "match_image_size": true,
+      "image1": [
+        "16",
+        0
+      ],
+      "image2": [
+        "4",
+        0
+      ]
+    },
+    "class_type": "ImageConcanate",
+    "_meta": {
+      "title": "ImageConcanate"
+    }
+  },
+  "6": {
+    "inputs": {
+      "clip_name": "qwen_3_8b_fp8mixed.safetensors",
+      "type": "flux2",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "7": {
+    "inputs": {
+      "direction": "right",
+      "match_image_size": true,
+      "image1": [
+        "5",
+        0
+      ],
+      "image2": [
+        "3",
+        0
+      ]
+    },
+    "class_type": "ImageConcanate",
+    "_meta": {
+      "title": "ImageConcanate"
+    }
+  },
+  "8": {
+    "inputs": {
+      "text": "bad quality, noise, blurry, worst quality, low resolution, blur, distortion, unnatural blending, cartoon, illustration, painting",
+      "clip": [
+        "6",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode ( Negative Prompt)"
+    }
+  },
+  "9": {
+    "inputs": {
+      "steps": 4,
+      "width": [
+        "12",
+        0
+      ],
+      "height": [
+        "12",
+        1
+      ]
+    },
+    "class_type": "Flux2Scheduler",
+    "_meta": {
+      "title": "Flux2Scheduler"
+    }
+  },
+  "10": {
+    "inputs": {
+      "conditioning": [
+        "2",
+        0
+      ],
+      "latent": [
+        "15",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "ReferenceLatent"
+    }
+  },
+  "11": {
+    "inputs": {
+      "width": [
+        "12",
+        0
+      ],
+      "height": [
+        "12",
+        1
+      ],
+      "batch_size": 1
+    },
+    "class_type": "EmptyFlux2LatentImage",
+    "_meta": {
+      "title": "Empty Flux 2 Latent"
+    }
+  },
+  "12": {
+    "inputs": {
+      "image": [
+        "16",
+        0
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "Get Image Size"
+    }
+  },
+  "13": {
+    "inputs": {
+      "conditioning": [
+        "21",
+        0
+      ],
+      "latent": [
+        "14",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "ReferenceLatent"
+    }
+  },
+  "14": {
+    "inputs": {
+      "pixels": [
+        "4",
+        0
+      ],
+      "vae": [
+        "23",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE Encode"
+    }
+  },
+  "15": {
+    "inputs": {
+      "pixels": [
+        "16",
+        0
+      ],
+      "vae": [
+        "23",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE Encode"
+    }
+  },
+  "16": {
+    "inputs": {
+      "UNKNOWN": "#000000",
+      "image": [
+        "24",
+        0
+      ]
+    },
+    "_meta": {}
+  },
+  "17": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "7",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "18": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "3",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "19": {
+    "inputs": {
+      "UNKNOWN": "null",
+      "A": [
+        "3",
+        0
+      ],
+      "B": [
+        "24",
+        0
+      ]
+    },
+    "_meta": {}
+  },
+  "20": {
+    "inputs": {
+      "strength": 1,
+      "model": [
+        "31",
+        0
+      ]
+    },
+    "class_type": "DifferentialDiffusion",
+    "_meta": {
+      "title": "Differential Diffusion"
+    }
+  },
+  "21": {
+    "inputs": {
+      "conditioning": [
+        "8",
+        0
+      ],
+      "latent": [
+        "15",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "ReferenceLatent"
+    }
+  },
+  "22": {
+    "inputs": {
+      "conditioning": [
+        "10",
+        0
+      ],
+      "latent": [
+        "14",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "ReferenceLatent"
+    }
+  },
+  "23": {
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "24": {
+    "inputs": {
+      "image": "94dc2743-2f9d-461a-918e-4c518998190e.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Image + mask the face"
+    }
+  },
+  "25": {
+    "inputs": {
+      "unet_name": "flux-2-klein-9b-fp8.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model"
+    }
+  },
+  "26": {
+    "inputs": {
+      "noise_mask": true,
+      "positive": [
+        "22",
+        0
+      ],
+      "negative": [
+        "21",
+        0
+      ],
+      "vae": [
+        "23",
+        0
+      ],
+      "pixels": [
+        "24",
+        0
+      ],
+      "mask": [
+        "24",
+        1
+      ]
+    },
+    "class_type": "InpaintModelConditioning",
+    "_meta": {
+      "title": "InpaintModelConditioning"
+    }
+  },
+  "27": {
+    "inputs": {
+      "cfg": 1,
+      "model": [
+        "20",
+        0
+      ],
+      "positive": [
+        "22",
+        0
+      ],
+      "negative": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "CFGGuider",
+    "_meta": {
+      "title": "CFGGuider"
+    }
+  },
+  "28": {
+    "inputs": {
+      "image": "VeniceAI_WDnY_y1qdvfGoc_2.jpeg"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Face"
+    }
+  },
+  "29": {
+    "inputs": {
+      "sampler_name": "lcm"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "KSamplerSelect"
+    }
+  },
+  "30": {
+    "inputs": {
+      "noise": [
+        "1",
+        0
+      ],
+      "guider": [
+        "27",
+        0
+      ],
+      "sampler": [
+        "29",
+        0
+      ],
+      "sigmas": [
+        "9",
+        0
+      ],
+      "latent_image": [
+        "26",
+        2
+      ]
+    },
+    "class_type": "SamplerCustomAdvanced",
+    "_meta": {
+      "title": "SamplerCustomAdvanced"
+    }
+  },
+  "31": {
+    "inputs": {
+      "lora_name": "bfs_head_v1_flux-klein_9b_step3500_rank128.safetensors",
+      "strength_model": 0.29,
+      "model": [
+        "25",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "Load LoRA"
+    }
+  },
+  "32": {
+    "inputs": {
+      "download_links": "https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-fp8/resolve/main/flux-2-klein-9b-fp8.safetensors diffusion_models\nhttps://huggingface.co/Comfy-Org/flux2-klein-9B/resolve/main/split_files/text_encoders/qwen_3_8b_fp8mixed.safetensors text_encoders\nhttps://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors vae\nhttps://huggingface.co/bond12321/bfs-head-klein9b/resolve/main/bfs_head_v1_flux-klein_9b_step3500_rank128.safetensors loras",
+      "auto_download": true,
+      "max_concurrent_downloads": 3,
+      "max_download_speed_mbps": 0,
+      "enable_resume": true,
+      "validate_files": false,
+      "enable_notifications": true,
+      "auto_organize": false,
+      "hf_token": ""
+    },
+    "class_type": "HuggingFaceDownloader",
+    "_meta": {
+      "title": "🤗 HuggingFace Model Downloader Pro"
+    }
+  },
+  "33": {
+    "inputs": {
+      "text": "=== DOWNLOAD REPORT ===\nTotal files: 5\nSuccessful downloads: 0\nAlready existed: 5\nInterrupted: 0\nFailed: 0\nMax concurrent: 3\nSpeed limit: Unlimited\nResume enabled: True\nValidation enabled: False\nAuto-organize: False\n\nDetails:\n✓ flux-2-klein-9b-fp8.safetensors: Already exists (8.79 GB)\n✓ qwen_3_8b_fp8mixed.safetensors: Already exists (8.07 GB)\n✓ flux2-vae.safetensors: Already exists (320.64 MB)\n✓ bfs_head_v1_flux-klein_9b_step3500_rank128.safetensors: Already exists (632.03 MB)\n✓ Flux2-Klein-9B-consistency-V2.safetensors: Already exists (316.03 MB)",
+      "anything": [
+        "32",
+        0
+      ]
+    },
+    "class_type": "easy showAnything",
+    "_meta": {
+      "title": "Show Any"
+    }
+  }
+}

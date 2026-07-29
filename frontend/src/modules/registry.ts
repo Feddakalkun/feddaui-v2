@@ -297,6 +297,20 @@ export const FEDDA_MODULES: FeddaModule[] = [
     card: veniceCard(11),
   },
   {
+    id: 'flux-headswap',
+    sourceModuleId: 'flux-klein',
+    label: 'Head Swap',
+    description: 'Transplant a head onto another image with FLUX2-KLEIN + bfs-head LoRA.',
+    area: 'image',
+    pack: 'booster',
+
+    tabs: ['flux-headswap'],
+    workflows: ['flux-headswap'],
+    defaultTab: 'flux-headswap',
+    Icon: Sparkles,
+    card: veniceCard(11),
+  },
+  {
     id: 'flux-klein-uncensored',
     hidden: true,
     sourceModuleId: 'flux-klein-uncensored',

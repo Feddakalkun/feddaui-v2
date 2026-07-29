@@ -22,6 +22,7 @@ import { Wan21Scail2Page } from './wan21/Wan21Scail2Page';
 import { LtxImg2VidPage } from './ltx/LtxImg2VidPage';
 import { LtxFlfPage } from './ltx/LtxFlfPage';
 import { LtxMultiFramePage } from './ltx/LtxMultiFramePage';
+import { FluxHeadSwapPage } from './fluxklein/FluxHeadSwapPage';
 import { LivePortraitPage } from './liveportrait/LivePortraitPage';
 import { Wan22VacePage } from './wan22/Wan22VacePage';
 import { LtxAi2vPage } from './ltx/LtxAi2vPage';
@@ -42,6 +43,7 @@ export const IMAGE_WORKFLOW_PAGES: Record<string, ComponentType> = {
   'chroma-simple-txt2img': ChromaSimpleTxt2Img,
   'flux': FluxTxt2Img,
   'flux-txt2img': FluxTxt2Img,
+  'flux-headswap': FluxHeadSwapPage,
   'firered-image-edit': FireRedImageEditPage,
   'qwen': QwenTxt2Img,
   'qwen-txt2img': QwenTxt2Img,
