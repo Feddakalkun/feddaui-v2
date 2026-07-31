@@ -8,3 +8,6 @@ ComfyUI_LayerStyle https://github.com/chflame163/ComfyUI_LayerStyle.git
 ComfyUI_LayerStyle_Advance https://github.com/chflame163/ComfyUI_LayerStyle_Advance.git
 ComfyUI-Lotus https://github.com/kijai/ComfyUI-Lotus.git
 ComfyUI-Inpaint-CropAndStitch https://github.com/lquesada/ComfyUI-Inpaint-CropAndStitch.git
+ComfyUI-Styles_CSV_Loader https://github.com/theUpsider/ComfyUI-Styles_CSV_Loader.git
+ComfyUI-segment-anything-2 https://github.com/kijai/ComfyUI-segment-anything-2.git
+ComfyUI-Florence2 https://github.com/kijai/ComfyUI-Florence2.git

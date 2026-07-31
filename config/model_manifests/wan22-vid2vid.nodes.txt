@@ -7,4 +7,6 @@ ComfyUI-Frame-Interpolation https://github.com/Fannovel16/ComfyUI-Frame-Interpol
 ComfyUI-GGUF https://github.com/city96/ComfyUI-GGUF.git
 ComfyMath https://github.com/evanspearman/ComfyMath.git
 comfy_mtb https://github.com/melMass/comfy_mtb.git
+ComfyUI-AdvancedLivePortrait https://github.com/PowerHouseMan/ComfyUI-AdvancedLivePortrait.git
+comfyui-reactor-node https://codeberg.org/Gourieff/comfyui-reactor-node.git
 ComfyLiterals https://github.com/M1kep/ComfyLiterals.git
