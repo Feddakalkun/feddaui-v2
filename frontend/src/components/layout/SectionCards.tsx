@@ -39,18 +39,18 @@ const FAMILY_LABELS: Record<string, string> = {
  * and depict the family's capability instead — see docs/v20/CARD-ART-PROMPTS.md.
  */
 const FAMILY_ART: Record<string, string> = {
-  'ltx-video': '/cards/v2/ltx-video.jpg',
-  'wan-video': '/cards/v2/wan-video.jpg',
-  lipsync: '/cards/v2/lipsync.jpg',
-  'z-image-core': '/cards/v2/z-image.jpg',
-  'z-image-advanced': '/cards/v2/z-image-advanced.jpg',
-  'sdxl-pack': '/cards/v2/sdxl.jpg',
-  'qwen-image': '/cards/v2/qwen.jpg',
-  'chroma-image': '/cards/v2/chroma.jpg',
-  'firered-image': '/cards/v2/firered.jpg',
-  'flux-klein': '/cards/v2/flux.jpg',
-  ideogram: '/cards/v2/ideogram.jpg',
-  'krea2-txt2img': '/cards/v2/krea2.jpg',
+  'ltx-video': '/cards/v2/family/ltx-video.jpg',
+  'wan-video': '/cards/v2/family/wan-video.jpg',
+  lipsync: '/cards/v2/family/lipsync.jpg',
+  'z-image-core': '/cards/v2/family/z-image.jpg',
+  'z-image-advanced': '/cards/v2/family/z-image-advanced.jpg',
+  'sdxl-pack': '/cards/v2/family/sdxl.jpg',
+  'qwen-image': '/cards/v2/family/qwen.jpg',
+  'chroma-image': '/cards/v2/family/chroma.jpg',
+  'firered-image': '/cards/v2/family/firered.jpg',
+  'flux-klein': '/cards/v2/family/flux.jpg',
+  ideogram: '/cards/v2/family/ideogram.jpg',
+  'krea2-txt2img': '/cards/v2/family/krea2.jpg',
 };
 
 const prettify = (id: string) =>
