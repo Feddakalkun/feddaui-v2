@@ -4454,6 +4454,52 @@ async def generate(req: GenerateRequest):
         except Exception as _tok_e:
             logger.warning("HF token injection skipped: %s", _tok_e)
 
+        # Missing models: fetch them through the backend's parallel downloader
+        # (~105 MB/s measured) instead of letting the ComfyUI HuggingFaceDownloader
+        # node pull them one file at a time down a single stream (~7 MB/s). Same
+        # URLs, same destinations, same token - only the transport differs, and the
+        # node has no retry so a dropped connection there discards the whole file.
+        #
+        # auto_download is forced off on every downloader node so the slow path can
+        # never race the fast one, and we do NOT submit when something was missing:
+        # ComfyUI would only reject the prompt on the absent model
+        # ("Value not in list: unet_name ...") which reads as a broken workflow.
+        try:
+            _dl_tok = (load_settings().get("hf_token") or "").strip()
+            _dl_started = []
+            for _nid, _node in payload.items():
+                if not isinstance(_node, dict) or "Downloader" not in str(_node.get("class_type", "")):
+                    continue
+                if isinstance(_node.get("inputs"), dict):
+                    _node["inputs"]["auto_download"] = False
+                for _item in _parse_workflow_download_links({str(_nid): _node}):
+                    _url = str(_item.get("url") or "")
+                    _fn = str(_item.get("filename") or "")
+                    _dest = _item.get("path")
+                    if not (_url and _fn and _dest):
+                        continue
+                    _hdrs = None
+                    if _dl_tok and "huggingface.co" in _url:
+                        _hdrs = {"Authorization": f"Bearer {_dl_tok}"}
+                    if model_downloader.start_url_download(
+                        _url, Path(str(_dest)), _fn, headers=_hdrs
+                    ) != "completed":
+                        _dl_started.append(_fn)
+            if _dl_started:
+                _names = ", ".join(_dl_started[:4]) + (" ..." if len(_dl_started) > 4 else "")
+                logger.info("Fast-downloading %d missing model(s) for %s", len(_dl_started), req.workflow_id)
+                raise HTTPException(
+                    status_code=409,
+                    detail=(
+                        f"Downloading {len(_dl_started)} missing model(s) at full speed: {_names}. "
+                        "Watch the progress bar, then press Generate again."
+                    ),
+                )
+        except HTTPException:
+            raise
+        except Exception as _dl_e:
+            logger.warning("fast model pre-download skipped: %s", _dl_e)
+
         client_id = req.params.get("client_id", "fedda_hub_v2")
         comfy_payload = {"prompt": payload, "client_id": client_id}
         resp = requests.post(f"{COMFY_URL}/prompt", json=comfy_payload, timeout=5)
