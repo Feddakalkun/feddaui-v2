@@ -6,7 +6,7 @@ import { usePersistentState } from './usePersistentState';
 import { useToast } from '../components/ui/Toast';
 import type { GenerateResponse, GenerateStatusResponse, NodeMapResponse } from '../types/api';
 
-type OutputKind = 'video';
+type OutputKind = 'video' | 'image';
 
 interface UseWorkflowRunOptions {
   workflowId: string;
@@ -50,10 +50,15 @@ export const useWorkflowRun = ({
   const completionHandledRef = useRef(false);
   const {
     state: execState,
+    lastOutputImages,
     lastOutputVideos,
     outputReadyCount,
     registerNodeMap,
   } = useComfyExecution();
+
+  // The execution context reports images and videos separately; a workflow only
+  // ever consumes one of them.
+  const liveOutputs = outputKind === 'video' ? lastOutputVideos : lastOutputImages;
 
   const collectUrls = useCallback((urls: string[]) => {
     if (!urls.length) return;
@@ -63,15 +68,14 @@ export const useWorkflowRun = ({
   }, [maxHistory, setCurrentMedia, setHistory]);
 
   useEffect(() => {
-    if (outputKind !== 'video') return;
     if (!isGenerating && !pendingPromptId) return;
-    if (!lastOutputVideos?.length) return;
+    if (!liveOutputs?.length) return;
 
-    const newOutputs = lastOutputVideos.slice(prevOutputCountRef.current);
+    const newOutputs = liveOutputs.slice(prevOutputCountRef.current);
     if (!newOutputs.length) return;
-    prevOutputCountRef.current = lastOutputVideos.length;
+    prevOutputCountRef.current = liveOutputs.length;
     collectUrls(newOutputs.map(outputUrl));
-  }, [collectUrls, isGenerating, lastOutputVideos, outputKind, outputReadyCount, pendingPromptId]);
+  }, [collectUrls, isGenerating, liveOutputs, outputReadyCount, pendingPromptId]);
 
   useEffect(() => {
     if (!pendingPromptId) return;
@@ -91,17 +95,18 @@ export const useWorkflowRun = ({
     setIsGenerating(false);
     setPendingPromptId(null);
 
-    fetch(`${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.GENERATE_STATUS}/${promptId}`)
+    fetch(`${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.GENERATE_STATUS}/${promptId}?workflow_id=${workflowId}`)
       .then((r) => r.json() as Promise<GenerateStatusResponse>)
       .then((data) => {
-        if (outputKind === 'video' && data.status === 'completed' && data.videos?.length) {
-          collectUrls(data.videos.map(outputUrl));
+        const files = outputKind === 'video' ? data.videos : data.images;
+        if (data.status === 'completed' && files?.length) {
+          collectUrls(files.map(outputUrl));
         }
         toast(readyMessage, 'success');
       })
       .catch(() => toast(readyMessage, 'success'))
       .finally(() => { advanceQueueRef.current(); });
-  }, [collectUrls, execState, outputKind, pendingPromptId, readyMessage, toast]);
+  }, [collectUrls, execState, outputKind, pendingPromptId, readyMessage, toast, workflowId]);
 
   // HTTP fallback polling — handles completion when WebSocket is unavailable (e.g. ComfyUI 403 on origin mismatch)
   useEffect(() => {
@@ -111,7 +116,7 @@ export const useWorkflowRun = ({
       if (completionHandledRef.current) { clearInterval(id); return; }
       try {
         const resp = await fetch(
-          `${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.GENERATE_STATUS}/${capturedId}`
+          `${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.GENERATE_STATUS}/${capturedId}?workflow_id=${workflowId}`
         );
         const data = await resp.json() as GenerateStatusResponse;
         if (data.status !== 'completed') return;
@@ -120,21 +125,22 @@ export const useWorkflowRun = ({
         clearInterval(id);
         setIsGenerating(false);
         setPendingPromptId(null);
-        if (outputKind === 'video' && data.videos?.length) {
-          collectUrls(data.videos.map(outputUrl));
+        const files = outputKind === 'video' ? data.videos : data.images;
+        if (files?.length) {
+          collectUrls(files.map(outputUrl));
         }
         toast(readyMessage, 'success');
         advanceQueueRef.current();
       } catch {}
     }, 5000);
     return () => clearInterval(id);
-  }, [pendingPromptId, collectUrls, outputKind, readyMessage, toast]);
+  }, [pendingPromptId, collectUrls, outputKind, readyMessage, toast, workflowId]);
 
   // Internal submit — no isGenerating guard so the batch chain can call it
   const submit = useCallback(async (params: Record<string, unknown>, options: StartWorkflowOptions = {}) => {
     completionHandledRef.current = false;
     sessionUrlsRef.current = [];
-    prevOutputCountRef.current = outputKind === 'video' ? (lastOutputVideos?.length ?? 0) : 0;
+    prevOutputCountRef.current = liveOutputs?.length ?? 0;
     if (options.clearCurrent !== false) {
       setCurrentMedia(null);
     }
@@ -170,7 +176,7 @@ export const useWorkflowRun = ({
       setBatchProgress(null);
       return null;
     }
-  }, [lastOutputVideos, outputKind, registerNodeMap, setCurrentMedia, toast, workflowId]);
+  }, [liveOutputs, registerNodeMap, setCurrentMedia, toast, workflowId]);
 
   const submitRef = useRef(submit);
   useEffect(() => { submitRef.current = submit; });
