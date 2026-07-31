@@ -502,7 +502,7 @@
       }
     }
   },
-  "z-image-dual-lora-upload":   {
+  "z-image-dual-lora-upload": {
     "name": "Z-Image Dual LoRA (Upload)",
     "filename": "z-image/z-image-dual-lora-upload.json",
     "description": "Refine two people in an uploaded photo with two LoRAs (no base generation).",
@@ -988,7 +988,7 @@
   "wan22-vid2vid": {
     "name": "WAN 2.2 Vid2Vid",
     "filename": "wan22/vid2vid-4frames-wan22.json",
-    "description": "Extend and transform video with WAN 2.2 \u00e2\u20ac\u201d 4-frame expansion chain",
+    "description": "Extend and transform video with WAN 2.2 â€” 4-frame expansion chain",
     "inputs": {
       "video": {
         "node_id": "148",
@@ -1166,13 +1166,48 @@
     "filename": "fluxklein/FLUX1kleinfaceswap.json",
     "description": "Swap the head/face from a source portrait onto a base image using FLUX2-KLEIN with the bfs-head LoRA. The two images are concatenated and edited in one pass, so lighting and background of the base are preserved.",
     "inputs": {
-      "image_base": { "node_id": "24", "input_key": "image", "type": "string", "label": "Base Image" },
-      "image_face": { "node_id": "28", "input_key": "image", "type": "string", "label": "Face Source" },
-      "prompt": { "node_id": "2", "input_key": "text", "type": "string", "label": "Instruction" },
-      "negative": { "node_id": "8", "input_key": "text", "type": "string", "label": "Negative" },
-      "steps": { "node_id": "9", "input_key": "steps", "type": "number", "label": "Steps" },
-      "seed": { "node_id": "1", "input_key": "noise_seed", "type": "number", "label": "Seed" },
-      "lora_strength": { "node_id": "31", "input_key": "strength_model", "type": "number", "label": "Head LoRA Strength" }
+      "image_base": {
+        "node_id": "24",
+        "input_key": "image",
+        "type": "string",
+        "label": "Base Image"
+      },
+      "image_face": {
+        "node_id": "28",
+        "input_key": "image",
+        "type": "string",
+        "label": "Face Source"
+      },
+      "prompt": {
+        "node_id": "2",
+        "input_key": "text",
+        "type": "string",
+        "label": "Instruction"
+      },
+      "negative": {
+        "node_id": "8",
+        "input_key": "text",
+        "type": "string",
+        "label": "Negative"
+      },
+      "steps": {
+        "node_id": "9",
+        "input_key": "steps",
+        "type": "number",
+        "label": "Steps"
+      },
+      "seed": {
+        "node_id": "1",
+        "input_key": "noise_seed",
+        "type": "number",
+        "label": "Seed"
+      },
+      "lora_strength": {
+        "node_id": "31",
+        "input_key": "strength_model",
+        "type": "number",
+        "label": "Head LoRA Strength"
+      }
     }
   },
   "ltx-flf3": {
@@ -1180,32 +1215,142 @@
     "filename": "ltx/LTX-23-flf3.json",
     "description": "Generate video through up to 5 keyframes using LTX Video 2.3. Each keyframe is an LTXVAddGuide in a chained pass-through, so the sampler is pinned to every supplied image rather than only the first and last.",
     "inputs": {
-      "image_1": { "node_id": "5613", "input_key": "image", "type": "string", "label": "Keyframe 1" },
-      "image_2": { "node_id": "5614", "input_key": "image", "type": "string", "label": "Keyframe 2" },
-      "image_3": { "node_id": "5658", "input_key": "image", "type": "string", "label": "Keyframe 3" },
-      "image_4": { "node_id": "5659", "input_key": "image", "type": "string", "label": "Keyframe 4" },
-      "image_5": { "node_id": "5660", "input_key": "image", "type": "string", "label": "Keyframe 5" },
-      "guide_strength_1": { "node_id": "5630", "input_key": "strength", "type": "number", "label": "KF1 Strength" },
-      "guide_strength_2": { "node_id": "5667", "input_key": "strength", "type": "number", "label": "KF2 Strength" },
-      "guide_strength_3": { "node_id": "5668", "input_key": "strength", "type": "number", "label": "KF3 Strength" },
-      "guide_strength_4": { "node_id": "5669", "input_key": "strength", "type": "number", "label": "KF4 Strength" },
-      "guide_strength_5": { "node_id": "5634", "input_key": "strength", "type": "number", "label": "KF5 Strength" },
-      "frame_idx_2": { "node_id": "5667", "input_key": "frame_idx", "type": "number", "label": "KF2 Frame" },
-      "frame_idx_3": { "node_id": "5668", "input_key": "frame_idx", "type": "number", "label": "KF3 Frame" },
-      "frame_idx_4": { "node_id": "5669", "input_key": "frame_idx", "type": "number", "label": "KF4 Frame" },
-      "frame_idx_5": { "node_id": "5634", "input_key": "frame_idx", "type": "number", "label": "KF5 Frame" },
-      "prompt": { "node_id": "5644", "input_key": "text", "type": "string", "label": "Prompt" },
-      "aspect_ratio": { "node_id": "5645", "input_key": "aspect_ratio", "type": "string", "label": "Aspect Ratio" },
-      "direction": { "node_id": "5645", "input_key": "direction", "type": "string", "label": "Direction" },
-      "width": { "node_id": "5645", "input_key": "width", "type": "number", "label": "Width" },
-      "height": { "node_id": "5645", "input_key": "height", "type": "number", "label": "Height" },
-      "length_seconds": { "node_id": "5646", "input_key": "value", "type": "number", "label": "Length (s)" },
-      "seed": { "node_id": "5650", "input_key": "noise_seed", "type": "number", "label": "Seed" },
-      "lora_slot2": { "node_id": "5618", "input_key": "lora_2", "type": "object", "label": "LoRA (Slot 2)" }
+      "image_1": {
+        "node_id": "5613",
+        "input_key": "image",
+        "type": "string",
+        "label": "Keyframe 1"
+      },
+      "image_2": {
+        "node_id": "5614",
+        "input_key": "image",
+        "type": "string",
+        "label": "Keyframe 2"
+      },
+      "image_3": {
+        "node_id": "5658",
+        "input_key": "image",
+        "type": "string",
+        "label": "Keyframe 3"
+      },
+      "image_4": {
+        "node_id": "5659",
+        "input_key": "image",
+        "type": "string",
+        "label": "Keyframe 4"
+      },
+      "image_5": {
+        "node_id": "5660",
+        "input_key": "image",
+        "type": "string",
+        "label": "Keyframe 5"
+      },
+      "guide_strength_1": {
+        "node_id": "5630",
+        "input_key": "strength",
+        "type": "number",
+        "label": "KF1 Strength"
+      },
+      "guide_strength_2": {
+        "node_id": "5667",
+        "input_key": "strength",
+        "type": "number",
+        "label": "KF2 Strength"
+      },
+      "guide_strength_3": {
+        "node_id": "5668",
+        "input_key": "strength",
+        "type": "number",
+        "label": "KF3 Strength"
+      },
+      "guide_strength_4": {
+        "node_id": "5669",
+        "input_key": "strength",
+        "type": "number",
+        "label": "KF4 Strength"
+      },
+      "guide_strength_5": {
+        "node_id": "5634",
+        "input_key": "strength",
+        "type": "number",
+        "label": "KF5 Strength"
+      },
+      "frame_idx_2": {
+        "node_id": "5667",
+        "input_key": "frame_idx",
+        "type": "number",
+        "label": "KF2 Frame"
+      },
+      "frame_idx_3": {
+        "node_id": "5668",
+        "input_key": "frame_idx",
+        "type": "number",
+        "label": "KF3 Frame"
+      },
+      "frame_idx_4": {
+        "node_id": "5669",
+        "input_key": "frame_idx",
+        "type": "number",
+        "label": "KF4 Frame"
+      },
+      "frame_idx_5": {
+        "node_id": "5634",
+        "input_key": "frame_idx",
+        "type": "number",
+        "label": "KF5 Frame"
+      },
+      "prompt": {
+        "node_id": "5644",
+        "input_key": "text",
+        "type": "string",
+        "label": "Prompt"
+      },
+      "aspect_ratio": {
+        "node_id": "5645",
+        "input_key": "aspect_ratio",
+        "type": "string",
+        "label": "Aspect Ratio"
+      },
+      "direction": {
+        "node_id": "5645",
+        "input_key": "direction",
+        "type": "string",
+        "label": "Direction"
+      },
+      "width": {
+        "node_id": "5645",
+        "input_key": "width",
+        "type": "number",
+        "label": "Width"
+      },
+      "height": {
+        "node_id": "5645",
+        "input_key": "height",
+        "type": "number",
+        "label": "Height"
+      },
+      "length_seconds": {
+        "node_id": "5646",
+        "input_key": "value",
+        "type": "number",
+        "label": "Length (s)"
+      },
+      "seed": {
+        "node_id": "5650",
+        "input_key": "noise_seed",
+        "type": "number",
+        "label": "Seed"
+      },
+      "lora_slot2": {
+        "node_id": "5618",
+        "input_key": "lora_2",
+        "type": "object",
+        "label": "LoRA (Slot 2)"
+      }
     }
   },
   "ltx-flf": {
-    "name": "LTX 2.3 \u00e2\u20ac\u201d First/Last Frame",
+    "name": "LTX 2.3 â€” First/Last Frame",
     "filename": "ltx/LTX-23-flf.json",
     "description": "Generate video from first and last frame images using LTX Video 2.3",
     "inputs": {
@@ -1753,6 +1898,12 @@
         "input_key": "denoise",
         "type": "number",
         "label": "Edit Strength"
+      },
+      "lora_strength": {
+        "node_id": "101",
+        "input_key": "strength_model",
+        "type": "number",
+        "label": "Anatomy LoRA Strength"
       }
     }
   },
@@ -1805,7 +1956,7 @@
     }
   },
   "ltx-img2vid": {
-    "name": "LTX 2.3 \u00e2\u20ac\u201d Img2Vid",
+    "name": "LTX 2.3 â€” Img2Vid",
     "filename": "ltx/LTX-23-img2vid.json",
     "description": "Animate a single reference image into cinematic video using LTX Video 2.3",
     "inputs": {
@@ -2315,7 +2466,7 @@
   "wan22xxx-img2vid": {
     "name": "WAN 2.2 XXX Img2Vid",
     "filename": "wan22/WAN22XXX-img2video.json",
-    "description": "Animate a reference image with dual high/low noise WAN 2.2 14B fp8 pass \u2014 NSFW UMT5 encoder, Power LoRA slots.",
+    "description": "Animate a reference image with dual high/low noise WAN 2.2 14B fp8 pass — NSFW UMT5 encoder, Power LoRA slots.",
     "inputs": {
       "image": {
         "node_id": "278",
@@ -2385,7 +2536,7 @@
   "hunyuan-i2v": {
     "name": "HunyuanVideo I2V fp8",
     "filename": "hunyuan/HunyuanVideo-i2v.json",
-    "description": "Animate a reference image into video using HunyuanVideo I2V 720p fp8 \u2014 native ComfyUI I2V pipeline.",
+    "description": "Animate a reference image into video using HunyuanVideo I2V 720p fp8 — native ComfyUI I2V pipeline.",
     "inputs": {
       "image": {
         "node_id": "8",
