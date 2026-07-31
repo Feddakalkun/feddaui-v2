@@ -78,3 +78,6 @@ HANDOVER_TO_LTX.md
 harvest_log.txt
 backend/prompt_harvester.py
 
+
+# workflow edit backups
+*.bak
