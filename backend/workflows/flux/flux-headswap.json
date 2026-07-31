@@ -1,0 +1,467 @@
+{
+  "116": {
+    "inputs": {
+      "download_links": "https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-fp8/resolve/main/flux-2-klein-9b-fp8.safetensors diffusion_models\nhttps://huggingface.co/comfyuistudio/nsfwKLein/resolve/main/nsfwKlein.safetensors diffusion_models\nhttps://huggingface.co/Comfy-Org/flux2-klein-9B/resolve/main/split_files/text_encoders/qwen_3_8b_fp8mixed.safetensors text_encoders\nhttps://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors vae\nhttps://huggingface.co/bond12321/bfs-head-klein9b/resolve/main/bfs_head_v1_flux-klein_9b_step3500_rank128.safetensors loras\nhttps://huggingface.co/dx8152/Flux2-Klein-9B-Consistency/resolve/main/Flux2-Klein-9B-consistency-V2.safetensors loras",
+      "auto_download": true,
+      "max_concurrent_downloads": 3,
+      "max_download_speed_mbps": 0,
+      "enable_resume": true,
+      "validate_files": false,
+      "enable_notifications": true,
+      "auto_organize": false,
+      "hf_token": "",
+      "speak_and_recognation": {
+        "__value__": [
+          false,
+          true
+        ]
+      }
+    },
+    "class_type": "HuggingFaceDownloader",
+    "_meta": {
+      "title": "🤗 HuggingFace Model Downloader Pro"
+    }
+  },
+  "709": {
+    "inputs": {
+      "image": "id2xmask.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Image"
+    }
+  },
+  "710": {
+    "inputs": {
+      "image": "woman.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Image"
+    }
+  },
+  "711": {
+    "inputs": {
+      "strength": 1,
+      "model": [
+        "717",
+        0
+      ]
+    },
+    "class_type": "DifferentialDiffusion",
+    "_meta": {
+      "title": "Differential Diffusion"
+    }
+  },
+  "712": {
+    "inputs": {
+      "noise_seed": 275792986913051
+    },
+    "class_type": "RandomNoise",
+    "_meta": {
+      "title": "RandomNoise"
+    }
+  },
+  "713": {
+    "inputs": {
+      "unet_name": "flux-2-klein-9b-fp8.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model"
+    }
+  },
+  "714": {
+    "inputs": {
+      "text": "head_swap: start with Picture 1 as the base image, keeping its lighting, environment, and background. remove the head from Picture 1 completely and replace it with the head from Picture 2, strictly preserving the hair, eye color, nose structure of Picture 2. copy the direction of the eye, head rotation, face emotion expressions from Picture 1, high quality, sharp details, 4k.",
+      "speak_and_recognation": {
+        "__value__": [
+          false,
+          true
+        ]
+      },
+      "clip": [
+        "721",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "715": {
+    "inputs": {
+      "samples": [
+        "716",
+        0
+      ],
+      "vae": [
+        "726",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "716": {
+    "inputs": {
+      "noise": [
+        "712",
+        0
+      ],
+      "guider": [
+        "718",
+        0
+      ],
+      "sampler": [
+        "722",
+        0
+      ],
+      "sigmas": [
+        "725",
+        0
+      ],
+      "latent_image": [
+        "728",
+        0
+      ]
+    },
+    "class_type": "SamplerCustomAdvanced",
+    "_meta": {
+      "title": "SamplerCustomAdvanced"
+    }
+  },
+  "717": {
+    "inputs": {
+      "lora_name": "bfs_head_v1_flux-klein_9b_step3500_rank128.safetensors",
+      "strength_model": 1,
+      "model": [
+        "713",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "Load LoRA"
+    }
+  },
+  "718": {
+    "inputs": {
+      "cfg": 1,
+      "model": [
+        "711",
+        0
+      ],
+      "positive": [
+        "734",
+        0
+      ],
+      "negative": [
+        "730",
+        0
+      ]
+    },
+    "class_type": "CFGGuider",
+    "_meta": {
+      "title": "CFG Guider"
+    }
+  },
+  "719": {
+    "inputs": {
+      "aspect_ratio": "original",
+      "proportional_width": 1,
+      "proportional_height": 1,
+      "fit": "letterbox",
+      "method": "lanczos",
+      "round_to_multiple": "8",
+      "scale_to_side": "longest",
+      "scale_to_length": 1280,
+      "background_color": "#000000",
+      "image": [
+        "710",
+        0
+      ]
+    },
+    "class_type": "LayerUtility: ImageScaleByAspectRatio V2",
+    "_meta": {
+      "title": "LayerUtility: ImageScaleByAspectRatio V2"
+    }
+  },
+  "720": {
+    "inputs": {
+      "direction": "down",
+      "match_image_size": true,
+      "image1": [
+        "735",
+        0
+      ],
+      "image2": [
+        "719",
+        0
+      ]
+    },
+    "class_type": "ImageConcanate",
+    "_meta": {
+      "title": "ImageConcanate"
+    }
+  },
+  "721": {
+    "inputs": {
+      "clip_name": "qwen_3_8b_fp8mixed.safetensors",
+      "type": "flux2",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "722": {
+    "inputs": {
+      "sampler_name": "lcm"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "KSamplerSelect"
+    }
+  },
+  "723": {
+    "inputs": {
+      "direction": "right",
+      "match_image_size": true,
+      "image1": [
+        "720",
+        0
+      ],
+      "image2": [
+        "715",
+        0
+      ]
+    },
+    "class_type": "ImageConcanate",
+    "_meta": {
+      "title": "ImageConcanate"
+    }
+  },
+  "724": {
+    "inputs": {
+      "text": "bad quality, noise, blurry, worst quality, low resolution, blur, distortion, unnatural blending, cartoon, illustration, painting",
+      "speak_and_recognation": {
+        "__value__": [
+          false,
+          true
+        ]
+      },
+      "clip": [
+        "721",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode ( Negative Prompt)"
+    }
+  },
+  "725": {
+    "inputs": {
+      "steps": 4,
+      "width": [
+        "729",
+        0
+      ],
+      "height": [
+        "729",
+        1
+      ]
+    },
+    "class_type": "Flux2Scheduler",
+    "_meta": {
+      "title": "Flux2Scheduler"
+    }
+  },
+  "726": {
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "727": {
+    "inputs": {
+      "conditioning": [
+        "714",
+        0
+      ],
+      "latent": [
+        "733",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "ReferenceLatent"
+    }
+  },
+  "728": {
+    "inputs": {
+      "width": [
+        "729",
+        0
+      ],
+      "height": [
+        "729",
+        1
+      ],
+      "batch_size": 1
+    },
+    "class_type": "EmptyFlux2LatentImage",
+    "_meta": {
+      "title": "Empty Flux 2 Latent"
+    }
+  },
+  "729": {
+    "inputs": {
+      "image": [
+        "735",
+        0
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "Get Image Size"
+    }
+  },
+  "730": {
+    "inputs": {
+      "conditioning": [
+        "732",
+        0
+      ],
+      "latent": [
+        "731",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "ReferenceLatent"
+    }
+  },
+  "731": {
+    "inputs": {
+      "pixels": [
+        "719",
+        0
+      ],
+      "vae": [
+        "726",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE Encode"
+    }
+  },
+  "732": {
+    "inputs": {
+      "conditioning": [
+        "724",
+        0
+      ],
+      "latent": [
+        "733",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "ReferenceLatent"
+    }
+  },
+  "733": {
+    "inputs": {
+      "pixels": [
+        "735",
+        0
+      ],
+      "vae": [
+        "726",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE Encode"
+    }
+  },
+  "734": {
+    "inputs": {
+      "conditioning": [
+        "727",
+        0
+      ],
+      "latent": [
+        "731",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "ReferenceLatent"
+    }
+  },
+  "735": {
+    "inputs": {
+      "aspect_ratio": "original",
+      "proportional_width": 1,
+      "proportional_height": 1,
+      "fit": "letterbox",
+      "method": "lanczos",
+      "round_to_multiple": "8",
+      "scale_to_side": "longest",
+      "scale_to_length": 1280,
+      "background_color": "#000000",
+      "image": [
+        "709",
+        0
+      ]
+    },
+    "class_type": "LayerUtility: ImageScaleByAspectRatio V2",
+    "_meta": {
+      "title": "LayerUtility: ImageScaleByAspectRatio V2"
+    }
+  },
+  "736": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "723",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "737": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "715",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  }
+}

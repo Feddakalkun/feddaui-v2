@@ -1163,47 +1163,47 @@
   },
   "flux-headswap": {
     "name": "FLUX2-KLEIN - Head Swap",
-    "filename": "fluxklein/FLUX1kleinfaceswap.json",
+    "filename": "flux/flux-headswap.json",
     "description": "Swap the head/face from a source portrait onto a base image using FLUX2-KLEIN with the bfs-head LoRA. The two images are concatenated and edited in one pass, so lighting and background of the base are preserved.",
     "inputs": {
       "image_base": {
-        "node_id": "24",
+        "node_id": "709",
         "input_key": "image",
         "type": "string",
         "label": "Base Image"
       },
       "image_face": {
-        "node_id": "28",
+        "node_id": "710",
         "input_key": "image",
         "type": "string",
         "label": "Face Source"
       },
       "prompt": {
-        "node_id": "2",
+        "node_id": "714",
         "input_key": "text",
         "type": "string",
         "label": "Instruction"
       },
       "negative": {
-        "node_id": "8",
+        "node_id": "724",
         "input_key": "text",
         "type": "string",
         "label": "Negative"
       },
       "steps": {
-        "node_id": "9",
+        "node_id": "725",
         "input_key": "steps",
         "type": "number",
         "label": "Steps"
       },
       "seed": {
-        "node_id": "1",
+        "node_id": "712",
         "input_key": "noise_seed",
         "type": "number",
         "label": "Seed"
       },
       "lora_strength": {
-        "node_id": "31",
+        "node_id": "717",
         "input_key": "strength_model",
         "type": "number",
         "label": "Head LoRA Strength"

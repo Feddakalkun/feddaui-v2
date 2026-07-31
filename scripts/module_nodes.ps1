@@ -83,6 +83,10 @@ function Get-FeddaNodeConfig {
                     "InpaintCropImproved" = "ComfyUI-Inpaint-CropAndStitch"
                     "InpaintStitchImproved" = "ComfyUI-Inpaint-CropAndStitch"
                     "LayerMask: PersonMaskUltra V2" = "ComfyUI_LayerStyle_Advance"
+                    # ImageScaleByAspectRatio is in the BASE LayerStyle pack, not _Advance.
+                    "LayerUtility: ImageScaleByAspectRatio" = "ComfyUI_LayerStyle"
+                    "LayerUtility: ImageScaleByAspectRatio V2" = "ComfyUI_LayerStyle"
+                    "iToolsCompareImage" = "ComfyUI-iTools"
                     "Text Multiline" = "was-node-suite-comfyui"
                     "UnetLoaderGGUF" = "ComfyUI-GGUF"
                     "DualCLIPLoaderGGUF" = "ComfyUI-GGUF"

@@ -31,6 +31,12 @@ CLASS_TYPE_NODE_MAP = {
     "InpaintCropImproved": "ComfyUI-Inpaint-CropAndStitch",
     "InpaintStitchImproved": "ComfyUI-Inpaint-CropAndStitch",
     "LayerMask: PersonMaskUltra V2": "ComfyUI_LayerStyle_Advance",
+    # The ImageScaleByAspectRatio nodes live in the BASE LayerStyle pack, not
+    # _Advance - installing only _Advance registers 77 of the 178 nodes and the
+    # workflow fails at submit with "node not found".
+    "LayerUtility: ImageScaleByAspectRatio": "ComfyUI_LayerStyle",
+    "LayerUtility: ImageScaleByAspectRatio V2": "ComfyUI_LayerStyle",
+    "iToolsCompareImage": "ComfyUI-iTools",
     "Text Multiline": "was-node-suite-comfyui",
     "UnetLoaderGGUF": "ComfyUI-GGUF",
     "DualCLIPLoaderGGUF": "ComfyUI-GGUF",

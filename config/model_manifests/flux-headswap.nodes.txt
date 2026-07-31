@@ -4,3 +4,4 @@
 ComfyUI-Styles_CSV_Loader https://github.com/theUpsider/ComfyUI-Styles_CSV_Loader.git
 ComfyUI-segment-anything-2 https://github.com/kijai/ComfyUI-segment-anything-2.git
 ComfyUI-Florence2 https://github.com/kijai/ComfyUI-Florence2.git
+ComfyUI_LayerStyle https://github.com/chflame163/ComfyUI_LayerStyle.git
