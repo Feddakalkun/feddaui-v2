@@ -65,7 +65,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     tabs: ['image'],
     defaultTab: 'image',
     Icon: Sparkles,
-    card: veniceCard(1),
+    card: { poster: '/cards/v2/image-studio.jpg' },
   },
   {
     id: 'video-studio',
@@ -78,7 +78,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     tabs: ['video'],
     defaultTab: 'video',
     Icon: Video,
-    card: veniceCard(2),
+    card: { poster: '/cards/v2/video-studio.jpg' },
   },
   {
     id: 'gallery',
@@ -90,7 +90,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     tabs: ['gallery'],
     defaultTab: 'gallery',
     Icon: Images,
-    card: veniceCard(3),
+    card: { poster: '/cards/v2/gallery.jpg' },
   },
   {
     id: 'lora-character',
@@ -103,7 +103,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     tabs: ['library'],
     defaultTab: 'library',
     Icon: LayoutDashboard,
-    card: veniceCard(4),
+    card: { poster: '/cards/v2/lora-character.jpg' },
   },
   {
     id: 'ollama-models',
@@ -116,7 +116,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     tabs: ['ollama'],
     defaultTab: 'ollama',
     Icon: Bot,
-    card: veniceCard(5),
+    card: { poster: '/cards/v2/ollama-models.jpg' },
   },
   {
     id: 'venice',
@@ -157,7 +157,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     tabs: ['zonos-tts'],
     defaultTab: 'zonos-tts',
     Icon: Volume2,
-    card: veniceCard(35),
+    card: { poster: '/cards/v2/zonos-tts.jpg' },
   },
   {
     id: 'media-downloader',
@@ -240,7 +240,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['z-image'],
     defaultTab: 'z-image-txt2img',
     Icon: Sparkles,
-    card: veniceCard(7),
+    card: { poster: '/cards/v2/z-image-basic.jpg' },
   },
   {
     id: 'z-image-dual-lora',
@@ -269,7 +269,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['chroma1-hd-txt2img'],
     defaultTab: 'chroma-txt2img',
     Icon: Sparkles,
-    card: veniceCard(9),
+    card: { poster: '/cards/v2/chroma1-hd.jpg' },
   },
   {
     id: 'chroma-simple',
@@ -283,7 +283,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['chroma-simple-txt2img'],
     defaultTab: 'chroma-simple-txt2img',
     Icon: Sparkles,
-    card: veniceCard(10),
+    card: { poster: '/cards/v2/chroma-simple.jpg' },
   },
   {
     id: 'flux2-klein',
@@ -326,7 +326,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['flux-headswap'],
     defaultTab: 'flux-headswap',
     Icon: Sparkles,
-    card: veniceCard(11),
+    card: { poster: '/cards/v2/flux-headswap.jpg' },
   },
   {
     id: 'flux-klein-uncensored',
@@ -355,7 +355,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['krea2-turbo-txt2img'],
     defaultTab: 'krea2-turbo-txt2img',
     Icon: Sparkles,
-    card: veniceCard(38),
+    card: { poster: '/cards/v2/krea2.jpg' },
   },
   {
     id: 'ideogram',
@@ -384,7 +384,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['firered-image-edit'],
     defaultTab: 'firered-image-edit',
     Icon: Sparkles,
-    card: veniceCard(12),
+    card: { poster: '/cards/v2/firered-image-edit.jpg' },
   },
   {
     id: 'qwen-image',
@@ -398,7 +398,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['qwen-txt2img'],
     defaultTab: 'qwen-txt2img',
     Icon: Sparkles,
-    card: veniceCard(13),
+    card: { poster: '/cards/v2/qwen-image.jpg' },
   },
   {
     id: 'qwen-reference',
@@ -427,7 +427,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['qwen-rapid-edit-v23'],
     defaultTab: 'qwen-rapid-edit-v23',
     Icon: Sparkles,
-    card: veniceCard(15),
+    card: { poster: '/cards/v2/qwen-rapid-edit-v23.jpg' },
   },
   {
     id: 'qwen-multi-angle',
@@ -654,7 +654,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['ltx-img2vid'],
     defaultTab: 'ltx-img2vid',
     Icon: Film,
-    card: veniceCard(22),
+    card: { poster: '/cards/v2/ltx-img2vid.jpg' },
   },
   {
     id: 'ltx-first-last',
@@ -668,7 +668,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['ltx-flf'],
     defaultTab: 'ltx-flf',
     Icon: Film,
-    card: veniceCard(23),
+    card: { poster: '/cards/v2/ltx-first-last.jpg' },
   },
   {
     id: 'ltx-multi-frame',
@@ -682,7 +682,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['ltx-flf3'],
     defaultTab: 'ltx-flf3',
     Icon: Film,
-    card: veniceCard(23),
+    card: { poster: '/cards/v2/ltx-multi-frame.jpg' },
   },
   {
     id: 'ltx-audio-img2vid',
