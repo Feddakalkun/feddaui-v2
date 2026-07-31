@@ -127,7 +127,19 @@ def main() -> int:
     for wid, kind, detail in broken:
         print("  [BROKEN] %-26s %s" % (wid, kind))
         print("           %s" % detail)
-    print("\n%d ok, %d broken, %d checked" % (ok, len(broken), len(targets)))
+
+    # Be explicit about which checks actually ran. Reporting a plain "N ok" when
+    # ComfyUI was unreachable is a lie by omission: only the structural half ran,
+    # and a workflow missing half its custom nodes gets counted as fine. That
+    # exact wording ("44 ok, 2 broken") hid 28 broken workflows until ComfyUI came
+    # back up and the same tree reported 16 ok, 30 broken.
+    if available is None:
+        print("\n%d structurally ok, %d broken, %d checked" % (ok, len(broken), len(targets)))
+        print("!! NODE AVAILABILITY WAS NOT CHECKED - ComfyUI was not running at %s." % COMFY_URL)
+        print("!! 'structurally ok' here means only: parses, and no null class_type.")
+        print("!! Workflows needing uninstalled custom nodes are NOT detected. Re-run with ComfyUI up.")
+    else:
+        print("\n%d ok, %d broken, %d checked" % (ok, len(broken), len(targets)))
 
     if broken:
         print("\nNULL class_type => re-export from ComfyUI: ungroup subgraphs and replace")
@@ -135,6 +147,11 @@ def main() -> int:
         print("MISSING node type => install the pack, and declare it in config/modules.json")
         print("  under the module that owns the workflow (see %s)." % os.path.relpath(MODULES, ROOT))
 
+    if strict and available is None:
+        # Under --strict an incomplete check must not pass as success, or gating
+        # install/update on this would wave through workflows whose packs are absent.
+        print("\n--strict: failing because node availability could not be checked.")
+        return 2
     return 1 if (broken and strict) else 0
 
 

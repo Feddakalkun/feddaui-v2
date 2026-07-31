@@ -131,7 +131,10 @@
         "ComfyUI_LayerStyle_Advance",
         "ComfyUI-Lotus",
         "ComfyUI-Inpaint-CropAndStitch",
-        "ComfyUI-KJNodes"
+        "ComfyUI-KJNodes",
+        "ComfyUI-Styles_CSV_Loader",
+        "ComfyUI-segment-anything-2",
+        "ComfyUI-Florence2"
       ],
       "models": [
         "controlnet-union-sdxl-1.0.safetensors",
