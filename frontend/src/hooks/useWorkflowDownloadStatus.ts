@@ -82,9 +82,15 @@ export function useWorkflowDownloadStatus(workflowId: string): WorkflowDownloadS
     }
   }, [workflowId]);
 
-  // Poll live file sizes while the HuggingFaceDownloader node is executing
-  // or a manual pre-download is in flight
-  const pollingActive = isDownloaderNode || manualDownloading;
+  // Poll live file sizes while a download could be running. The third condition
+  // matters: /api/generate now starts missing-model downloads itself through the
+  // backend's fast downloader, and that path sets neither isDownloaderNode (that
+  // is the ComfyUI node executing) nor manualDownloading (that is the button).
+  // Without it the bytes climb on disk while the banner shows nothing, and the
+  // 409 telling the user to "watch the progress bar" points at a bar that never
+  // appears. Anything still missing is reason enough to watch.
+  const hasMissingFiles = preflight.some((f) => !f.exists);
+  const pollingActive = isDownloaderNode || manualDownloading || hasMissingFiles;
   useEffect(() => {
     if (!pollingActive) {
       setLiveFiles([]);
@@ -107,9 +113,12 @@ export function useWorkflowDownloadStatus(workflowId: string): WorkflowDownloadS
           totalBytes: Number(f.totalBytes ?? 0),
         }));
         setLiveFiles(files);
-        // Manual pre-download finishes when every file is on disk
-        if (manualDownloading && files.length > 0 && files.every((f) => f.exists)) {
-          setManualDownloading(false);
+        // Every file on disk means the download is done, whoever started it.
+        // Re-running preflight clears hasMissingFiles, which stops this poll —
+        // otherwise a Generate-triggered download would leave it running forever
+        // since nothing else resets that flag.
+        if (files.length > 0 && files.every((f) => f.exists)) {
+          if (manualDownloading) setManualDownloading(false);
           fetchPreflight();
         }
       } catch {
