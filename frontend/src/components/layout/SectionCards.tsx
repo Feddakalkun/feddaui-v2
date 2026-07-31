@@ -30,29 +30,6 @@ const FAMILY_LABELS: Record<string, string> = {
   'krea2-txt2img': 'KREA2',
 };
 
-/**
- * Purpose-made art per family.
- *
- * Families used to borrow the poster of whichever workflow happened to be first,
- * so "LTX Video" showed the Img2Vid picture and the tile lied about what was
- * behind it. These are generated to the card recipe in BREADCRUMBS (2026-06-18)
- * and depict the family's capability instead — see docs/v20/CARD-ART-PROMPTS.md.
- */
-const FAMILY_ART: Record<string, string> = {
-  'ltx-video': '/cards/v2/family/ltx-video.jpg',
-  'wan-video': '/cards/v2/family/wan-video.jpg',
-  lipsync: '/cards/v2/family/lipsync.jpg',
-  'z-image-core': '/cards/v2/family/z-image.jpg',
-  'z-image-advanced': '/cards/v2/family/z-image-advanced.jpg',
-  'sdxl-pack': '/cards/v2/family/sdxl.jpg',
-  'qwen-image': '/cards/v2/family/qwen.jpg',
-  'chroma-image': '/cards/v2/family/chroma.jpg',
-  'firered-image': '/cards/v2/family/firered.jpg',
-  'flux-klein': '/cards/v2/family/flux.jpg',
-  ideogram: '/cards/v2/family/ideogram.jpg',
-  'krea2-txt2img': '/cards/v2/family/krea2.jpg',
-};
-
 const prettify = (id: string) =>
   id.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -215,14 +192,12 @@ export const SectionCards = ({ area, kicker, title, onSelect, onBack }: SectionC
                 />
               ))
             : families.map((f) => {
-                // Fall back to borrowing a workflow's poster only if a family has
-                // no art of its own yet.
-                const borrowed = f.modules.find((m) => m.card?.poster);
+                const art = f.modules.find((m) => m.card?.poster);
                 return (
                   <Card
                     key={f.id}
-                    poster={FAMILY_ART[f.id] ?? borrowed?.card?.poster}
-                    video={f.modules.length === 1 ? borrowed?.card?.video : undefined}
+                    poster={art?.card?.poster}
+                    video={f.modules.length === 1 ? art?.card?.video : undefined}
                     label={f.label}
                     count={f.modules.length}
                     Icon={f.modules[0]?.Icon}
