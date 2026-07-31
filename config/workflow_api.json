@@ -3620,5 +3620,54 @@
         "label": "Seed"
       }
     }
+  },
+  "klein-inpaint": {
+    "name": "FLUX2-KLEIN - NSFW Edit",
+    "filename": "fluxklein/klein-inpaint.json",
+    "description": "Uncensored FLUX2-Klein reference edit. Describe the change in plain language - no mask needed. Optionally paint a mask in ComfyUI to restrict the change.",
+    "inputs": {
+      "image": {
+        "node_id": "763",
+        "input_key": "image",
+        "type": "string",
+        "label": "Source Image"
+      },
+      "prompt": {
+        "node_id": "761",
+        "input_key": "text",
+        "type": "string",
+        "label": "Replace with"
+      },
+      "seed": {
+        "node_id": "747",
+        "input_key": "seed",
+        "type": "number",
+        "label": "Seed"
+      },
+      "steps": {
+        "node_id": "747",
+        "input_key": "steps",
+        "type": "number",
+        "label": "Steps"
+      },
+      "cfg": {
+        "node_id": "747",
+        "input_key": "cfg",
+        "type": "number",
+        "label": "CFG"
+      },
+      "denoise": {
+        "node_id": "747",
+        "input_key": "denoise",
+        "type": "number",
+        "label": "Denoise"
+      },
+      "lora_strength": {
+        "node_id": "755",
+        "input_key": "strength_model",
+        "type": "number",
+        "label": "Consistency LoRA"
+      }
+    }
   }
 }

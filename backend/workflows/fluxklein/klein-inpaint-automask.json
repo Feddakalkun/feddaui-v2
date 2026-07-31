@@ -1,0 +1,379 @@
+{
+  "116": {
+    "inputs": {
+      "download_links": "https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-fp8/resolve/main/flux-2-klein-9b-fp8.safetensors diffusion_models\nhttps://huggingface.co/comfyuistudio/nsfwKLein/resolve/main/nsfwKlein.safetensors diffusion_models\nhttps://huggingface.co/Comfy-Org/flux2-klein-9B/resolve/main/split_files/text_encoders/qwen_3_8b_fp8mixed.safetensors text_encoders\nhttps://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors vae\nhttps://huggingface.co/bond12321/bfs-head-klein9b/resolve/main/bfs_head_v1_flux-klein_9b_step3500_rank128.safetensors loras\nhttps://huggingface.co/dx8152/Flux2-Klein-9B-Consistency/resolve/main/Flux2-Klein-9B-consistency-V2.safetensors loras",
+      "auto_download": true,
+      "max_concurrent_downloads": 3,
+      "max_download_speed_mbps": 0,
+      "enable_resume": true,
+      "validate_files": false,
+      "enable_notifications": true,
+      "auto_organize": false,
+      "hf_token": "",
+      "speak_and_recognation": {
+        "__value__": [
+          false,
+          true
+        ]
+      }
+    },
+    "class_type": "HuggingFaceDownloader",
+    "_meta": {
+      "title": "🤗 HuggingFace Model Downloader Pro"
+    }
+  },
+  "121": {
+    "inputs": {
+      "text": "=== DOWNLOAD REPORT ===\nTotal files: 6\nSuccessful downloads: 0\nAlready existed: 6\nInterrupted: 0\nFailed: 0\nMax concurrent: 3\nSpeed limit: Unlimited\nResume enabled: True\nValidation enabled: False\nAuto-organize: False\n\nDetails:\n✓ flux-2-klein-9b-fp8.safetensors: Already exists (8.79 GB)\n✓ nsfwKlein.safetensors: Already exists (8.46 GB)\n✓ qwen_3_8b_fp8mixed.safetensors: Already exists (8.07 GB)\n✓ flux2-vae.safetensors: Already exists (320.64 MB)\n✓ bfs_head_v1_flux-klein_9b_step3500_rank128.safetensors: Already exists (632.03 MB)\n✓ Flux2-Klein-9B-consistency-V2.safetensors: Already exists (316.03 MB)",
+      "anything": [
+        "116",
+        0
+      ]
+    },
+    "class_type": "easy showAnything",
+    "_meta": {
+      "title": "Show Any"
+    }
+  },
+  "745": {
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "746": {
+    "inputs": {
+      "clip_name": "qwen_3_8b_fp8mixed.safetensors",
+      "type": "flux2",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "747": {
+    "inputs": {
+      "seed": 295093140355675,
+      "steps": 4,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "755",
+        0
+      ],
+      "positive": [
+        "754",
+        0
+      ],
+      "negative": [
+        "754",
+        1
+      ],
+      "latent_image": [
+        "754",
+        2
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "753": {
+    "inputs": {
+      "filename_prefix": "Flux2-Klein-4b-base",
+      "images": [
+        "757",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "754": {
+    "inputs": {
+      "noise_mask": false,
+      "positive": [
+        "764",
+        0
+      ],
+      "negative": [
+        "756",
+        0
+      ],
+      "vae": [
+        "745",
+        0
+      ],
+      "pixels": [
+        "763",
+        0
+      ],
+      "mask": [
+        "904",
+        0
+      ]
+    },
+    "class_type": "InpaintModelConditioning",
+    "_meta": {
+      "title": "InpaintModelConditioning"
+    }
+  },
+  "755": {
+    "inputs": {
+      "lora_name": "Flux2-Klein-9B-consistency-V2.safetensors",
+      "strength_model": 0.3,
+      "strength_clip": 0.3,
+      "model": [
+        "762",
+        0
+      ],
+      "clip": [
+        "746",
+        0
+      ]
+    },
+    "class_type": "LoraLoader",
+    "_meta": {
+      "title": "Load Lora 1"
+    }
+  },
+  "756": {
+    "inputs": {
+      "conditioning": [
+        "761",
+        0
+      ]
+    },
+    "class_type": "ConditioningZeroOut",
+    "_meta": {
+      "title": "ConditioningZeroOut"
+    }
+  },
+  "757": {
+    "inputs": {
+      "samples": [
+        "747",
+        0
+      ],
+      "vae": [
+        "745",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "758": {
+    "inputs": {
+      "pixels": [
+        "763",
+        0
+      ],
+      "vae": [
+        "745",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE Encode"
+    }
+  },
+  "761": {
+    "inputs": {
+      "text": "make it naked",
+      "speak_and_recognation": {
+        "__value__": [
+          false,
+          true
+        ]
+      },
+      "clip": [
+        "755",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Prompt"
+    }
+  },
+  "762": {
+    "inputs": {
+      "unet_name": "nsfwKlein.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model"
+    }
+  },
+  "763": {
+    "inputs": {
+      "image": "bb579fc7-128d-4081-be62-3b7ec566ae9a.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Original Reference and Mask"
+    }
+  },
+  "764": {
+    "inputs": {
+      "conditioning": [
+        "761",
+        0
+      ],
+      "latent": [
+        "758",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "ReferenceLatent"
+    }
+  },
+  "765": {
+    "inputs": {
+      "image1": [
+        "757",
+        0
+      ],
+      "image2": [
+        "763",
+        0
+      ]
+    },
+    "class_type": "PixaromaCompare",
+    "_meta": {
+      "title": "Image Compare Pixaroma"
+    }
+  },
+  "768": {
+    "inputs": {
+      "mask": [
+        "763",
+        1
+      ]
+    },
+    "class_type": "easy isMaskEmpty",
+    "_meta": {
+      "title": "Is Mask Empty"
+    }
+  },
+  "769": {
+    "inputs": {
+      "mask": [
+        "763",
+        1
+      ]
+    },
+    "class_type": "InvertMask",
+    "_meta": {
+      "title": "Invert Mask"
+    }
+  },
+  "864": {
+    "inputs": {},
+    "class_type": "easy showAnything",
+    "_meta": {
+      "title": "Show Any"
+    }
+  },
+  "900": {
+    "inputs": {
+      "model": "gokaygokay/Florence-2-SD3-Captioner",
+      "precision": "bf16",
+      "attention": "sdpa",
+      "convert_to_safetensors": false
+    },
+    "class_type": "DownloadAndLoadFlorence2Model",
+    "_meta": {
+      "title": "Florence2 (object finder)"
+    }
+  },
+  "901": {
+    "inputs": {
+      "model": "sam2_hiera_base_plus.safetensors",
+      "segmentor": "single_image",
+      "device": "cuda",
+      "precision": "fp16"
+    },
+    "class_type": "DownloadAndLoadSAM2Model",
+    "_meta": {
+      "title": "SAM2 (mask maker)"
+    }
+  },
+  "902": {
+    "inputs": {
+      "text_input": "banana",
+      "task": "caption_to_phrase_grounding",
+      "fill_mask": false,
+      "keep_model_loaded": false,
+      "max_new_tokens": 1024,
+      "num_beams": 3,
+      "do_sample": false,
+      "output_mask_select": "0",
+      "seed": 1,
+      "image": [
+        "763",
+        0
+      ],
+      "florence2_model": [
+        "900",
+        0
+      ]
+    },
+    "class_type": "Florence2Run",
+    "_meta": {
+      "title": "What to replace"
+    }
+  },
+  "903": {
+    "inputs": {
+      "index": 0,
+      "batch": false,
+      "data": [
+        "902",
+        3
+      ]
+    },
+    "class_type": "Florence2toCoordinates",
+    "_meta": {
+      "title": "Florence2 -> box"
+    }
+  },
+  "904": {
+    "inputs": {
+      "keep_model_loaded": true,
+      "individual_objects": false,
+      "sam2_model": [
+        "901",
+        0
+      ],
+      "image": [
+        "902",
+        0
+      ],
+      "bboxes": [
+        "903",
+        1
+      ]
+    },
+    "class_type": "Sam2Segmentation",
+    "_meta": {
+      "title": "SAM2 precise mask"
+    }
+  }
+}

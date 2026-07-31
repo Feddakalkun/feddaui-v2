@@ -297,6 +297,20 @@ export const FEDDA_MODULES: FeddaModule[] = [
     card: veniceCard(11),
   },
   {
+    id: 'klein-inpaint',
+    sourceModuleId: 'flux-klein',
+    label: 'NSFW Edit',
+    description: 'Uncensored FLUX2-Klein reference edit - describe the change, no mask.',
+    area: 'image',
+    pack: 'booster',
+
+    tabs: ['klein-inpaint'],
+    workflows: ['klein-inpaint'],
+    defaultTab: 'klein-inpaint',
+    Icon: Sparkles,
+    card: veniceCard(11),
+  },
+  {
     id: 'flux-headswap',
     sourceModuleId: 'flux-klein',
     label: 'Head Swap',

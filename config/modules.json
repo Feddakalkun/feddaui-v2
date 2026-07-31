@@ -317,16 +317,20 @@
       "tabs": [
         "flux",
         "flux-txt2img",
-        "flux-headswap"
+        "flux-headswap",
+        "klein-inpaint"
       ],
       "workflows": [
         "flux2klein-txt2img",
-        "flux-headswap"
+        "flux-headswap",
+        "klein-inpaint"
       ],
       "custom_nodes": [
         "rgthree-comfy",
         "ComfyUI-Styles_CSV_Loader",
-        "ComfyUI_essentials"
+        "ComfyUI_essentials",
+        "ComfyUI-segment-anything-2",
+        "ComfyUI-Florence2"
       ],
       "models": [
         "FLUX2 Klein model family"
