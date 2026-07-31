@@ -81,3 +81,6 @@ backend/prompt_harvester.py
 
 # workflow edit backups
 *.bak
+
+# raw card sources (large PNG exports)
+frontend/public/cards/v4/
