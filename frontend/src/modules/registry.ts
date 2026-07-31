@@ -312,7 +312,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['klein-inpaint'],
     defaultTab: 'klein-inpaint',
     Icon: Sparkles,
-    card: veniceCard(11),
+    card: { poster: '/cards/deep-teal/klein-inpaint.jpg' },
   },
   {
     id: 'flux-headswap',
@@ -326,7 +326,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['flux-headswap'],
     defaultTab: 'flux-headswap',
     Icon: Sparkles,
-    card: veniceCard(11),
+    card: { poster: '/cards/deep-teal/flux-headswap.jpg' },
   },
   {
     id: 'flux-klein-uncensored',
@@ -472,7 +472,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['facefix'],
     defaultTab: 'facefix',
     Icon: Wand2,
-    card: {},
+    card: { poster: '/cards/deep-teal/facefix.jpg' },
   },
   {
     id: 'z-image-inpaint',
@@ -487,7 +487,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['z-image-inpaint-automask'],
     defaultTab: 'z-image-inpaint-automask',
     Icon: Sparkles,
-    card: {},
+    card: { poster: '/cards/deep-teal/z-image-inpaint.jpg' },
   },
   {
     id: 'sdxl-outpaint',
@@ -624,7 +624,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     Icon: Video,
     // No poster yet -> the section renders the icon+label fallback. Swap in a
     // veniceCard(n) once art exists.
-    card: {},
+    card: { poster: '/cards/deep-teal/liveportrait.jpg' },
   },
   {
     id: 'wan22-vace',
@@ -639,7 +639,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['wan22-vace'],
     defaultTab: 'wan22-vace',
     Icon: Film,
-    card: {},
+    card: { poster: '/cards/deep-teal/wan22-vace.jpg' },
   },
   {
     id: 'ltx-img2vid',
@@ -681,7 +681,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['ltx-flf3'],
     defaultTab: 'ltx-flf3',
     Icon: Film,
-    card: veniceCard(23),
+    card: { poster: '/cards/deep-teal/ltx-multi-frame.jpg' },
   },
   {
     id: 'ltx-audio-img2vid',

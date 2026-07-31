@@ -30,6 +30,18 @@ const FAMILY_LABELS: Record<string, string> = {
   'krea2-txt2img': 'KREA2',
 };
 
+/**
+ * Purpose-made art per family.
+ *
+ * Without this a family tile shows the poster of whichever workflow sorts
+ * first, so "LTX Video" showed the Img2Vid picture. Families not listed here
+ * still borrow, so adding art is one line and needs no other change.
+ */
+const FAMILY_ART: Record<string, string> = {
+  'ltx-video': '/cards/deep-teal/family/ltx-video.jpg',
+  'wan-video': '/cards/deep-teal/family/wan-video.jpg',
+};
+
 const prettify = (id: string) =>
   id.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -196,7 +208,7 @@ export const SectionCards = ({ area, kicker, title, onSelect, onBack }: SectionC
                 return (
                   <Card
                     key={f.id}
-                    poster={art?.card?.poster}
+                    poster={FAMILY_ART[f.id] ?? art?.card?.poster}
                     video={f.modules.length === 1 ? art?.card?.video : undefined}
                     label={f.label}
                     count={f.modules.length}
