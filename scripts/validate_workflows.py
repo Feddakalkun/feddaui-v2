@@ -114,7 +114,11 @@ def main() -> int:
             continue
         nulls, missing, types = inspect(path, available)
         if nulls is None:
-            broken.append((wid, "UNREADABLE", types))
+            # `types` carries the reason string here. Report it verbatim instead of
+            # a blanket "UNREADABLE": "UI format" means the file just needs
+            # re-saving via Save (API Format), which is a completely different fix
+            # from a parse error.
+            broken.append((wid, "NOT USABLE", str(types)))
             continue
         if nulls:
             broken.append((wid, "NULL class_type on %d node(s)" % len(nulls),
