@@ -44,9 +44,13 @@ export interface FeddaModule {
 export const APP_VERSION_LABEL = 'FEDDA Hub v2.0';
 export const ACTIVE_TAB_STORAGE_KEY = 'fedda_v21_active_tab';
 
+// Cards are stills for now. The .mp4s are still on disk and both card renderers
+// (RichHome, SectionCards) still handle a `video` field - putting the line back
+// re-enables hover playback everywhere in one edit. Turned off because 38 cards
+// autoplaying on hover is noisy and costs decode work for no real information.
 const veniceCard = (index: number) => ({
   poster: `/cards/new/venice/${index}.jpeg`,
-  video: `/cards/new/venice/${index}.mp4`,
+  // video: `/cards/new/venice/${index}.mp4`,
 });
 
 export const FEDDA_MODULES: FeddaModule[] = [
