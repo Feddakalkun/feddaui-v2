@@ -312,7 +312,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['klein-inpaint'],
     defaultTab: 'klein-inpaint',
     Icon: Sparkles,
-    card: veniceCard(11),
+    card: { poster: '/cards/v2/flux-uncensored.jpg' },
   },
   {
     id: 'flux-headswap',
@@ -472,7 +472,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['facefix'],
     defaultTab: 'facefix',
     Icon: Wand2,
-    card: {},
+    card: { poster: '/cards/v2/facefix.jpg' },
   },
   {
     id: 'z-image-inpaint',
@@ -487,7 +487,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['z-image-inpaint-automask'],
     defaultTab: 'z-image-inpaint-automask',
     Icon: Sparkles,
-    card: {},
+    card: { poster: '/cards/v2/z-image-inpaint.jpg' },
   },
   {
     id: 'sdxl-outpaint',
@@ -611,6 +611,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'liveportrait',
+    card: { poster: '/cards/v2/liveportrait.jpg' },
     hidden: true,
     sourceModuleId: 'wan-video',
     label: 'Live Portrait',
@@ -639,7 +640,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['wan22-vace'],
     defaultTab: 'wan22-vace',
     Icon: Film,
-    card: {},
+    card: { poster: '/cards/v2/wan22-vace.jpg' },
   },
   {
     id: 'ltx-img2vid',
