@@ -312,11 +312,9 @@ export function SimpleImageCockpit({
             </div>
             )}
 
+            {/* No header: the panel sits opposite the upload box and its own
+                empty state already says what it is and what it is doing. */}
             <div className="cockpit-panel">
-              <div className="cockpit-panel-head">
-                <span>Live Preview</span>
-                <span>{isGenerating ? 'Sampling' : 'Ready'}</span>
-              </div>
               <LiveSamplingPreview
                 previewUrl={previewUrl}
                 isRunning={isGenerating}
