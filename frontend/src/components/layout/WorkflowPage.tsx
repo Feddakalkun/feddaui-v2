@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Loader2, type LucideIcon } from 'lucide-react';
 import { useToast } from '../ui/Toast';
 import { usePersistentState } from '../../hooks/usePersistentState';
@@ -12,6 +12,8 @@ import { LiveSamplingPreview } from '../workflows/LiveSamplingPreview';
 import { PromptAssistant } from '../ui/PromptAssistant';
 import { GenerateButton, SeedField, SliderField, UploadSlot } from '../ui/WorkflowControls';
 import { cn } from '../../lib/styles';
+import { LoraSelector } from '../ui/LoraSelector';
+import { comfyService } from '../../services/comfyService';
 
 /**
  * The one workflow page layout.
@@ -86,8 +88,18 @@ export interface WorkflowPageProps {
   generateLabel?: string;
   generatingLabel?: string;
   readyMessage?: string;
-  /** Params that are fixed or derived rather than user-controlled. */
-  extraParams?: () => Record<string, unknown>;
+  /**
+   * Params that are fixed, or derived from the settings the user did choose -
+   * LTX turns an aspect chip plus a resolution chip into width/height, which no
+   * single control can express.
+   */
+  extraParams?: (values: Record<string, number | string>) => Record<string, unknown>;
+  /** Buttons above the prompt box, e.g. "write prompt from frames". */
+  promptActions?: ReactNode;
+  /** Anything genuinely bespoke, rendered between Settings and Generate. */
+  extraSections?: ReactNode;
+  /** Adds a LoRA picker; options are filtered to paths containing one of these. */
+  lora?: { label?: string; match: string[]; paramKey?: string };
 }
 
 const settingDefault = (s: WorkflowSettingSpec) =>
@@ -107,6 +119,9 @@ export const WorkflowPage = ({
   generatingLabel = 'Generating…',
   readyMessage = 'Generation ready',
   extraParams,
+  promptActions,
+  extraSections,
+  lora,
 }: WorkflowPageProps) => {
   const { toast } = useToast();
   const { previewUrl } = useComfyExecution();
@@ -134,6 +149,24 @@ export const WorkflowPage = ({
   const [negativeText, setNegativeText] = usePersistentState(`wf_${workflowId}_negative`, '');
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [loraName, setLoraName] = usePersistentState(`wf_${workflowId}_lora`, '');
+  const [loraStrength, setLoraStrength] = usePersistentState(`wf_${workflowId}_lora_strength`, 1);
+  const [availableLoras, setAvailableLoras] = useState<string[]>([]);
+
+  // Keyed on the match list, not the object: pages declare `lora` inline, so a
+  // fresh literal every render would refire this forever - fetch, setState,
+  // re-render, fetch - and lock the page up before it paints.
+  const loraMatch = lora?.match.join(',') ?? '';
+  useEffect(() => {
+    if (!loraMatch) return;
+    const needles = loraMatch.split(',').map((m) => m.toLowerCase());
+    comfyService.getLoras()
+      .then((all) => setAvailableLoras(all.filter((entry) => {
+        const norm = entry.replace(/\\/g, '/').toLowerCase();
+        return needles.some((m) => norm.includes(m));
+      })))
+      .catch(() => {});
+  }, [loraMatch]);
 
   const run = useWorkflowRun({
     workflowId,
@@ -216,7 +249,10 @@ export const WorkflowPage = ({
         params[s.key] = value;
       }
     }
-    run.start({ ...params, ...(extraParams?.() ?? {}) });
+    if (lora && loraName) {
+      params[lora.paramKey ?? 'lora_slot2'] = { on: true, lora: loraName, strength: loraStrength };
+    }
+    run.start({ ...params, ...(extraParams?.(values) ?? {}) });
   };
 
   const renderSetting = (s: WorkflowSettingSpec) => {
@@ -366,6 +402,7 @@ export const WorkflowPage = ({
 
         {prompt && (
           <WorkflowSection title="Prompt">
+            {promptActions ? <div className="mb-2">{promptActions}</div> : null}
             {prompt.context ? (
               <PromptAssistant
                 context={prompt.context}
@@ -413,6 +450,19 @@ export const WorkflowPage = ({
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {basic.map(renderSetting)}
             </div>
+            {lora && (
+              <div className="mt-4">
+                <LoraSelector
+                  label={lora.label ?? 'LoRA'}
+                  value={loraName}
+                  onChange={setLoraName}
+                  strength={loraStrength}
+                  onStrengthChange={setLoraStrength}
+                  options={availableLoras}
+                  accent="violet"
+                />
+              </div>
+            )}
             {showAdvanced && advanced.length > 0 && (
               <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {advanced.map(renderSetting)}
@@ -420,6 +470,8 @@ export const WorkflowPage = ({
             )}
           </WorkflowSection>
         )}
+
+        {extraSections}
 
         <GenerateButton
           onClick={handleGenerate}
