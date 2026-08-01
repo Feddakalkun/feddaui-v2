@@ -1898,12 +1898,6 @@
         "input_key": "denoise",
         "type": "number",
         "label": "Edit Strength"
-      },
-      "lora_strength": {
-        "node_id": "101",
-        "input_key": "strength_model",
-        "type": "number",
-        "label": "Anatomy LoRA Strength"
       }
     }
   },
