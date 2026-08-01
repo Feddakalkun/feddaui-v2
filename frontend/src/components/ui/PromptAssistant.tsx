@@ -342,7 +342,7 @@ export const PromptAssistant = ({
       {/* Label row */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
+          <label className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em]">
             {label}
           </label>
           {/*
@@ -358,7 +358,7 @@ export const PromptAssistant = ({
                   key={m}
                   type="button"
                   onClick={() => onModeChange(m)}
-                  className={`rounded-md px-2 py-0.5 text-[9px] font-black uppercase tracking-widest transition-colors ${
+                  className={`rounded-md px-3 py-1 text-[12px] font-black uppercase tracking-widest transition-colors ${
                     promptMode === m ? 'bg-white/10 text-white/70' : 'text-white/25 hover:text-white/50'
                   }`}
                 >
@@ -374,7 +374,7 @@ export const PromptAssistant = ({
               type="button"
               onClick={onFillBatch}
               title="Fill with 10 random influencer prompts"
-              className="flex items-center gap-1 rounded-lg border border-white/8 bg-white/[0.03] px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-white/25 transition-all hover:text-white/60"
+              className="flex items-center gap-1.5 rounded-lg border border-white/8 bg-white/[0.03] px-3 py-1 text-[12px] font-black uppercase tracking-widest text-white/35 transition-all hover:text-white/70"
             >
               Fill 10
             </button>
@@ -384,7 +384,7 @@ export const PromptAssistant = ({
               <Loader2 className={`w-3 h-3 animate-spin ${ACCENT_SPIN[accent]}`} />
               <button onClick={stop}
                 className="px-2 py-0.5 rounded-lg bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-red-400 transition-colors flex items-center gap-1">
-                <X className="w-2.5 h-2.5" /> Stop
+                <X className="w-3.5 h-3.5" /> Stop
               </button>
             </>
           ) : (
@@ -393,28 +393,28 @@ export const PromptAssistant = ({
               <button
                 onClick={() => runStream('enhance')}
                 title="Enhance current prompt with AI"
-                className={`flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/[0.03] border border-white/8
-                  text-[9px] font-black uppercase tracking-widest text-white/25 transition-all ${ACCENT_BTN[accent]}`}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/[0.03] border border-white/8
+                  text-[12px] font-black uppercase tracking-widest text-white/35 transition-all ${ACCENT_BTN[accent]}`}
               >
-                <Wand2 className="w-2.5 h-2.5" /> Enhance
+                <Wand2 className="w-3.5 h-3.5" /> Enhance
               </button>
               {/* Generate button */}
               <button
                 onClick={() => runStream('inspire')}
                 title="Generate a fresh inspired prompt"
-                className={`flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/[0.03] border border-white/8
-                  text-[9px] font-black uppercase tracking-widest text-white/25 transition-all ${ACCENT_BTN[accent]}`}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/[0.03] border border-white/8
+                  text-[12px] font-black uppercase tracking-widest text-white/35 transition-all ${ACCENT_BTN[accent]}`}
               >
-                <Sparkles className="w-2.5 h-2.5" /> Generate
+                <Sparkles className="w-3.5 h-3.5" /> Generate
               </button>
               {/* Random influencer button */}
               <button
                 onClick={() => runStream('influencer')}
                 title="Random influencer prompt - rolls a random scene, outfit, lighting and mood"
-                className={`flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/[0.03] border border-white/8
-                  text-[9px] font-black uppercase tracking-widest text-white/25 transition-all ${ACCENT_BTN[accent]}`}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/[0.03] border border-white/8
+                  text-[12px] font-black uppercase tracking-widest text-white/35 transition-all ${ACCENT_BTN[accent]}`}
               >
-                <Dices className="w-2.5 h-2.5" /> Influencer
+                <Dices className="w-3.5 h-3.5" /> Influencer
               </button>
               {/* Char count */}
               <span className="text-white/10 font-mono text-[10px] ml-1">{value.length}</span>
