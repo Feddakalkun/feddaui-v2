@@ -828,9 +828,13 @@ body {
   color: rgba(254,202,202,0.94);
 }
 
+/* One column, stated explicitly. It was relying on the implicit grid, so any
+   child carrying a grid-column span silently turned it into a two-column
+   layout. */
 .workflow-cockpit-stack {
   min-width: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
 }
 
@@ -845,7 +849,10 @@ body {
   min-width: 0;
 }
 
-.cockpit-negative-panel {
+/* Scoped: the span is for the 4-column control grid. Unscoped it also applied
+   to the panel now sitting directly in the cockpit stack, which forced that
+   single-column grid to create a second column and reflowed the whole page. */
+.cockpit-control-grid .cockpit-negative-panel {
   grid-column: span 2;
 }
 

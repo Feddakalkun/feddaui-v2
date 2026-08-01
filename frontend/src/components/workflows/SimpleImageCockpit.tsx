@@ -356,6 +356,23 @@ export function SimpleImageCockpit({
             onModeChange={onPromptModeChange}
           />
 
+          {/* Negative belongs with the prompt it modifies, not parked among the
+              numeric controls. Collapsed by default - most runs never touch it. */}
+          <div className="cockpit-negative-panel">
+            <button type="button" onClick={() => setNegExpanded((value) => !value)} className="cockpit-collapse">
+              <span>Negative Prompt</span>
+              <ChevronDown className={negExpanded ? 'h-3 w-3 rotate-180' : 'h-3 w-3'} />
+            </button>
+            {negExpanded && (
+              <textarea
+                value={negativePrompt}
+                onChange={(event) => setNegativePrompt(event.target.value)}
+                placeholder="What to avoid..."
+                className="cockpit-negative"
+              />
+            )}
+          </div>
+
           {promptPresets.length > 0 && (
             <div className="cockpit-preset-panel">
               {Object.entries(presetGroups).map(([group, presets]) => (
@@ -603,21 +620,6 @@ export function SimpleImageCockpit({
                   <RefreshCw className="h-3.5 w-3.5" />
                 </button>
               </div>
-            </div>
-
-            <div className="cockpit-panel cockpit-negative-panel">
-              <button type="button" onClick={() => setNegExpanded((value) => !value)} className="cockpit-collapse">
-                <span>Negative Prompt</span>
-                <ChevronDown className={negExpanded ? 'h-3 w-3 rotate-180' : 'h-3 w-3'} />
-              </button>
-              {negExpanded && (
-                <textarea
-                  value={negativePrompt}
-                  onChange={(event) => setNegativePrompt(event.target.value)}
-                  placeholder="What to avoid..."
-                  className="cockpit-negative"
-                />
-              )}
             </div>
 
             {missingModels.length > 0 && (
