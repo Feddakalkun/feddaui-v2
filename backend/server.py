@@ -3983,6 +3983,18 @@ async def get_all_workflow_model_overview():
     declare. A workflow with no downloader node reports total 0, which is the
     honest answer - the graph never said what it needs.
     """
+    # Sizes come from a scan of installs that already have the files. The
+    # endpoint cannot know how big a *missing* file is - that lives on the
+    # remote - and asking HuggingFace would be one HEAD per model.
+    sizes: Dict[str, int] = {}
+    try:
+        sizes_path = CONFIG_DIR / "model_sizes.json"
+        if sizes_path.exists():
+            with open(sizes_path, "r", encoding="utf-8") as f:
+                sizes = json.load(f)
+    except Exception as e:
+        logger.warning("model_sizes.json unreadable: %s", e)
+
     rows: List[Dict[str, Any]] = []
     try:
         mappings = workflow_service.load_mapping()
@@ -4023,7 +4035,9 @@ async def get_all_workflow_model_overview():
                     row["present"] += 1
                 else:
                     row["missing"] += 1
-                    row["missing_bytes"] += int(item.get("size_bytes") or 0)
+                    row["missing_bytes"] += int(
+                        item.get("size_bytes") or sizes.get(target.name, 0)
+                    )
         except Exception as e:
             row["error"] = str(e)
         rows.append(row)
