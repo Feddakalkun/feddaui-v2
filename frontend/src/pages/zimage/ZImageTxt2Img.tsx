@@ -247,19 +247,19 @@ export const Txt2ImgPage = ({
   // Keep ref in sync so effects that depend only on execState can read the latest promptId
   pendingPromptIdRef.current = pendingPromptId;
 
-  // Auto-set size to original image dimensions for SDXL Inpaint Automask
+  // Every workflow that takes a source image is an edit: the result has to come
+  // back at the source's own size, or the edit lands on a differently shaped
+  // canvas and the subject stretches or crops. Was hardcoded to
+  // sdxl-inpaint-automask; it applies to all of them.
   useEffect(() => {
-    if (requireImageUpload && uploadedImage && workflowId === 'sdxl-inpaint-automask') {
-      const img = new Image();
-      img.onload = () => {
-        const w = Math.round(img.naturalWidth / 8) * 8;
-        const h = Math.round(img.naturalHeight / 8) * 8;
-        setWidth(w);
-        setHeight(h);
-      };
-      img.src = uploadedImage;
-    }
-  }, [uploadedImage, requireImageUpload, workflowId, setWidth, setHeight]);
+    if (!requireImageUpload || !uploadedImage) return;
+    const img = new Image();
+    img.onload = () => {
+      setWidth(Math.round(img.naturalWidth / 8) * 8);
+      setHeight(Math.round(img.naturalHeight / 8) * 8);
+    };
+    img.src = uploadedImage;
+  }, [uploadedImage, requireImageUpload, setWidth, setHeight]);
 
   // Mask settings for SDXL Inpaint Automask / PersonMaskUltra V2
   const [maskFace, setMaskFace] = usePersistentState(key('mask_face'), false);

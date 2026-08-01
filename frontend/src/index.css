@@ -1551,3 +1551,14 @@ body {
   background: rgba(255,255,255,0.09);
   color: #fff;
 }
+
+/* Edit workflows inherit the source image's size - a note where the ratio
+   chips would otherwise sit. */
+.cockpit-size-locked {
+  padding: 6px 2px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(212,212,216,0.28);
+}

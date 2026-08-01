@@ -503,6 +503,13 @@ export function SimpleImageCockpit({
                   ⇄
                 </button>
               </div>
+              {/* An edit workflow inherits the source image's size, so offering
+                  ratio chips here would just fight the upload. */}
+              {requireImageUpload ? (
+                <div className="cockpit-size-locked">
+                  {uploadedImage ? 'Matches the source image' : 'Set by the source image'}
+                </div>
+              ) : (
               <div className="cockpit-aspect-grid">
                 {aspectPresets.map((preset) => (
                   <button
@@ -516,6 +523,7 @@ export function SimpleImageCockpit({
                   </button>
                 ))}
               </div>
+              )}
               <div className="cockpit-number-grid">
                 <label>
                   <span>W</span>
