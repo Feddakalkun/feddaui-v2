@@ -3,7 +3,6 @@
  *
  * Features:
  *  - ✦ Enhance  : rewrites the current prompt to be more cinematic/detailed
- *  - ◈ Generate : writes a fresh inspired prompt for the given context
  *  - Drag & drop image onto the textarea → Ollama vision model captions it → fills the prompt
  *
  * Streams tokens directly into the textarea as they arrive so the user sees
@@ -16,7 +15,7 @@
 
 import { useRef, useState, useCallback } from 'react';
 import type { DragEvent, ClipboardEvent } from 'react';
-import { Wand2, Sparkles, Loader2, ImageIcon, X, Dices } from 'lucide-react';
+import { Wand2, Loader2, ImageIcon, X } from 'lucide-react';
 import { BACKEND_API } from '../../config/api';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -148,7 +147,7 @@ export const PromptAssistant = ({
   onModeChange,
   onFillBatch,
 }: PromptAssistantProps) => {
-  const [mode, setMode] = useState<'enhance' | 'inspire' | 'influencer' | 'caption' | null>(null);
+  const [mode, setMode] = useState<'enhance' | 'caption' | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [captionModel, setCaptionModel] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -168,7 +167,7 @@ export const PromptAssistant = ({
   }, []);
 
   // ── Stream trigger ──────────────────────────────────────────────────────────
-  const runStream = useCallback(async (reqMode: 'enhance' | 'inspire' | 'influencer') => {
+  const runStream = useCallback(async (reqMode: 'enhance') => {
     abortRef.current?.abort();
     abortRef.current = new AbortController();
     setMode(reqMode);
@@ -306,14 +305,6 @@ export const PromptAssistant = ({
                 className={`p-1 rounded-lg bg-black/60 border border-white/10 text-white/25 transition-all ${ACCENT_BTN[accent]}`}>
                 <Wand2 className="w-3 h-3" />
               </button>
-              <button onClick={() => runStream('inspire')} title="Generate fresh prompt"
-                className={`p-1 rounded-lg bg-black/60 border border-white/10 text-white/25 transition-all ${ACCENT_BTN[accent]}`}>
-                <Sparkles className="w-3 h-3" />
-              </button>
-              <button onClick={() => runStream('influencer')} title="Random influencer prompt"
-                className={`p-1 rounded-lg bg-black/60 border border-white/10 text-white/25 transition-all ${ACCENT_BTN[accent]}`}>
-                <Dices className="w-3 h-3" />
-              </button>
             </>
           )}
         </div>
@@ -397,24 +388,6 @@ export const PromptAssistant = ({
                   text-[12px] font-black uppercase tracking-widest text-white/35 transition-all ${ACCENT_BTN[accent]}`}
               >
                 <Wand2 className="w-3.5 h-3.5" /> Enhance
-              </button>
-              {/* Generate button */}
-              <button
-                onClick={() => runStream('inspire')}
-                title="Generate a fresh inspired prompt"
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/[0.03] border border-white/8
-                  text-[12px] font-black uppercase tracking-widest text-white/35 transition-all ${ACCENT_BTN[accent]}`}
-              >
-                <Sparkles className="w-3.5 h-3.5" /> Generate
-              </button>
-              {/* Random influencer button */}
-              <button
-                onClick={() => runStream('influencer')}
-                title="Random influencer prompt - rolls a random scene, outfit, lighting and mood"
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/[0.03] border border-white/8
-                  text-[12px] font-black uppercase tracking-widest text-white/35 transition-all ${ACCENT_BTN[accent]}`}
-              >
-                <Dices className="w-3.5 h-3.5" /> Influencer
               </button>
               {/* Char count */}
               <span className="text-white/10 font-mono text-[10px] ml-1">{value.length}</span>
