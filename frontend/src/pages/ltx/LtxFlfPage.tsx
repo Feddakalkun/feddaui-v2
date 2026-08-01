@@ -105,7 +105,7 @@ export const LtxFlfPage = () => {
         { kind: 'slider', key: 'guide_strength_first', label: 'First Frame Guide', min: 0, max: 1, step: 0.05, defaultValue: 0.9, advanced: true },
         { kind: 'slider', key: 'guide_strength_last', label: 'Last Frame Guide', min: 0, max: 1, step: 0.05, defaultValue: 0.9, advanced: true },
       ]}
-      lora={{ label: 'LTX LoRA', match: ['ltx'] }}
+      loras={[{ key: 'lora_slot2', label: 'LTX LoRA', match: ['ltx'] }]}
       extraParams={(values) => {
         const dims = getLtxDimensions(String(values.aspect_ratio ?? '16:9'), values.resolution as any);
         return {

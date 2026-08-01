@@ -98,8 +98,12 @@ export interface WorkflowPageProps {
   promptActions?: ReactNode;
   /** Anything genuinely bespoke, rendered between Settings and Generate. */
   extraSections?: ReactNode;
-  /** Adds a LoRA picker; options are filtered to paths containing one of these. */
-  lora?: { label?: string; match: string[]; paramKey?: string };
+  /**
+   * LoRA pickers. An array because WAN 2.2 splits high- and low-noise passes
+   * into two slots, and the 2-LoRA workflows use the same shape.
+   * `paramKey` is what the graph expects, e.g. lora_slot2.
+   */
+  loras?: { key: string; label: string; match: string[]; paramKey?: string }[];
 }
 
 const settingDefault = (s: WorkflowSettingSpec) =>
@@ -121,7 +125,7 @@ export const WorkflowPage = ({
   extraParams,
   promptActions,
   extraSections,
-  lora,
+  loras = [],
 }: WorkflowPageProps) => {
   const { toast } = useToast();
   const { previewUrl } = useComfyExecution();
@@ -155,24 +159,37 @@ export const WorkflowPage = ({
   );
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [loraName, setLoraName] = usePersistentState(`wf_${workflowId}_lora`, '');
-  const [loraStrength, setLoraStrength] = usePersistentState(`wf_${workflowId}_lora_strength`, 1);
-  const [availableLoras, setAvailableLoras] = useState<string[]>([]);
+  // One object rather than a hook per slot, same reason as settings: the slot
+  // list is config, and hooks cannot be conditional.
+  const [loraPicks, setLoraPicks] = usePersistentState<Record<string, { name: string; strength: number }>>(
+    `wf_${workflowId}_loras`,
+    {},
+  );
+  const [availableLoras, setAvailableLoras] = useState<Record<string, string[]>>({});
 
-  // Keyed on the match list, not the object: pages declare `lora` inline, so a
-  // fresh literal every render would refire this forever - fetch, setState,
-  // re-render, fetch - and lock the page up before it paints.
-  const loraMatch = lora?.match.join(',') ?? '';
+  // Keyed on a flattened string, not the config array: pages declare `loras`
+  // inline, so depending on the array refires this every render - fetch,
+  // setState, re-render, fetch - and locks the page blank before it paints.
+  const loraKey = loras.map((l) => `${l.key}:${l.match.join('|')}`).join(',');
   useEffect(() => {
-    if (!loraMatch) return;
-    const needles = loraMatch.split(',').map((m) => m.toLowerCase());
+    if (!loraKey) return;
+    const slots = loraKey.split(',').map((entry) => {
+      const [key, matches] = entry.split(':');
+      return { key, needles: matches.split('|').map((m) => m.toLowerCase()) };
+    });
     comfyService.getLoras()
-      .then((all) => setAvailableLoras(all.filter((entry) => {
-        const norm = entry.replace(/\\/g, '/').toLowerCase();
-        return needles.some((m) => norm.includes(m));
-      })))
+      .then((all) => {
+        const next: Record<string, string[]> = {};
+        for (const slot of slots) {
+          next[slot.key] = all.filter((entry) => {
+            const norm = entry.replace(/\\/g, '/').toLowerCase();
+            return slot.needles.some((m) => norm.includes(m));
+          });
+        }
+        setAvailableLoras(next);
+      })
       .catch(() => {});
-  }, [loraMatch]);
+  }, [loraKey]);
 
   const run = useWorkflowRun({
     workflowId,
@@ -263,8 +280,11 @@ export const WorkflowPage = ({
         params[s.key] = value;
       }
     }
-    if (lora && loraName) {
-      params[lora.paramKey ?? 'lora_slot2'] = { on: true, lora: loraName, strength: loraStrength };
+    for (const slot of loras) {
+      const pick = loraPicks[slot.key];
+      if (pick?.name) {
+        params[slot.paramKey ?? slot.key] = { on: true, lora: pick.name, strength: pick.strength };
+      }
     }
     return { ...params, ...(extraParams?.(values) ?? {}) };
   };
@@ -475,17 +495,26 @@ export const WorkflowPage = ({
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {basic.map(renderSetting)}
             </div>
-            {lora && (
-              <div className="mt-4">
-                <LoraSelector
-                  label={lora.label ?? 'LoRA'}
-                  value={loraName}
-                  onChange={setLoraName}
-                  strength={loraStrength}
-                  onStrengthChange={setLoraStrength}
-                  options={availableLoras}
-                  accent="violet"
-                />
+            {loras.length > 0 && (
+              <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                {loras.map((slot) => (
+                  <LoraSelector
+                    key={slot.key}
+                    label={slot.label}
+                    value={loraPicks[slot.key]?.name ?? ''}
+                    onChange={(name) => setLoraPicks((prev) => ({
+                      ...prev,
+                      [slot.key]: { name, strength: prev[slot.key]?.strength ?? 1 },
+                    }))}
+                    strength={loraPicks[slot.key]?.strength ?? 1}
+                    onStrengthChange={(strength) => setLoraPicks((prev) => ({
+                      ...prev,
+                      [slot.key]: { name: prev[slot.key]?.name ?? '', strength },
+                    }))}
+                    options={availableLoras[slot.key] ?? []}
+                    accent="violet"
+                  />
+                ))}
               </div>
             )}
             {showAdvanced && advanced.length > 0 && (
