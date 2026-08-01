@@ -136,5 +136,22 @@
     "_meta": {
       "title": "Save Image"
     }
+  },
+  "900": {
+    "inputs": {
+      "download_links": "https://huggingface.co/Comfy-Org/Krea-2/resolve/main/text_encoders/qwen3vl_4b_fp8_scaled.safetensors clip\nhttps://huggingface.co/Comfy-Org/Krea-2/resolve/main/vae/qwen_image_vae.safetensors vae\nhttps://huggingface.co/vantagewithai/Krea-2-Turbo-GGUF/resolve/main/krea2_turbo-Q6_K.gguf unet",
+      "auto_download": true,
+      "max_concurrent_downloads": 3,
+      "max_download_speed_mbps": 0,
+      "enable_resume": true,
+      "validate_files": false,
+      "enable_notifications": true,
+      "auto_organize": false,
+      "hf_token": ""
+    },
+    "class_type": "HuggingFaceDownloader",
+    "_meta": {
+      "title": "FEDDA model downloader"
+    }
   }
 }

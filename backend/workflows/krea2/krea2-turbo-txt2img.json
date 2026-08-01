@@ -1,42 +1,83 @@
 {
   "10": {
-    "inputs": { "unet_name": "krea2_turbo_fp8_scaled.safetensors", "weight_dtype": "default" },
+    "inputs": {
+      "unet_name": "krea2_turbo_fp8_scaled.safetensors",
+      "weight_dtype": "default"
+    },
     "class_type": "UNETLoader",
-    "_meta": { "title": "Load Diffusion Model (Krea2 Turbo)" }
+    "_meta": {
+      "title": "Load Diffusion Model (Krea2 Turbo)"
+    }
   },
   "11": {
-    "inputs": { "clip_name": "qwen3vl_4b_fp8_scaled.safetensors", "type": "krea2", "device": "default" },
+    "inputs": {
+      "clip_name": "qwen3vl_4b_fp8_scaled.safetensors",
+      "type": "krea2",
+      "device": "default"
+    },
     "class_type": "CLIPLoader",
-    "_meta": { "title": "Load CLIP" }
+    "_meta": {
+      "title": "Load CLIP"
+    }
   },
   "12": {
-    "inputs": { "vae_name": "qwen_image_vae.safetensors" },
+    "inputs": {
+      "vae_name": "qwen_image_vae.safetensors"
+    },
     "class_type": "VAELoader",
-    "_meta": { "title": "Load VAE" }
+    "_meta": {
+      "title": "Load VAE"
+    }
   },
   "15": {
     "inputs": {
       "lora_name": "app\\Aurora\\character_c_krea2_000002800.safetensors",
       "strength_model": 1.0,
-      "model": ["10", 0]
+      "model": [
+        "10",
+        0
+      ]
     },
     "class_type": "LoraLoaderModelOnly",
-    "_meta": { "title": "Load LoRA" }
+    "_meta": {
+      "title": "Load LoRA"
+    }
   },
   "6": {
-    "inputs": { "text": "", "clip": ["11", 0] },
+    "inputs": {
+      "text": "",
+      "clip": [
+        "11",
+        0
+      ]
+    },
     "class_type": "CLIPTextEncode",
-    "_meta": { "title": "CLIP Text Encode (Prompt)" }
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
   },
   "13": {
-    "inputs": { "conditioning": ["6", 0] },
+    "inputs": {
+      "conditioning": [
+        "6",
+        0
+      ]
+    },
     "class_type": "ConditioningZeroOut",
-    "_meta": { "title": "Negative (zeroed)" }
+    "_meta": {
+      "title": "Negative (zeroed)"
+    }
   },
   "5": {
-    "inputs": { "width": 1024, "height": 1024, "batch_size": 1 },
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
     "class_type": "EmptyLatentImage",
-    "_meta": { "title": "Empty Latent Image" }
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
   },
   "3": {
     "inputs": {
@@ -46,22 +87,72 @@
       "sampler_name": "euler",
       "scheduler": "simple",
       "denoise": 1,
-      "model": ["15", 0],
-      "positive": ["6", 0],
-      "negative": ["13", 0],
-      "latent_image": ["5", 0]
+      "model": [
+        "15",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "13",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
     },
     "class_type": "KSampler",
-    "_meta": { "title": "KSampler" }
+    "_meta": {
+      "title": "KSampler"
+    }
   },
   "8": {
-    "inputs": { "samples": ["3", 0], "vae": ["12", 0] },
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "12",
+        0
+      ]
+    },
     "class_type": "VAEDecode",
-    "_meta": { "title": "VAE Decode" }
+    "_meta": {
+      "title": "VAE Decode"
+    }
   },
   "29": {
-    "inputs": { "filename_prefix": "Krea2_turbo", "images": ["8", 0] },
+    "inputs": {
+      "filename_prefix": "Krea2_turbo",
+      "images": [
+        "8",
+        0
+      ]
+    },
     "class_type": "SaveImage",
-    "_meta": { "title": "Save Image" }
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "900": {
+    "inputs": {
+      "download_links": "https://huggingface.co/Comfy-Org/Krea-2/resolve/main/diffusion_models/krea2_turbo_fp8_scaled.safetensors unet\nhttps://huggingface.co/Comfy-Org/Krea-2/resolve/main/text_encoders/qwen3vl_4b_fp8_scaled.safetensors clip\nhttps://huggingface.co/Comfy-Org/Krea-2/resolve/main/vae/qwen_image_vae.safetensors vae",
+      "auto_download": true,
+      "max_concurrent_downloads": 3,
+      "max_download_speed_mbps": 0,
+      "enable_resume": true,
+      "validate_files": false,
+      "enable_notifications": true,
+      "auto_organize": false,
+      "hf_token": ""
+    },
+    "class_type": "HuggingFaceDownloader",
+    "_meta": {
+      "title": "FEDDA model downloader"
+    }
   }
 }
