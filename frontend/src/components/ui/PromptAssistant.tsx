@@ -18,7 +18,6 @@ import { useRef, useState, useCallback } from 'react';
 import type { DragEvent, ClipboardEvent } from 'react';
 import { Wand2, Sparkles, Loader2, ImageIcon, X, Dices } from 'lucide-react';
 import { BACKEND_API } from '../../config/api';
-import { QuickPromptBuilder } from './QuickPromptBuilder';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 export type PromptContext =
@@ -46,6 +45,12 @@ interface PromptAssistantProps {
   enableCaption?: boolean; // allow image drag-to-caption (default true)
   label?: string;          // section label text          (default 'Prompt')
   compact?: boolean;       // minimal mode for scene accordions
+  /** Single = one prompt. Multiple = one prompt per line, run as a batch. */
+  mode?: 'single' | 'multiple';
+  /** Omit to hide the Single/Multiple tabs entirely (pages with no batch support). */
+  onModeChange?: (mode: 'single' | 'multiple') => void;
+  /** Shown only in Multiple mode — fills the box with 10 influencer prompts. */
+  onFillBatch?: () => void;
 }
 
 // ─── Accent colour helpers ────────────────────────────────────────────────────
@@ -138,6 +143,10 @@ export const PromptAssistant = ({
   enableCaption = true,
   label = 'Prompt',
   compact = false,
+  // Aliased: this component already has its own `mode` for the AI actions.
+  mode: promptMode = 'single',
+  onModeChange,
+  onFillBatch,
 }: PromptAssistantProps) => {
   const [mode, setMode] = useState<'enhance' | 'inspire' | 'influencer' | 'caption' | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -332,10 +341,44 @@ export const PromptAssistant = ({
     <div className="space-y-2">
       {/* Label row */}
       <div className="flex items-center justify-between">
-        <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
-          {label}
-        </label>
+        <div className="flex items-center gap-3">
+          <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
+            {label}
+          </label>
+          {/*
+            Batch used to be its own section with a second textarea. It is a
+            mode of this one card instead: Multiple treats each line as a
+            separate job, Single leaves a multi-line prompt as one prompt so
+            nobody gets N jobs for pressing Enter.
+          */}
+          {onModeChange && (
+            <div className="flex items-center rounded-lg border border-white/10 bg-black/30 p-0.5">
+              {(['single', 'multiple'] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => onModeChange(m)}
+                  className={`rounded-md px-2 py-0.5 text-[9px] font-black uppercase tracking-widest transition-colors ${
+                    promptMode === m ? 'bg-white/10 text-white/70' : 'text-white/25 hover:text-white/50'
+                  }`}
+                >
+                  {m === 'single' ? 'Single' : 'Multiple'}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="flex items-center gap-1.5">
+          {promptMode === 'multiple' && onFillBatch && (
+            <button
+              type="button"
+              onClick={onFillBatch}
+              title="Fill with 10 random influencer prompts"
+              className="flex items-center gap-1 rounded-lg border border-white/8 bg-white/[0.03] px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-white/25 transition-all hover:text-white/60"
+            >
+              Fill 10
+            </button>
+          )}
           {isLoading ? (
             <>
               <Loader2 className={`w-3 h-3 animate-spin ${ACCENT_SPIN[accent]}`} />
@@ -379,9 +422,6 @@ export const PromptAssistant = ({
           )}
         </div>
       </div>
-
-      {/* Quick Build — pick girl/outfit/scene, no typing */}
-      <QuickPromptBuilder context={context} onCompose={onChange} />
 
       {/* Textarea with drop zone */}
       <div

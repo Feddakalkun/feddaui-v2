@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertCircle, CheckCircle2, ListOrdered, Loader2, Sparkles } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
 import { WorkflowShell } from '../../components/layout/WorkflowShell';
-import { WorkflowPreviewBar } from '../../components/layout/WorkflowPreviewBar';
 import { SimpleImageCockpit, type SimpleImageLoraEntry, type SimpleImagePromptPreset } from '../../components/workflows/SimpleImageCockpit';
 import type { PromptContext } from '../../components/ui/PromptAssistant';
 import { useToast } from '../../components/ui/Toast';
@@ -220,8 +219,9 @@ export const Txt2ImgPage = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Batch queue state
-  const [batchRaw, setBatchRaw] = usePersistentState(key('batch_raw'), '');
-  const [batchExpanded, setBatchExpanded] = useState(() => batchRaw.trim().length > 0);
+  // Batch is a mode of the prompt box, not a second textarea: in Multiple mode
+  // each non-empty line is its own job.
+  const [promptMode, setPromptMode] = usePersistentState<'single' | 'multiple'>(key('prompt_mode'), 'single');
   const [batchFilling, setBatchFilling] = useState(false);
 
   // Character sheets — per-LoRA appearance descriptions stored as .md sidecars
@@ -239,8 +239,10 @@ export const Txt2ImgPage = ({
   const pendingPromptIdRef = useRef<string | null>(null);
 
   const parsedBatchPrompts = useMemo(
-    () => batchRaw.split('\n').map((l) => l.trim()).filter(Boolean),
-    [batchRaw]
+    () => (promptMode === 'multiple'
+      ? prompt.split('\n').map((l) => l.trim()).filter(Boolean)
+      : []),
+    [promptMode, prompt]
   );
 
   // Keep ref in sync so effects that depend only on execState can read the latest promptId
@@ -724,97 +726,8 @@ export const Txt2ImgPage = ({
       isGenerating={isGenerating}
       canGenerate={canGenerate}
       hideOutputPane
-      preview={(
-        <WorkflowPreviewBar
-          title={`${familyLabel} previews`}
-          images={stripImages}
-          currentImage={currentImage}
-          liveImage={previewUrl}
-          historyCount={history.length}
-          storageKey={`${storageKey}_top_preview`}
-          emptyHint="Generate an image to fill this preview bar."
-          onSelectImage={setCurrentImage}
-        />
-      )}
       output={null}
     >
-      {/* Batch Queue */}
-      <div className="mb-2 rounded-xl border border-violet-500/15 bg-violet-500/[0.04] p-3">
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => setBatchExpanded((v) => !v)}
-            className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-violet-200/80 transition-colors hover:text-violet-100"
-          >
-            <ListOrdered className="h-3.5 w-3.5 text-violet-400" />
-            Batch Queue
-            {parsedBatchPrompts.length > 0 ? (
-              <span className="rounded bg-violet-500/25 px-1.5 py-0.5 font-mono text-[9px] text-violet-300">
-                {parsedBatchPrompts.length} queued
-              </span>
-            ) : (
-              <span className="text-[9px] font-medium normal-case tracking-normal text-zinc-500">
-                — one prompt per line, run many jobs at once
-              </span>
-            )}
-          </button>
-          <div className="flex items-center gap-2">
-            {!batchProgress && (
-              <button
-                type="button"
-                onClick={async () => {
-                  if (batchFilling) return;
-                  setBatchFilling(true);
-                  try {
-                    const res = await fetch(`${BACKEND_API.BASE_URL}/api/prompts/influencer-batch?count=10&context=${encodeURIComponent(promptContext)}`);
-                    const data = await res.json();
-                    if (data?.success && Array.isArray(data.prompts) && data.prompts.length) {
-                      setBatchRaw(data.prompts.join('\n'));
-                      setBatchExpanded(true);
-                    }
-                  } catch { /* backend offline or not restarted — ignore */ }
-                  setBatchFilling(false);
-                }}
-                disabled={batchFilling}
-                title="Fill with 10 random influencer prompts"
-                className="rounded border border-violet-500/25 bg-violet-500/10 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-violet-300/80 transition-all hover:bg-violet-500/20 disabled:opacity-40"
-              >
-                {batchFilling ? '…' : '🎲 Fill 10'}
-              </button>
-            )}
-            {batchProgress && (
-              <span className="animate-pulse font-mono text-[9px] text-violet-400">
-                {batchProgress.current} / {batchProgress.total}
-              </span>
-            )}
-          </div>
-        </div>
-        {batchExpanded && (
-          <div className="mt-2 space-y-2">
-            <textarea
-              value={batchRaw}
-              onChange={(e) => setBatchRaw(e.target.value)}
-              placeholder={"Paste prompts — one per line:\n\na portrait of a woman in red...\na sunset over mountains...\na cyberpunk cityscape..."}
-              disabled={!!batchProgress}
-              rows={6}
-              className="w-full resize-y rounded-lg border border-white/10 bg-black/30 p-2.5 font-mono text-[11px] text-white/70 placeholder:text-white/15 focus:border-violet-500/30 focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
-            />
-            {parsedBatchPrompts.length > 0 && (
-              <button
-                type="button"
-                onClick={handleBatchStart}
-                disabled={isGenerating}
-                className="w-full rounded-lg border border-violet-500/30 bg-violet-500/10 py-2 text-[10px] font-black uppercase tracking-widest text-violet-300 transition-all hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {isGenerating && batchProgress
-                  ? `Generating ${batchProgress.current} / ${batchProgress.total}…`
-                  : `Run Batch — ${parsedBatchPrompts.length} prompt${parsedBatchPrompts.length === 1 ? '' : 's'}`}
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
       {/* Character Sheets — appearance descriptions per selected LoRA */}
       {enableLoras && loraEntries.some((e) => e.name?.trim()) && (
         <div className="mb-2 rounded-lg border border-white/10 bg-black/20 p-2.5">
@@ -948,6 +861,20 @@ export const Txt2ImgPage = ({
         prompt={prompt}
         setPrompt={setPrompt}
         promptPresets={promptPresets}
+        promptMode={promptMode}
+        onPromptModeChange={setPromptMode}
+        onFillBatch={async () => {
+          if (batchFilling) return;
+          setBatchFilling(true);
+          try {
+            const res = await fetch(`${BACKEND_API.BASE_URL}/api/prompts/influencer-batch?count=10&context=${encodeURIComponent(promptContext)}`);
+            const data = await res.json();
+            if (data?.success && Array.isArray(data.prompts) && data.prompts.length) {
+              setPrompt(data.prompts.join('\n'));
+            }
+          } catch { /* backend offline or not restarted — ignore */ }
+          setBatchFilling(false);
+        }}
         characterPrompt={characterPrompt}
         setCharacterPrompt={setCharacterPrompt}
         characterPromptLabel={characterPromptLabel}
@@ -992,7 +919,7 @@ export const Txt2ImgPage = ({
         missingModels={missingModelNames}
         canGenerate={canGenerate}
         isGenerating={isGenerating}
-        onGenerate={handleGenerate}
+        onGenerate={promptMode === 'multiple' && parsedBatchPrompts.length > 1 ? handleBatchStart : handleGenerate}
 
         showMaskSettings={showMaskSettings}
         maskFace={maskFace}

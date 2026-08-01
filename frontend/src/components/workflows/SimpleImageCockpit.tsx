@@ -16,6 +16,35 @@ export type SimpleImageAspectPreset = {
   h: number;
 };
 
+/**
+ * Aspect chips read as ratios everywhere, not as "Square / Portrait / Wide".
+ *
+ * Derived from the preset's own pixels rather than its label, so every page
+ * standardises without touching its preset list — and a page whose ratio is not
+ * one of the common ones still gets a sensible reduced label instead of a lie.
+ * The pixel values stay per-workflow: models differ on native resolution and on
+ * what multiple they require.
+ */
+const COMMON_RATIOS: [number, number][] = [
+  [1, 1], [16, 9], [9, 16], [4, 3], [3, 4], [3, 2], [2, 3], [21, 9],
+];
+
+export const ratioLabel = (w: number, h: number): string => {
+  if (!w || !h) return `${w}×${h}`;
+  const target = w / h;
+  let best: [number, number] | null = null;
+  let bestErr = Infinity;
+  for (const [rw, rh] of COMMON_RATIOS) {
+    const err = Math.abs(target - rw / rh) / (rw / rh);
+    if (err < bestErr) { bestErr = err; best = [rw, rh]; }
+  }
+  // 4% catches presets rounded to a model's step multiple - 1920x1088 is meant
+  // to be 16:9, 1024x1520 is meant to be 2:3 - without snapping genuinely odd
+  // sizes to a ratio they are not. Those show their pixels instead, which is
+  // more use to the reader than a reduced fraction like "13:19".
+  return best && bestErr < 0.04 ? `${best[0]}:${best[1]}` : `${w}×${h}`;
+};
+
 export type SimpleImagePromptPreset = {
   label: string;
   prompt: string;
@@ -38,6 +67,9 @@ interface SimpleImageCockpitProps {
   prompt: string;
   setPrompt: (value: string) => void;
   promptPresets?: SimpleImagePromptPreset[];
+  promptMode?: 'single' | 'multiple';
+  onPromptModeChange?: (mode: 'single' | 'multiple') => void;
+  onFillBatch?: () => void;
   characterPrompt?: string;
   setCharacterPrompt?: (value: string) => void;
   characterPromptLabel?: string;
@@ -131,6 +163,9 @@ export function SimpleImageCockpit({
   prompt,
   setPrompt,
   promptPresets = [],
+  promptMode = 'single',
+  onPromptModeChange,
+  onFillBatch,
   characterPrompt = '',
   setCharacterPrompt,
   characterPromptLabel,
@@ -347,7 +382,14 @@ export function SimpleImageCockpit({
         )}
 
         <div className="workflow-cockpit-stack">
-          {requireImageUpload && (
+          {/*
+            Input and output side by side. The live preview used to sit two
+            thirds down the page inside the control grid, so you could not see
+            what you fed in and what came out at the same time. Workflows with
+            no image input give the preview the whole row.
+          */}
+          <div className={requireImageUpload ? 'cockpit-io-row' : 'cockpit-io-row is-single'}>
+            {requireImageUpload && (
             <div className="cockpit-upload-row">
               {!uploadedImage ? (
                 <button
@@ -378,17 +420,52 @@ export function SimpleImageCockpit({
                 onChange={(event) => handleFile(event.target.files?.[0])}
               />
             </div>
-          )}
+            )}
+
+            <div className="cockpit-panel">
+              <div className="cockpit-panel-head">
+                <span>Live Preview</span>
+                <span>{isGenerating ? 'Sampling' : 'Ready'}</span>
+              </div>
+              <LiveSamplingPreview
+                previewUrl={previewUrl}
+                isRunning={isGenerating}
+                hasOutput={hasOutput}
+                emptyState={
+                  <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-white/10 bg-black/20 p-3">
+                    <div className="text-center text-white/35">
+                      <Sparkles className="mx-auto mb-3 h-8 w-8 opacity-40" />
+                      <div className="text-sm font-semibold">Generate an image to preview it here</div>
+                      <div className="mt-1 text-xs text-white/25">The live sampling pass will appear in this panel while it renders.</div>
+                    </div>
+                  </div>
+                }
+              >
+                <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-white/10 bg-black/20 p-3">
+                  <div className="text-center text-white/35">
+                    <Sparkles className="mx-auto mb-3 h-8 w-8 opacity-40" />
+                    <div className="text-sm font-semibold">Generation complete</div>
+                    <div className="mt-1 text-xs text-white/25">The final output will be shown here once the run finishes.</div>
+                  </div>
+                </div>
+              </LiveSamplingPreview>
+            </div>
+          </div>
 
           <PromptAssistant
             context={promptContext}
             workflowId={workflowId}
             value={prompt}
             onChange={setPrompt}
-            placeholder="Describe the subject, mood, lighting..."
+            placeholder={promptMode === 'multiple'
+              ? 'One prompt per line — each line runs as its own job'
+              : 'Describe the subject, mood, lighting...'}
             minRows={4}
             accent={accent}
             label="Prompt"
+            mode={promptMode}
+            onModeChange={onPromptModeChange}
+            onFillBatch={onFillBatch}
           />
 
           {promptPresets.length > 0 && (
@@ -529,34 +606,6 @@ export function SimpleImageCockpit({
           )}
 
           <div className="cockpit-control-grid">
-            <div className="cockpit-panel">
-              <div className="cockpit-panel-head">
-                <span>Live Preview</span>
-                <span>{isGenerating ? 'Sampling' : 'Ready'}</span>
-              </div>
-              <LiveSamplingPreview
-                previewUrl={previewUrl}
-                isRunning={isGenerating}
-                hasOutput={hasOutput}
-                emptyState={
-                  <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-white/10 bg-black/20 p-3">
-                    <div className="text-center text-white/35">
-                      <Sparkles className="mx-auto mb-3 h-8 w-8 opacity-40" />
-                      <div className="text-sm font-semibold">Generate an image to preview it here</div>
-                      <div className="mt-1 text-xs text-white/25">The live sampling pass will appear in this panel while it renders.</div>
-                    </div>
-                  </div>
-                }
-              >
-                <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-white/10 bg-black/20 p-3">
-                  <div className="text-center text-white/35">
-                    <Sparkles className="mx-auto mb-3 h-8 w-8 opacity-40" />
-                    <div className="text-sm font-semibold">Generation complete</div>
-                    <div className="mt-1 text-xs text-white/25">The final output will be shown here once the run finishes.</div>
-                  </div>
-                </div>
-              </LiveSamplingPreview>
-            </div>
             <div className="cockpit-panel cockpit-size-panel">
               <div className="cockpit-panel-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span><Maximize2 className="h-3 w-3" /> Size · {width}×{height}</span>
@@ -574,10 +623,11 @@ export function SimpleImageCockpit({
                   <button
                     key={preset.label}
                     type="button"
+                    title={`${preset.label} · ${preset.w}×${preset.h}`}
                     onClick={() => { setWidth(preset.w); setHeight(preset.h); }}
                     className={width === preset.w && height === preset.h ? 'is-active' : ''}
                   >
-                    {preset.label}
+                    {ratioLabel(preset.w, preset.h)}
                   </button>
                 ))}
               </div>

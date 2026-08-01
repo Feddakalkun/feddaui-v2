@@ -1317,6 +1317,32 @@ body {
   min-width: 0;
 }
 
+/* Input left, live output right - see the source and the result together
+   instead of scrolling between them. No image input means the preview takes
+   the whole row. */
+.cockpit-io-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: 10px;
+  align-items: stretch;
+}
+
+.cockpit-io-row.is-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.cockpit-io-row .cockpit-upload-row,
+.cockpit-io-row .workflow-upload-drop,
+.cockpit-io-row .workflow-upload-preview {
+  height: 100%;
+}
+
+@media (max-width: 1100px) {
+  .cockpit-io-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .workflow-upload-drop,
 .workflow-upload-preview {
   width: 100%;
