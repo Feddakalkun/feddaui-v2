@@ -58,7 +58,6 @@ export const GlobalOutputStrip = () => {
           Recent generations
           <span className="font-mono text-white/25">{count}</span>
           {live && <span className="ml-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />}
-          <span className="ml-2 normal-case tracking-normal font-medium text-white/15">drag any thumb into an image slot on any page</span>
         </span>
         <span className="flex items-center gap-3">
           {items.length > 0 && open && (
