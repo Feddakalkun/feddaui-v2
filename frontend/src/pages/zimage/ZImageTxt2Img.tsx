@@ -222,7 +222,6 @@ export const Txt2ImgPage = ({
   // Batch is a mode of the prompt box, not a second textarea: in Multiple mode
   // each non-empty line is its own job.
   const [promptMode, setPromptMode] = usePersistentState<'single' | 'multiple'>(key('prompt_mode'), 'single');
-  const [batchFilling, setBatchFilling] = useState(false);
 
   // Character sheets — per-LoRA appearance descriptions stored as .md sidecars
   const [loraSheets, setLoraSheets] = useState<Record<string, { exists: boolean; trigger: string; appearance: string }>>({});
@@ -863,18 +862,6 @@ export const Txt2ImgPage = ({
         promptPresets={promptPresets}
         promptMode={promptMode}
         onPromptModeChange={setPromptMode}
-        onFillBatch={async () => {
-          if (batchFilling) return;
-          setBatchFilling(true);
-          try {
-            const res = await fetch(`${BACKEND_API.BASE_URL}/api/prompts/influencer-batch?count=10&context=${encodeURIComponent(promptContext)}`);
-            const data = await res.json();
-            if (data?.success && Array.isArray(data.prompts) && data.prompts.length) {
-              setPrompt(data.prompts.join('\n'));
-            }
-          } catch { /* backend offline or not restarted — ignore */ }
-          setBatchFilling(false);
-        }}
         characterPrompt={characterPrompt}
         setCharacterPrompt={setCharacterPrompt}
         characterPromptLabel={characterPromptLabel}

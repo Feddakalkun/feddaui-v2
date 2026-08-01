@@ -61,7 +61,6 @@ interface SimpleImageCockpitProps {
   promptPresets?: SimpleImagePromptPreset[];
   promptMode?: 'single' | 'multiple';
   onPromptModeChange?: (mode: 'single' | 'multiple') => void;
-  onFillBatch?: () => void;
   characterPrompt?: string;
   setCharacterPrompt?: (value: string) => void;
   characterPromptLabel?: string;
@@ -157,7 +156,6 @@ export function SimpleImageCockpit({
   promptPresets = [],
   promptMode = 'single',
   onPromptModeChange,
-  onFillBatch,
   characterPrompt = '',
   setCharacterPrompt,
   characterPromptLabel,
@@ -353,7 +351,6 @@ export function SimpleImageCockpit({
             label="Prompt"
             mode={promptMode}
             onModeChange={onPromptModeChange}
-            onFillBatch={onFillBatch}
           />
 
           {promptPresets.length > 0 && (

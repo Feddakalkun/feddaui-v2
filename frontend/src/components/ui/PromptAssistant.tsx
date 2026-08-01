@@ -48,8 +48,6 @@ interface PromptAssistantProps {
   mode?: 'single' | 'multiple';
   /** Omit to hide the Single/Multiple tabs entirely (pages with no batch support). */
   onModeChange?: (mode: 'single' | 'multiple') => void;
-  /** Shown only in Multiple mode — fills the box with 10 influencer prompts. */
-  onFillBatch?: () => void;
 }
 
 // ─── Accent colour helpers ────────────────────────────────────────────────────
@@ -145,7 +143,6 @@ export const PromptAssistant = ({
   // Aliased: this component already has its own `mode` for the AI actions.
   mode: promptMode = 'single',
   onModeChange,
-  onFillBatch,
 }: PromptAssistantProps) => {
   const [mode, setMode] = useState<'enhance' | 'caption' | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -361,16 +358,6 @@ export const PromptAssistant = ({
           )}
         </div>
         <div className="flex items-center gap-1.5">
-          {promptMode === 'multiple' && onFillBatch && (
-            <button
-              type="button"
-              onClick={onFillBatch}
-              title="Fill with 10 random influencer prompts"
-              className="flex items-center gap-1.5 rounded-lg border border-white/8 bg-white/[0.03] px-3 py-1 text-[12px] font-black uppercase tracking-widest text-white/35 transition-all hover:text-white/70"
-            >
-              Fill 10
-            </button>
-          )}
           {isLoading ? (
             <>
               <Loader2 className={`w-3 h-3 animate-spin ${ACCENT_SPIN[accent]}`} />
