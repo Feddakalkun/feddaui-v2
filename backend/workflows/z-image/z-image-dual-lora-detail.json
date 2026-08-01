@@ -31,7 +31,7 @@
   },
   "4": {
     "inputs": {
-      "lora_name": "YOUR_LORA_1.safetensors  \u2190 Main Generation LoRA",
+      "lora_name": "YOUR_LORA_1.safetensors  ← Main Generation LoRA",
       "strength_model": 1.0,
       "strength_clip": 1.0,
       "model": [
@@ -50,7 +50,7 @@
   },
   "5": {
     "inputs": {
-      "lora_name": "YOUR_LORA_2.safetensors  \u2190 Detailer / Inpaint LoRA",
+      "lora_name": "YOUR_LORA_2.safetensors  ← Detailer / Inpaint LoRA",
       "strength_model": 1.0,
       "strength_clip": 1.0,
       "model": [
@@ -289,7 +289,7 @@
     },
     "class_type": "Florence2toCoordinates",
     "_meta": {
-      "title": "19. Florence2 \u2192 BBox Coordinates"
+      "title": "19. Florence2 → BBox Coordinates"
     }
   },
   "20": {
@@ -466,6 +466,23 @@
     "class_type": "SaveImage",
     "_meta": {
       "title": "28. Save Main Image (Before Detailer - for comparison)"
+    }
+  },
+  "128": {
+    "inputs": {
+      "download_links": "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors clip\nhttps://huggingface.co/Kijai/sam2-safetensors/resolve/main/sam2_hiera_base_plus.safetensors sam2\nhttps://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/vae/ae.safetensors vae z-image-vae.safetensors\nhttps://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/diffusion_models/z_image_turbo_bf16.safetensors unet",
+      "auto_download": true,
+      "max_concurrent_downloads": 3,
+      "max_download_speed_mbps": 0,
+      "enable_resume": true,
+      "validate_files": false,
+      "enable_notifications": true,
+      "auto_organize": false,
+      "hf_token": ""
+    },
+    "class_type": "HuggingFaceDownloader",
+    "_meta": {
+      "title": "FEDDA model downloader"
     }
   }
 }

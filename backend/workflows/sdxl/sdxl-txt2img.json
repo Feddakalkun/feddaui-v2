@@ -117,5 +117,22 @@
     "_meta": {
       "title": "Save"
     }
+  },
+  "200": {
+    "inputs": {
+      "download_links": "https://huggingface.co/comfyuistudio/realism-sdxl/resolve/main/realism-sdxl.safetensors checkpoints",
+      "auto_download": true,
+      "max_concurrent_downloads": 3,
+      "max_download_speed_mbps": 0,
+      "enable_resume": true,
+      "validate_files": false,
+      "enable_notifications": true,
+      "auto_organize": false,
+      "hf_token": ""
+    },
+    "class_type": "HuggingFaceDownloader",
+    "_meta": {
+      "title": "FEDDA model downloader"
+    }
   }
 }
