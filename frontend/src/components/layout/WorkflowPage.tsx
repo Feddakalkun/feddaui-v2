@@ -438,10 +438,10 @@ export const WorkflowPage = ({
               emptyHint="Results will appear here."
             />
           ) : (
+            // object-contain with a max height: a square render was being
+            // stretched wide to fill the output strip.
             <div className="space-y-3">
               {run.currentMedia ? (
-                {/* Never let the strip stretch it: a square render in a wide panel was
-                    coming out horizontally squashed. */}
                 <img
                   src={run.currentMedia}
                   alt="Result"
