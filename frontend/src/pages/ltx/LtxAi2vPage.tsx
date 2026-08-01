@@ -495,6 +495,7 @@ export const LtxAi2vPage = () => {
               onClick={handleGenerate}
               disabled={!canGenerate}
               isGenerating={run.isGenerating}
+          onCancel={run.cancel}
               label="Generate Video"
               requirementHint="Upload a reference image, an audio clip, and enter a prompt"
             />

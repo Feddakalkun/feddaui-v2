@@ -403,6 +403,7 @@ export const LipsyncPage = () => {
 
         <WorkflowSection title="Run">
           <GenerateButton onClick={generate} disabled={!canGen} isGenerating={run.isGenerating}
+          onCancel={run.cancel}
             label="Generate Lipsync" requirementHint="Add a portrait and a voice" />
         </WorkflowSection>
       </div>

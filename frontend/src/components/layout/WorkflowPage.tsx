@@ -425,6 +425,7 @@ export const WorkflowPage = ({
           onClick={handleGenerate}
           disabled={!canGenerate}
           isGenerating={run.isGenerating}
+          onCancel={run.cancel}
           label={generateLabel}
           generatingLabel={generatingLabel}
           requirementHint={missing}

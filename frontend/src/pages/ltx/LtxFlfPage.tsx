@@ -327,6 +327,7 @@ export const LtxFlfPage = () => {
               onClick={handleGenerate}
               disabled={!canGenerate}
               isGenerating={run.isGenerating}
+          onCancel={run.cancel}
               label="Generate Video"
               requirementHint="Upload both frames and enter a motion prompt"
             />

@@ -310,6 +310,7 @@ export const Wan22XxxImg2VidPage = () => {
               onClick={handleGenerate}
               disabled={!canGenerate}
               isGenerating={run.isGenerating}
+          onCancel={run.cancel}
               label="Generate Video"
               requirementHint="Upload a reference image and enter a prompt"
             />

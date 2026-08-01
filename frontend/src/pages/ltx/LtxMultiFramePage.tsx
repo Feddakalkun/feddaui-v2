@@ -378,6 +378,7 @@ export const LtxMultiFramePage = () => {
               onClick={handleGenerate}
               disabled={!canGenerate}
               isGenerating={run.isGenerating}
+          onCancel={run.cancel}
               label="Generate Video"
               requirementHint={`Upload all ${kfCount} keyframes and enter a motion prompt`}
             />

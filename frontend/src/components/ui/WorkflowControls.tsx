@@ -209,6 +209,8 @@ interface GenerateButtonProps {
   label?: string;
   generatingLabel?: string;
   requirementHint?: string;
+  /** Omit and the button just sits disabled while running, with no way to stop. */
+  onCancel?: () => void;
 }
 
 /** Standard violet generate button + optional requirement hint underneath. */
@@ -219,16 +221,25 @@ export const GenerateButton = ({
   label = 'Generate',
   generatingLabel = 'Generating...',
   requirementHint,
+  onCancel,
 }: GenerateButtonProps) => (
   <div>
+    {/* While a job runs this becomes the way to stop it. Video runs are long;
+        a disabled "Generating..." button meant restarting ComfyUI to get out. */}
     <FeddaButton
       variant="violet"
-      onClick={onClick}
-      disabled={disabled}
-      className="w-full rounded-xl py-3.5 text-sm font-semibold"
+      onClick={isGenerating ? (onCancel ?? (() => {})) : onClick}
+      disabled={isGenerating ? !onCancel : disabled}
+      className={`w-full rounded-xl py-3.5 text-sm font-semibold ${
+        isGenerating && onCancel ? 'workflow-cancel-btn' : ''
+      }`}
     >
       {isGenerating ? (
-        <span className="flex items-center justify-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> {generatingLabel}</span>
+        onCancel ? (
+          <span className="flex items-center justify-center gap-2"><X className="h-4 w-4" /> Cancel</span>
+        ) : (
+          <span className="flex items-center justify-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> {generatingLabel}</span>
+        )
       ) : (
         <span className="flex items-center justify-center gap-2"><Play className="h-4 w-4" /> {label}</span>
       )}

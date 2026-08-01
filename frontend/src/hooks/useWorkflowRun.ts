@@ -209,6 +209,32 @@ export const useWorkflowRun = ({
     return submit(params, options);
   }, [isGenerating, submit]);
 
+  /**
+   * Stop the running job and abandon anything queued behind it.
+   *
+   * The local queue is emptied first: the completion path for the killed job
+   * calls advanceQueue, which would otherwise pull the next param-set and start
+   * generating again the moment the interrupt lands.
+   */
+  const cancel = useCallback(async () => {
+    queueRef.current = [];
+    batchTotalRef.current = 0;
+    setBatchProgress(null);
+    completionHandledRef.current = true;
+    const promptId = pendingPromptId;
+    try {
+      await fetch(
+        `${BACKEND_API.BASE_URL}/api/generate/cancel${promptId ? `?prompt_id=${encodeURIComponent(promptId)}` : ''}`,
+        { method: 'POST' },
+      );
+    } catch {
+      toast('Could not reach the backend to cancel', 'error');
+    } finally {
+      setIsGenerating(false);
+      setPendingPromptId(null);
+    }
+  }, [pendingPromptId, toast]);
+
   /** Queue several param-sets; they run one after another. */
   const startBatch = useCallback(async (paramsList: Record<string, unknown>[]) => {
     if (isGenerating || !paramsList.length) return;
@@ -227,6 +253,7 @@ export const useWorkflowRun = ({
     setHistory,
     start,
     startBatch,
+    cancel,
     batchProgress,
   };
 };

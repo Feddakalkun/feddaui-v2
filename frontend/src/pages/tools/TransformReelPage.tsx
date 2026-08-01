@@ -796,6 +796,7 @@ export const TransformReelPage = () => {
               onClick={() => generateMorph()}
               disabled={!canMorph}
               isGenerating={run.isGenerating}
+              onCancel={run.cancel}
               label="Generate Transformation Reel"
               requirementHint="Upload a photo and create the character frame first"
             />
