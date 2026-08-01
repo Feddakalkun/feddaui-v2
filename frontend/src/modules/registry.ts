@@ -95,8 +95,8 @@ export const FEDDA_MODULES: FeddaModule[] = [
   {
     id: 'lora-character',
     sourceModuleId: 'core-shell',
-    label: 'LoRA & Character',
-    description: 'Install, import and manage LoRA character packs for active workflows.',
+    label: 'Models & LoRAs',
+    description: 'Characters, LoRA installs, and what models every workflow still needs.',
     area: 'system',
     pack: 'core',
 

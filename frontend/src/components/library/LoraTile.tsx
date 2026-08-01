@@ -51,8 +51,14 @@ export const LoraTile = ({
     >
       <div className="relative aspect-[3/4] w-full overflow-hidden bg-black/40">
         {imgFailed ? (
-          <div className="flex h-full w-full items-center justify-center">
-            <ImageOff className="h-6 w-6 text-white/15" />
+          /* A grey portrait plate rather than a broken-image icon: most
+             characters have no preview until one is generated, and that is a
+             normal state, not an error. */
+          <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-b from-white/[0.07] to-white/[0.02]">
+            <span className="text-2xl font-semibold tracking-tight text-white/20">
+              {name.slice(0, 2).toUpperCase()}
+            </span>
+            <span className="mt-1 text-[8px] uppercase tracking-[0.18em] text-white/15">No preview</span>
           </div>
         ) : (
           <img

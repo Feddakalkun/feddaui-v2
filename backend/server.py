@@ -3971,6 +3971,67 @@ def _workflow_builtin_model_download_files(node_id: str, node: Dict[str, Any]) -
     return files
 
 
+@app.get("/api/workflows/model-overview")
+async def get_all_workflow_model_overview():
+    """One row per workflow: how many of its models are on disk.
+
+    The per-workflow endpoint is fine for a page that knows which workflow it
+    is, but a "what do I still need" screen would have to call it once per
+    workflow. This walks the mappings once instead.
+
+    Deliberately cheap: it only stats files that the graph's downloader nodes
+    declare. A workflow with no downloader node reports total 0, which is the
+    honest answer - the graph never said what it needs.
+    """
+    rows: List[Dict[str, Any]] = []
+    try:
+        mappings = workflow_service.load_mapping()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    for workflow_id, mapping in mappings.items():
+        row = {
+            "workflow_id": workflow_id,
+            "name": mapping.get("name") or workflow_id,
+            "total": 0,
+            "present": 0,
+            "missing": 0,
+            "missing_bytes": 0,
+            "error": None,
+        }
+        try:
+            path = workflow_service.get_workflow_path(mapping.get("filename", ""))
+            if not path:
+                row["error"] = "workflow file not found"
+                rows.append(row)
+                continue
+            with open(path, "r", encoding="utf-8-sig") as f:
+                workflow = json.load(f)
+            items = _parse_workflow_download_links(workflow)
+            for node_id, node in workflow.items():
+                if isinstance(node, dict):
+                    items.extend(_workflow_builtin_model_download_files(str(node_id), node))
+            seen = set()
+            for item in items:
+                target = Path(str(item.get("path") or ""))
+                key = str(target)
+                if not key or key in seen:
+                    continue
+                seen.add(key)
+                row["total"] += 1
+                if target.exists() and target.is_file() and target.stat().st_size > 10_000:
+                    row["present"] += 1
+                else:
+                    row["missing"] += 1
+                    row["missing_bytes"] += int(item.get("size_bytes") or 0)
+        except Exception as e:
+            row["error"] = str(e)
+        rows.append(row)
+
+    rows.sort(key=lambda r: (-r["missing"], r["name"]))
+    return {"success": True, "workflows": rows}
+
+
 @app.get("/api/workflow/model-status/{workflow_id}")
 async def get_workflow_model_status(workflow_id: str):
     """Expose model downloader requirements embedded in a Comfy workflow."""

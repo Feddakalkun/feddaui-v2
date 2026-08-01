@@ -38,8 +38,13 @@ export function useLoraUpload(family: string, onDone?: () => void) {
     [exts],
   );
 
+  /**
+   * `familyOverride` lets one hook serve every model button: the folder is
+   * decided by which button you dropped on, not by page state.
+   */
   const upload = useCallback(
-    async (files: File[]) => {
+    async (files: File[], familyOverride?: string) => {
+      const target = familyOverride || family;
       const usable = files.filter((f) => accepts(f.name));
       const rejected = files.filter((f) => !accepts(f.name));
       setErrors(rejected.map((f) => `${f.name} — not a ${exts.join(' / ')} file`));
@@ -54,7 +59,7 @@ export function useLoraUpload(family: string, onDone?: () => void) {
         try {
           const form = new FormData();
           form.append('file', file);
-          form.append('family', family);
+          form.append('family', target);
           const res = await fetch(
             `${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.LORA_UPLOAD_LOCAL}`,
             { method: 'POST', body: form },
