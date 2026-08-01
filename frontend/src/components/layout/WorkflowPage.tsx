@@ -103,7 +103,10 @@ export interface WorkflowPageProps {
    * LTX turns an aspect chip plus a resolution chip into width/height, which no
    * single control can express.
    */
-  extraParams?: (values: Record<string, number | string>) => Record<string, unknown>;
+  extraParams?: (
+    values: Record<string, number | string>,
+    ctx: { prompt: string; negative: string },
+  ) => Record<string, unknown>;
   /** Buttons above the prompt box, e.g. "write prompt from frames". */
   promptActions?: ReactNode;
   /** Anything genuinely bespoke, rendered between Settings and Generate. */
@@ -311,7 +314,10 @@ export const WorkflowPage = ({
         params[slot.paramKey ?? slot.key] = { on: true, lora: pick.name, strength: pick.strength };
       }
     }
-    return { ...params, ...(extraParams?.(values) ?? {}) };
+    return {
+      ...params,
+      ...(extraParams?.(values, { prompt: promptText.trim(), negative: negativeText.trim() }) ?? {}),
+    };
   };
 
   const handleGenerate = () => {
@@ -434,7 +440,13 @@ export const WorkflowPage = ({
           ) : (
             <div className="space-y-3">
               {run.currentMedia ? (
-                <img src={run.currentMedia} alt="Result" className="w-full rounded-xl" />
+                {/* Never let the strip stretch it: a square render in a wide panel was
+                    coming out horizontally squashed. */}
+                <img
+                  src={run.currentMedia}
+                  alt="Result"
+                  className="mx-auto max-h-[40vh] w-auto max-w-full rounded-xl object-contain"
+                />
               ) : null}
               {run.history.length > 1 ? (
                 <div className="flex gap-2 overflow-x-auto">

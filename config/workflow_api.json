@@ -3676,10 +3676,22 @@
     "description": "Two characters in one image: person 1's LoRA drives the main sampler, person 2's LoRA drives a detailer pass over their face.",
     "inputs": {
       "prompt": {
-        "node_id": "121",
-        "input_key": "text_0",
+        "node_id": "146",
+        "input_key": "wildcard_text",
         "type": "string",
         "label": "Scene"
+      },
+      "prompt_populated": {
+        "node_id": "146",
+        "input_key": "populated_text",
+        "type": "string",
+        "label": "Scene (resolved)"
+      },
+      "person1_prompt": {
+        "node_id": "118",
+        "input_key": "text",
+        "type": "string",
+        "label": "Person 1 details"
       },
       "person2_prompt": {
         "node_id": "119",

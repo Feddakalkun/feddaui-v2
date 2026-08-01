@@ -30,9 +30,18 @@ export const ZImage2LorasPage = () => (
     settings={[
       {
         kind: 'text',
+        key: 'person1_prompt',
+        label: 'Person 1 details',
+        placeholder: 'Name, hair, skin — appended to the scene',
+        defaultValue: '',
+        rows: 2,
+      },
+      {
+        kind: 'text',
         key: 'person2_prompt',
         label: 'Person 2 details',
-        placeholder: 'Only the second face: name, hair, look…',
+        placeholder: 'Name, hair, look — used only by the detailer pass',
+        defaultValue: '',
         rows: 2,
       },
       { kind: 'slider', key: 'steps', label: 'Steps', min: 4, max: 25, defaultValue: 9 },
@@ -45,6 +54,9 @@ export const ZImage2LorasPage = () => (
       { key: 'p1', label: 'Person 1 LoRA', match: ['zimage', 'z-image'], nameKey: 'lora_person1', strengthKey: 'lora_person1_str' },
       { key: 'p2', label: 'Person 2 LoRA', match: ['zimage', 'z-image'], nameKey: 'lora_person2', strengthKey: 'lora_person2_str' },
     ]}
+    // ImpactWildcardProcessor reads populated_text downstream, so the scene has
+    // to land in both fields or the edit is ignored.
+    extraParams={(_values, { prompt }) => ({ prompt_populated: prompt })}
     generateLabel="Generate"
     readyMessage="Image ready"
   />
