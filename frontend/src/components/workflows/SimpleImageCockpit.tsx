@@ -1,5 +1,5 @@
 import { useState, type Dispatch, type RefObject, type SetStateAction } from 'react';
-import { Brain, CheckCircle2, ChevronDown, Loader2, Maximize2, Plus, RefreshCw, Sparkles, Trash2, Upload } from 'lucide-react';
+import { ChevronDown, Loader2, Maximize2, Plus, RefreshCw, Sparkles, Upload } from 'lucide-react';
 import { PromptAssistant, type PromptContext } from '../ui/PromptAssistant';
 import { LoraCharacterCard } from '../ui/LoraCharacterCard';
 import { BACKEND_API } from '../../config/api';
@@ -52,14 +52,6 @@ export type SimpleImagePromptPreset = {
 };
 
 type SimpleImageAccent = 'emerald' | 'violet';
-
-type WorkflowMemoryEntry = {
-  id: string;
-  kind?: string;
-  title?: string;
-  content?: string;
-  created_at?: string;
-};
 
 interface SimpleImageCockpitProps {
   promptContext: PromptContext;
@@ -243,11 +235,6 @@ export function SimpleImageCockpit({
   maskBlurAmount = 50,
   setMaskBlurAmount,
 }: SimpleImageCockpitProps) {
-  const [memoryState, setMemoryState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const [memoryOpen, setMemoryOpen] = useState(false);
-  const [memoryEntries, setMemoryEntries] = useState<WorkflowMemoryEntry[]>([]);
-  const [memoryLoading, setMemoryLoading] = useState(false);
-  const [memoryError, setMemoryError] = useState<string | null>(null);
   const visibleLoras = loraEntries.length > 0 ? loraEntries : [{ name: '', strength: 1.0 }];
   const presetGroups = promptPresets.reduce<Record<string, SimpleImagePromptPreset[]>>((groups, preset) => {
     const group = preset.group || 'Presets';
@@ -277,114 +264,13 @@ export function SimpleImageCockpit({
     setPrompt(`${current}\n\n${next}`);
   };
 
-  const loadMemory = async () => {
-    if (!workflowId) return;
-    setMemoryLoading(true);
-    setMemoryError(null);
-    try {
-      const response = await fetch(`${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.WORKFLOW_MEMORY}/${encodeURIComponent(workflowId)}?limit=8`);
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || !data?.success) throw new Error(data?.detail || 'Could not load workflow memory');
-      setMemoryEntries(Array.isArray(data.entries) ? data.entries : []);
-    } catch (error: any) {
-      setMemoryError(error?.message || 'Could not load workflow memory');
-    } finally {
-      setMemoryLoading(false);
-    }
-  };
 
-  const toggleMemory = async () => {
-    const next = !memoryOpen;
-    setMemoryOpen(next);
-    if (next) await loadMemory();
-  };
 
-  const deleteMemory = async (entryId: string) => {
-    if (!workflowId || !entryId) return;
-    setMemoryEntries((prev) => prev.filter((entry) => entry.id !== entryId));
-    try {
-      const response = await fetch(`${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.WORKFLOW_MEMORY}/${encodeURIComponent(workflowId)}/${encodeURIComponent(entryId)}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) await loadMemory();
-    } catch {
-      await loadMemory();
-    }
-  };
 
-  const rememberSetup = async () => {
-    if (!workflowId || !prompt.trim()) return;
-    setMemoryState('saving');
-    try {
-      const activeLoras = loraEntries.filter((entry) => entry.name && entry.name.trim());
-      const response = await fetch(`${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.WORKFLOW_MEMORY}/${encodeURIComponent(workflowId)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          kind: 'settings',
-          title: `${familyLabel} cockpit setup`,
-          content: prompt.trim(),
-          source: 'simple-image-cockpit',
-          data: {
-            prompt,
-            negative: negativePrompt,
-            width,
-            height,
-            steps,
-            cfg,
-            seed,
-            loras: activeLoras,
-          },
-        }),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || !data?.success) throw new Error(data?.detail || 'Memory save failed');
-      if (data.entry) setMemoryEntries((prev) => [data.entry, ...prev.filter((entry) => entry.id !== data.entry.id)].slice(0, 8));
-      setMemoryState('saved');
-      window.setTimeout(() => setMemoryState('idle'), 1800);
-    } catch {
-      setMemoryState('error');
-      window.setTimeout(() => setMemoryState('idle'), 2200);
-    }
-  };
 
   return (
     <div className="mx-auto w-full max-w-[1540px] pb-3">
       <section className="workflow-cockpit">
-        {/*
-          Workflow memory is demoted from a full-width titled band to two small
-          controls. The capability stays because saved entries are injected into
-          the LLM prompt context (_workflow_memory_prompt_context), which matters
-          more now that Enhance is the main prompt-building path - but nobody had
-          ever written an entry, so it did not earn a header of its own.
-        */}
-        {workflowId && (
-          <div className="cockpit-toolbar is-compact">
-            <div className="cockpit-toolbar-actions">
-              <Brain className="h-3 w-3 opacity-40" />
-              <button
-                type="button"
-                onClick={rememberSetup}
-                disabled={!prompt.trim() || memoryState === 'saving'}
-                className={memoryState === 'saved' ? 'is-saved' : memoryState === 'error' ? 'is-error' : ''}
-              >
-                {memoryState === 'saving' ? (
-                  <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving</>
-                ) : memoryState === 'saved' ? (
-                  <><CheckCircle2 className="h-3.5 w-3.5" /> Saved</>
-                ) : memoryState === 'error' ? (
-                  'Save failed'
-                ) : (
-                  'Remember'
-                )}
-              </button>
-              <button type="button" onClick={toggleMemory} className={memoryOpen ? 'is-saved' : ''}>
-                Memory {memoryEntries.length > 0 ? memoryEntries.length : ''}
-              </button>
-            </div>
-          </div>
-        )}
-
         <div className="workflow-cockpit-stack">
           {/*
             Input and output side by side. The live preview used to sit two
@@ -736,41 +622,6 @@ export function SimpleImageCockpit({
             )}
           </div>
         </div>
-
-        {workflowId && memoryOpen && (
-          <div className="cockpit-memory-drawer">
-            <div className="cockpit-memory-drawer-head">
-              <span>Recent workflow memory</span>
-              <button type="button" onClick={loadMemory} disabled={memoryLoading}>
-                {memoryLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Refresh'}
-              </button>
-            </div>
-            {memoryError ? (
-              <div className="cockpit-memory-empty is-error">{memoryError}</div>
-            ) : memoryLoading && memoryEntries.length === 0 ? (
-              <div className="cockpit-memory-empty">Loading memory...</div>
-            ) : memoryEntries.length === 0 ? (
-              <div className="cockpit-memory-empty">No saved setup yet.</div>
-            ) : (
-              <div className="cockpit-memory-list">
-                {memoryEntries.map((entry) => (
-                  <article key={entry.id} className="cockpit-memory-item">
-                    <div>
-                      <div className="cockpit-memory-item-title">
-                        <span>{entry.title || 'Workflow memory'}</span>
-                        <small>{entry.kind || 'note'}</small>
-                      </div>
-                      <p>{entry.content || 'No prompt content saved.'}</p>
-                    </div>
-                    <button type="button" onClick={() => deleteMemory(entry.id)} title="Delete memory">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </article>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
 
         <button
           type="button"
