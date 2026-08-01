@@ -151,6 +151,7 @@ export const PromptAssistant = ({
   const [dragOver, setDragOver] = useState(false);
   const [captionModel, setCaptionModel] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const captionInputRef = useRef<HTMLInputElement | null>(null);
   const dragDepthRef = useRef(0);
 
   const hasImageInDataTransfer = useCallback((dt: DataTransfer | null) => {
@@ -389,12 +390,36 @@ export const PromptAssistant = ({
               >
                 <Wand2 className="w-3.5 h-3.5" /> Enhance
               </button>
+              {/* Caption an image into the prompt. Drag-and-drop onto the
+                  textarea already did this, but only if you knew it existed. */}
+              {enableCaption && (
+                <button
+                  onClick={() => captionInputRef.current?.click()}
+                  title="Pick an image and describe it into the prompt"
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/[0.03] border border-white/8
+                  text-[12px] font-black uppercase tracking-widest text-white/35 transition-all ${ACCENT_BTN[accent]}`}
+                >
+                  <ImageIcon className="w-3.5 h-3.5" /> Caption
+                </button>
+              )}
               {/* Char count */}
               <span className="text-white/10 font-mono text-[10px] ml-1">{value.length}</span>
             </>
           )}
         </div>
       </div>
+
+      <input
+        ref={captionInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void captionFile(file);
+          e.target.value = ''; // let the same file be picked twice
+        }}
+      />
 
       {/* Textarea with drop zone */}
       <div
