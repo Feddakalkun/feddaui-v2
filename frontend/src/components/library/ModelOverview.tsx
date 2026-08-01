@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, CheckCircle2, DownloadCloud, Loader2, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ArrowUpRight, CheckCircle2, DownloadCloud, Loader2, RefreshCw } from 'lucide-react';
 import { BACKEND_API } from '../../config/api';
+import { useModules } from '../../contexts/ModuleContext';
 import { cn } from '../../lib/styles';
 
 /**
@@ -24,12 +25,35 @@ type Row = {
   error?: string | null;
 };
 
+/**
+ * workflow_id → tab id, for the rows whose page lives under a different route.
+ * Most workflow ids ARE valid tabs already; this only covers the variants
+ * (gguf/fast/noupscale graphs a page swaps to at runtime) and renamed tabs.
+ * Anything that resolves to a tab not in validTabs renders without a link —
+ * App.tsx bounces unknown tabs to the default page, which is worse than no link.
+ */
+const TAB_ALIASES: Record<string, string> = {
+  'chroma1-hd-txt2img': 'chroma',
+  'flux2klein-txt2img': 'flux',
+  'krea2-turbo-txt2img-gguf': 'krea2-turbo-txt2img',
+  'ltx-ai2v-noupscale': 'ltx-ai2v',
+  'ltx-img2vid-gguf': 'ltx-img2vid',
+  'qwen-edit-2509-image-reference': 'qwen-image-ref',
+  'qwen-multi-angles': 'qwen-multi-angle',
+  'qwen-multi-angles-fast': 'qwen-multi-angle',
+  'z-image-dual-base': 'z-image-dual-lora',
+  'z-image-dual-detail': 'z-image-dual-lora',
+  'z-image-dual-lora-upload': 'z-image-dual-lora',
+  'z-image-controlnet-pose': 'wan21-steady-dancer',
+};
+
 const fmtBytes = (b: number) =>
   b >= 1_000_000_000 ? `${(b / 1_000_000_000).toFixed(1)} GB`
   : b >= 1_000_000 ? `${(b / 1_000_000).toFixed(0)} MB`
   : b > 0 ? `${(b / 1_000).toFixed(0)} KB` : '';
 
 export const ModelOverview = () => {
+  const { validTabs } = useModules();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -102,15 +126,36 @@ export const ModelOverview = () => {
       </div>
 
       <div className="overflow-hidden rounded-xl border border-white/8">
-        {rows.map((r) => (
+        {rows.map((r) => {
+          // Link straight to the workflow's page when its id (or an alias)
+          // is a tab the app will actually resolve.
+          const candidate = TAB_ALIASES[r.workflow_id] ?? r.workflow_id;
+          const tab = validTabs.has(candidate) ? candidate : null;
+          const nameBlock = (
+            <>
+              <p className="truncate text-[12px] text-zinc-200">
+                {r.name}
+                {tab && <ArrowUpRight className="ml-1 inline h-3 w-3 text-white/25 transition group-hover:text-cyan-300" />}
+              </p>
+              <p className="truncate font-mono text-[9px] text-white/25">{r.workflow_id}</p>
+            </>
+          );
+          return (
           <div
             key={r.workflow_id}
             className="flex items-center gap-3 border-b border-white/5 px-4 py-2 last:border-b-0"
           >
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[12px] text-zinc-200">{r.name}</p>
-              <p className="truncate font-mono text-[9px] text-white/25">{r.workflow_id}</p>
-            </div>
+            {tab ? (
+              <a
+                href={`#/tab/${encodeURIComponent(tab)}`}
+                className="group min-w-0 flex-1 transition hover:brightness-125"
+                title="Open workflow"
+              >
+                {nameBlock}
+              </a>
+            ) : (
+              <div className="min-w-0 flex-1">{nameBlock}</div>
+            )}
 
             <span className={cn(
               'shrink-0 text-[10px] font-semibold',
@@ -139,7 +184,8 @@ export const ModelOverview = () => {
               </button>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {undeclared.length > 0 && (
