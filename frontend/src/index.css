@@ -1353,6 +1353,19 @@ body {
    problem moving the preview up here was meant to solve. */
 .cockpit-io-row > * {
   max-height: 340px;
+  /* Equal boxes: without this each column sizes to its own content and they
+     end up a few px apart, which reads as sloppy next to each other. */
+  height: 100%;
+}
+
+.cockpit-io-row > .workflow-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.cockpit-io-row > .workflow-section > *:last-child {
+  flex: 1;
+  min-height: 0;
 }
 
 .cockpit-io-row .cockpit-panel > div {

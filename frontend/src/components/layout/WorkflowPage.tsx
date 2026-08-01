@@ -476,32 +476,34 @@ export const WorkflowPage = ({
       <div className="w-full space-y-4 px-6 pb-8">
         {/* Same arrangement as the image pages: inputs and the live output side
             by side at the top, capped, so Generate stays on screen. */}
-        <div className={cn('cockpit-io-row', inputs.length === 0 && 'is-single')}>
-          {inputs.length > 0 && (
-          <div className={cn('grid gap-3', inputs.length > 1 && 'grid-cols-2')}>
-            {inputs.map((input) => (
-              <WorkflowSection key={input.key} title={input.label}>
-                <UploadSlot
-                  preview={
-                    files[input.key]
-                      ? `/comfy/view?filename=${encodeURIComponent(files[input.key]!)}&type=input`
-                      : null
-                  }
-                  uploading={!!uploading[input.key]}
-                  onFile={(f) => upload(input.key, f)}
-                  onUrl={(u) => uploadFromUrl(input.key, u)}
-                  accept={input.kind === 'video' ? 'video/*' : 'image/*'}
-                  previewKind={input.kind === 'video' ? 'video' : undefined}
-                  label={input.label}
-                  hint={input.hint ?? 'Click, drop, or paste a URL'}
-                  height={220}
-                  filename={files[input.key] ?? undefined}
-                  onClear={() => setFile(input.key, null)}
-                />
-              </WorkflowSection>
-            ))}
-          </div>
-          )}
+        {/* Every input and the output are equal columns of one row, rather than
+            the inputs sharing half of it - two frames were coming out a quarter
+            the width of the panel opposite them. */}
+        <div
+          className="cockpit-io-row"
+          style={{ gridTemplateColumns: `repeat(${inputs.length + 1}, minmax(0, 1fr))` }}
+        >
+          {inputs.map((input) => (
+            <WorkflowSection key={input.key} title={input.label}>
+              <UploadSlot
+                preview={
+                  files[input.key]
+                    ? `/comfy/view?filename=${encodeURIComponent(files[input.key]!)}&type=input`
+                    : null
+                }
+                uploading={!!uploading[input.key]}
+                onFile={(f) => upload(input.key, f)}
+                onUrl={(u) => uploadFromUrl(input.key, u)}
+                accept={input.kind === 'video' ? 'video/*' : 'image/*'}
+                previewKind={input.kind === 'video' ? 'video' : undefined}
+                label={input.label}
+                hint={input.hint ?? 'Click, drop, or paste a URL'}
+                height={230}
+                filename={files[input.key] ?? undefined}
+                onClear={() => setFile(input.key, null)}
+              />
+            </WorkflowSection>
+          ))}
           <div className="cockpit-panel">{outputPanel}</div>
         </div>
 
