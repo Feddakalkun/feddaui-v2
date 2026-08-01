@@ -135,9 +135,7 @@ export const LibraryPage = () => {
         </div>
 
         <p className="mt-2 text-[10px] text-white/25">
-          Drag a LoRA onto a model button to install it there, or use its ⬆. The folder decides which
-          workflows can see it. A character is a folder under <code className="text-white/35">loras/app/</code>{' '}
-          — click one to write its description and personality.
+          Drag a LoRA onto a model to install it there — the folder decides which workflows see it.
         </p>
         </>
         )}
