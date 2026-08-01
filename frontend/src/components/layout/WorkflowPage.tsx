@@ -85,6 +85,14 @@ export interface WorkflowPromptSpec {
 
 export interface WorkflowPageProps {
   workflowId: string;
+  /**
+   * Stable key for stored prompt/settings. Defaults to workflowId, but pages
+   * that swap workflowId at runtime (LTX picks a gguf or fp8 graph) must pin
+   * this or toggling wipes everything the user typed.
+   */
+  storageKey?: string;
+  /** Send all LoRA picks as one array under this key instead of named params. */
+  loraArrayKey?: string;
   /** Model family, e.g. "LTX 2.3" — rendered as the eyebrow. */
   family: string;
   /** What this page does, e.g. "First / Last Frame". */
@@ -135,6 +143,8 @@ const settingDefault = (s: WorkflowSettingSpec) =>
 
 export const WorkflowPage = ({
   workflowId,
+  storageKey,
+  loraArrayKey,
   family,
   capability,
   description,
@@ -153,6 +163,7 @@ export const WorkflowPage = ({
 }: WorkflowPageProps) => {
   const { toast } = useToast();
   const { previewUrl } = useComfyExecution();
+  const store = storageKey ?? workflowId;
 
   const promptKey = prompt?.key ?? 'prompt';
   const negativeKey = prompt?.negative?.key ?? 'negative';
@@ -163,22 +174,22 @@ export const WorkflowPage = ({
   );
 
   const [files, setFiles] = usePersistentState<Record<string, string | null>>(
-    `wf_${workflowId}_inputs`,
+    `wf_${store}_inputs`,
     {},
   );
   const [values, setValues] = usePersistentState<Record<string, number | string>>(
-    `wf_${workflowId}_settings`,
+    `wf_${store}_settings`,
     defaults,
   );
   const [promptText, setPromptText] = usePersistentState(
-    `wf_${workflowId}_prompt`,
+    `wf_${store}_prompt`,
     prompt?.defaultValue ?? '',
   );
-  const [negativeText, setNegativeText] = usePersistentState(`wf_${workflowId}_negative`, '');
+  const [negativeText, setNegativeText] = usePersistentState(`wf_${store}_negative`, '');
   // Batch is a mode of the prompt box, matching the image pages: each non-empty
   // line is its own job, and Single leaves a multi-line prompt as one prompt.
   const [promptMode, setPromptMode] = usePersistentState<'single' | 'multiple'>(
-    `wf_${workflowId}_prompt_mode`,
+    `wf_${store}_prompt_mode`,
     'single',
   );
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
@@ -187,7 +198,7 @@ export const WorkflowPage = ({
   // One object rather than a hook per slot, same reason as settings: the slot
   // list is config, and hooks cannot be conditional.
   const [loraPicks, setLoraPicks] = usePersistentState<Record<string, { name: string; strength: number }>>(
-    `wf_${workflowId}_loras`,
+    `wf_${store}_loras`,
     {},
   );
   const [availableLoras, setAvailableLoras] = useState<Record<string, string[]>>({});
@@ -218,8 +229,8 @@ export const WorkflowPage = ({
 
   const run = useWorkflowRun({
     workflowId,
-    currentKey: `wf_${workflowId}_current`,
-    historyKey: `wf_${workflowId}_history`,
+    currentKey: `wf_${store}_current`,
+    historyKey: `wf_${store}_history`,
     outputKind: output,
     readyMessage,
   });
@@ -305,7 +316,14 @@ export const WorkflowPage = ({
         params[s.key] = value;
       }
     }
-    for (const slot of loras) {
+    if (loraArrayKey) {
+      const picked = loras
+        .map((slot) => loraPicks[slot.key])
+        .filter((pick) => pick?.name)
+        .map((pick) => ({ name: pick.name, strength: pick.strength }));
+      if (picked.length) params[loraArrayKey] = picked;
+    }
+    for (const slot of loraArrayKey ? [] : loras) {
       const pick = loraPicks[slot.key];
       if (!pick?.name) continue;
       if (slot.nameKey) {
