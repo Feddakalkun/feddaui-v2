@@ -302,7 +302,18 @@ export function SimpleImageCockpit({
                   <small>or click to browse</small>
                 </button>
               ) : (
-                <button type="button" onClick={() => fileInputRef?.current?.click()} className="workflow-upload-preview">
+                // Drop handlers were only on the empty state, so once an image
+                // was in you could click to replace it but not drag a new one on.
+                <button
+                  type="button"
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    handleFile(event.dataTransfer.files[0]);
+                  }}
+                  onDragOver={(event) => event.preventDefault()}
+                  onClick={() => fileInputRef?.current?.click()}
+                  className="workflow-upload-preview"
+                >
                   <img src={uploadedImage} alt={imageLabel} />
                   <span>{uploadedImageName}</span>
                 </button>
