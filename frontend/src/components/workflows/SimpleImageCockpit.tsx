@@ -628,13 +628,6 @@ export function SimpleImageCockpit({
                 </button>
               </div>
             </div>
-
-            {missingModels.length > 0 && (
-              <div className="workflow-cockpit-missing">
-                Missing model files: {missingModels.slice(0, 3).join(', ')}
-                {missingModels.length > 3 ? ` +${missingModels.length - 3} more` : ''}
-              </div>
-            )}
           </div>
         </div>
 

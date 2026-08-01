@@ -734,6 +734,10 @@ export const Txt2ImgPage = ({
 
   return (
     <WorkflowShell
+      // Without this the shell renders no WorkflowDownloadBanner, which is why
+      // these 12 pages had only a bare list of missing filenames and no way to
+      // download them.
+      workflowId={workflowId}
       title={capabilityLabel}
       eyebrow={familyLabel}
       description={(

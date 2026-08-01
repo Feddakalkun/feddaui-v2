@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { AlertTriangle, CheckCircle2, DownloadCloud } from 'lucide-react';
+import { ModelStatusModal } from './ModelStatusModal';
 import { useComfyExecution } from '../../contexts/ComfyExecutionContext';
 import { useWorkflowDownloadStatus } from '../../hooks/useWorkflowDownloadStatus';
 
@@ -8,7 +10,20 @@ function fmtBytes(bytes: number): string {
   return `${(bytes / 1_000).toFixed(0)} KB`;
 }
 
+/** Shared affordance so all three banner states open the same inventory. */
+const DetailsLink = ({ onOpen }: { onOpen: () => void }) => (
+  <button
+    type="button"
+    onClick={onOpen}
+    className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/25 underline-offset-2 transition hover:text-white/60 hover:underline"
+  >
+    View models
+  </button>
+);
+
 export const WorkflowDownloadBanner = ({ workflowId }: { workflowId: string }) => {
+  // The banner answers "can I run this"; the modal answers everything else.
+  const [detailOpen, setDetailOpen] = useState(false);
   const { isDownloaderNode } = useComfyExecution();
   const { preflight, liveFiles, missingCount, allReady, checked, manualDownloading, startDownload } =
     useWorkflowDownloadStatus(workflowId);
@@ -67,6 +82,8 @@ export const WorkflowDownloadBanner = ({ workflowId }: { workflowId: string }) =
             ? 'Runs automatically when downloads complete.'
             : 'Pre-downloading — you can keep working, generation is ready when this finishes.'}
         </p>
+        <DetailsLink onOpen={() => setDetailOpen(true)} />
+        {detailOpen && <ModelStatusModal workflowId={workflowId} onClose={() => setDetailOpen(false)} />}
       </div>
     );
   }
@@ -102,6 +119,8 @@ export const WorkflowDownloadBanner = ({ workflowId }: { workflowId: string }) =
         <p className="text-[10px] text-zinc-600 pl-5">
           Download now, or just click Generate — the app downloads and runs automatically.
         </p>
+        <div className="pl-5"><DetailsLink onOpen={() => setDetailOpen(true)} /></div>
+        {detailOpen && <ModelStatusModal workflowId={workflowId} onClose={() => setDetailOpen(false)} />}
       </div>
     );
   }
@@ -117,7 +136,9 @@ export const WorkflowDownloadBanner = ({ workflowId }: { workflowId: string }) =
           <span className="text-[10px] font-medium tracking-wide text-zinc-500">
             Models ready for this workflow
           </span>
+          <DetailsLink onOpen={() => setDetailOpen(true)} />
         </div>
+        {detailOpen && <ModelStatusModal workflowId={workflowId} onClose={() => setDetailOpen(false)} />}
       </div>
     );
   }
