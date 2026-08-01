@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Loader2, type LucideIcon } from 'lucide-react';
+import { ChevronDown, Loader2, type LucideIcon } from 'lucide-react';
 import { useToast } from '../ui/Toast';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { useWorkflowRun } from '../../hooks/useWorkflowRun';
@@ -183,6 +183,7 @@ export const WorkflowPage = ({
   );
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [negOpen, setNegOpen] = useState(false);
   // One object rather than a hook per slot, same reason as settings: the slot
   // list is config, and hooks cannot be conditional.
   const [loraPicks, setLoraPicks] = usePersistentState<Record<string, { name: string; strength: number }>>(
@@ -395,16 +396,8 @@ export const WorkflowPage = ({
   const advanced = settings.filter((s) => s.advanced);
   const hasOutput = !!run.currentMedia || run.history.length > 0;
 
-  return (
-    <WorkflowShell
-      title={capability}
-      eyebrow={family}
-      description={description}
-      icon={Icon}
-      isGenerating={run.isGenerating}
-      canGenerate={canGenerate}
-      workflowId={workflowId}
-      output={(
+  const outputPanel = (
+
         <LiveSamplingPreview
           previewUrl={previewUrl}
           isRunning={run.isGenerating}
@@ -467,11 +460,25 @@ export const WorkflowPage = ({
             </div>
           )}
         </LiveSamplingPreview>
-      )}
+  );
+
+  return (
+    <WorkflowShell
+      title={capability}
+      eyebrow={family}
+      description={description}
+      icon={Icon}
+      isGenerating={run.isGenerating}
+      canGenerate={canGenerate}
+      workflowId={workflowId}
+      hideOutputPane
     >
       <div className="w-full space-y-4 px-6 pb-8">
-        {inputs.length > 0 && (
-          <div className={cn('grid gap-5', inputs.length > 1 && 'lg:grid-cols-2')}>
+        {/* Same arrangement as the image pages: inputs and the live output side
+            by side at the top, capped, so Generate stays on screen. */}
+        <div className={cn('cockpit-io-row', inputs.length === 0 && 'is-single')}>
+          {inputs.length > 0 && (
+          <div className={cn('grid gap-3', inputs.length > 1 && 'grid-cols-2')}>
             {inputs.map((input) => (
               <WorkflowSection key={input.key} title={input.label}>
                 <UploadSlot
@@ -494,7 +501,9 @@ export const WorkflowPage = ({
               </WorkflowSection>
             ))}
           </div>
-        )}
+          )}
+          <div className="cockpit-panel">{outputPanel}</div>
+        </div>
 
         {prompt && (
           <WorkflowSection title="Prompt">
@@ -522,12 +531,20 @@ export const WorkflowPage = ({
               />
             )}
             {prompt.negative && (
-              <input
-                value={negativeText}
-                onChange={(e) => setNegativeText(e.target.value)}
-                placeholder={prompt.negative.placeholder ?? 'Negative (optional)'}
-                className="mt-2 w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2 text-xs text-zinc-300 outline-none transition focus:border-white/25"
-              />
+              <div className="cockpit-negative-panel mt-2">
+                <button type="button" onClick={() => setNegOpen((v) => !v)} className="cockpit-collapse">
+                  <span>Negative Prompt</span>
+                  <ChevronDown className={negOpen ? 'h-3 w-3 rotate-180' : 'h-3 w-3'} />
+                </button>
+                {negOpen && (
+                  <textarea
+                    value={negativeText}
+                    onChange={(e) => setNegativeText(e.target.value)}
+                    placeholder={prompt.negative.placeholder ?? 'What to avoid…'}
+                    className="cockpit-negative"
+                  />
+                )}
+              </div>
             )}
           </WorkflowSection>
         )}
