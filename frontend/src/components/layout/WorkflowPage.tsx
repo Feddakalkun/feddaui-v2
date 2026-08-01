@@ -53,6 +53,16 @@ export type WorkflowSettingSpec =
     }
   | { kind: 'seed'; key: string; label?: string; defaultValue?: number; advanced?: boolean }
   | {
+      /** A second free-text field, e.g. a per-subject descriptor. */
+      kind: 'text';
+      key: string;
+      label: string;
+      placeholder?: string;
+      defaultValue?: string;
+      rows?: number;
+      advanced?: boolean;
+    }
+  | {
       kind: 'chips';
       key: string;
       label: string;
@@ -103,11 +113,22 @@ export interface WorkflowPageProps {
    * into two slots, and the 2-LoRA workflows use the same shape.
    * `paramKey` is what the graph expects, e.g. lora_slot2.
    */
-  loras?: { key: string; label: string; match: string[]; paramKey?: string }[];
+  loras?: {
+    key: string;
+    label: string;
+    match: string[];
+    /** Graph takes one {on, lora, strength} object under this key. */
+    paramKey?: string;
+    /** Or the graph takes name and strength as two separate inputs. */
+    nameKey?: string;
+    strengthKey?: string;
+  }[];
 }
 
 const settingDefault = (s: WorkflowSettingSpec) =>
-  s.kind === 'seed' ? (s.defaultValue ?? -1) : s.defaultValue;
+  s.kind === 'seed' ? (s.defaultValue ?? -1)
+  : s.kind === 'text' ? (s.defaultValue ?? '')
+  : s.defaultValue;
 
 export const WorkflowPage = ({
   workflowId,
@@ -282,7 +303,11 @@ export const WorkflowPage = ({
     }
     for (const slot of loras) {
       const pick = loraPicks[slot.key];
-      if (pick?.name) {
+      if (!pick?.name) continue;
+      if (slot.nameKey) {
+        params[slot.nameKey] = pick.name;
+        if (slot.strengthKey) params[slot.strengthKey] = pick.strength;
+      } else {
         params[slot.paramKey ?? slot.key] = { on: true, lora: pick.name, strength: pick.strength };
       }
     }
@@ -317,6 +342,22 @@ export const WorkflowPage = ({
     }
     if (s.kind === 'seed') {
       return <SeedField key={s.key} value={Number(value)} onChange={set} />;
+    }
+    if (s.kind === 'text') {
+      return (
+        <div key={s.key} className="col-span-full">
+          <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+            {s.label}
+          </div>
+          <textarea
+            value={String(value ?? '')}
+            onChange={(e) => set(e.target.value)}
+            rows={s.rows ?? 2}
+            placeholder={s.placeholder}
+            className="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-white/25"
+          />
+        </div>
+      );
     }
     return (
       <div key={s.key} className="col-span-full">

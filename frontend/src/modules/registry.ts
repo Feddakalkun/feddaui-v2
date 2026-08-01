@@ -1,4 +1,4 @@
-import { Bot, Download, Film, Images, LayoutDashboard, Sparkles, Video, Volume2, Heart, Wand2, type LucideIcon } from 'lucide-react';
+import { Bot, Download, Film, Images, LayoutDashboard, Sparkles, Users, Video, Volume2, Heart, Wand2, type LucideIcon } from 'lucide-react';
 
 export type ModulePack = 'core' | 'booster';
 export type ModuleArea = 'home' | 'image' | 'video' | 'system' | 'automation';
@@ -241,6 +241,20 @@ export const FEDDA_MODULES: FeddaModule[] = [
     defaultTab: 'z-image-txt2img',
     Icon: Sparkles,
     card: veniceCard(7),
+  },
+  {
+    id: 'z-image-2loras-v2',
+    sourceModuleId: 'z-image-advanced',
+    label: 'Two People',
+    description: 'Two characters, two LoRAs — one drives the image, the other detail-passes its own face.',
+    area: 'image',
+    pack: 'booster',
+
+    tabs: ['z-image-2loras-v2'],
+    workflows: ['z-image-2loras-v2'],
+    defaultTab: 'z-image-2loras-v2',
+    Icon: Users,
+    card: { poster: '/cards/deep-teal/z-image-dual-lora.jpg' },
   },
   {
     id: 'z-image-dual-lora',

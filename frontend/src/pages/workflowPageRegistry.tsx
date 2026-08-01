@@ -8,6 +8,7 @@ import { QwenTxt2Img } from './qwen/QwenTxt2Img';
 import { QwenMultiAnglesPage } from './qwen/QwenMultiAnglesPage';
 import { QwenRapidEditPage } from './qwen/QwenRapidEditPage';
 import { ZImageDualLoraPage } from './zimage/ZImageDualLoraPage';
+import { ZImage2LorasPage } from './zimage/ZImage2LorasPage';
 import { SDXLInpaintAutomask } from './sdxl/SDXLInpaintAutomask';
 import { ZImageInpaintAutomask } from './zimage/ZImageInpaintAutomask';
 import { FaceFixPage } from './facefix/FaceFixPage';
@@ -39,6 +40,7 @@ export const IMAGE_WORKFLOW_PAGES: Record<string, ComponentType> = {
   'krea2': Krea2Txt2Img,
   'z-image-txt2img': ZImageTxt2Img,
   'z-image-dual-lora': ZImageDualLoraPage,
+  'z-image-2loras-v2': ZImage2LorasPage,
   'chroma': ChromaTxt2Img,
   'chroma-txt2img': ChromaTxt2Img,
   'chroma-simple-txt2img': ChromaSimpleTxt2Img,

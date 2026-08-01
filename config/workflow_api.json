@@ -3669,5 +3669,84 @@
         "label": "Consistency LoRA"
       }
     }
+  },
+  "z-image-2loras-v2": {
+    "name": "Z-Image - Two People (2 LoRAs)",
+    "filename": "z-image/2loras_v2.json",
+    "description": "Two characters in one image: person 1's LoRA drives the main sampler, person 2's LoRA drives a detailer pass over their face.",
+    "inputs": {
+      "prompt": {
+        "node_id": "121",
+        "input_key": "text_0",
+        "type": "string",
+        "label": "Scene"
+      },
+      "person2_prompt": {
+        "node_id": "119",
+        "input_key": "text",
+        "type": "string",
+        "label": "Person 2 details"
+      },
+      "negative": {
+        "node_id": "6",
+        "input_key": "text",
+        "type": "string",
+        "label": "Negative"
+      },
+      "lora_person1": {
+        "node_id": "125",
+        "input_key": "lora_name",
+        "type": "string",
+        "label": "Person 1 LoRA"
+      },
+      "lora_person1_str": {
+        "node_id": "125",
+        "input_key": "strength_model",
+        "type": "number",
+        "label": "Person 1 strength"
+      },
+      "lora_person2": {
+        "node_id": "124",
+        "input_key": "lora_name",
+        "type": "string",
+        "label": "Person 2 LoRA"
+      },
+      "lora_person2_str": {
+        "node_id": "124",
+        "input_key": "strength_model",
+        "type": "number",
+        "label": "Person 2 strength"
+      },
+      "seed": {
+        "node_id": "46",
+        "input_key": "seed",
+        "type": "number",
+        "label": "Seed"
+      },
+      "steps": {
+        "node_id": "46",
+        "input_key": "steps",
+        "type": "number",
+        "label": "Steps"
+      },
+      "cfg": {
+        "node_id": "46",
+        "input_key": "cfg",
+        "type": "number",
+        "label": "CFG"
+      },
+      "width": {
+        "node_id": "19",
+        "input_key": "width",
+        "type": "number",
+        "label": "Width"
+      },
+      "height": {
+        "node_id": "19",
+        "input_key": "height",
+        "type": "number",
+        "label": "Height"
+      }
+    }
   }
 }
