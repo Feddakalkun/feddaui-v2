@@ -351,13 +351,17 @@ export function SimpleImageCockpit({
   return (
     <div className="mx-auto w-full max-w-[1540px] pb-3">
       <section className="workflow-cockpit">
+        {/*
+          Workflow memory is demoted from a full-width titled band to two small
+          controls. The capability stays because saved entries are injected into
+          the LLM prompt context (_workflow_memory_prompt_context), which matters
+          more now that Enhance is the main prompt-building path - but nobody had
+          ever written an entry, so it did not earn a header of its own.
+        */}
         {workflowId && (
-          <div className="cockpit-toolbar">
-            <div className="cockpit-toolbar-title">
-              <Brain className="h-3.5 w-3.5" />
-              <span>Workflow Memory</span>
-            </div>
+          <div className="cockpit-toolbar is-compact">
             <div className="cockpit-toolbar-actions">
+              <Brain className="h-3 w-3 opacity-40" />
               <button
                 type="button"
                 onClick={rememberSetup}
