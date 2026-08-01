@@ -63,6 +63,21 @@ export type WorkflowSettingSpec =
       advanced?: boolean;
     }
   | {
+      /**
+       * Dropdown filled from ComfyUI's node schema, e.g. every checkpoint the
+       * install has. `filter` narrows it, since a workflow usually only accepts
+       * one family of model.
+       */
+      kind: 'select';
+      key: string;
+      label: string;
+      node: string;
+      field: string;
+      filter?: RegExp;
+      defaultValue: string;
+      advanced?: boolean;
+    }
+  | {
       kind: 'chips';
       key: string;
       label: string;
@@ -202,6 +217,27 @@ export const WorkflowPage = ({
     {},
   );
   const [availableLoras, setAvailableLoras] = useState<Record<string, string[]>>({});
+  const [nodeOptions, setNodeOptions] = useState<Record<string, string[]>>({});
+
+  // Selects read their options straight off ComfyUI's node schema, so the list
+  // is whatever this install actually has rather than a hardcoded guess.
+  const selectSpecs = settings.filter((x) => x.kind === 'select') as Extract<WorkflowSettingSpec, { kind: 'select' }>[];
+  const selectKey = selectSpecs.map((x) => `${x.key}|${x.node}|${x.field}`).join(',');
+  useEffect(() => {
+    if (!selectKey) return;
+    for (const spec of selectSpecs) {
+      fetch(`/comfy/object_info/${spec.node}`)
+        .then((r) => r.json())
+        .then((d) => {
+          const opts = d?.[spec.node]?.input?.required?.[spec.field]?.[0];
+          if (!Array.isArray(opts)) return;
+          const list = spec.filter ? opts.filter((o: string) => spec.filter!.test(o)) : opts;
+          setNodeOptions((prev) => ({ ...prev, [spec.key]: list }));
+        })
+        .catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectKey]);
 
   // Keyed on a flattened string, not the config array: pages declare `loras`
   // inline, so depending on the array refires this every render - fetch,
@@ -367,6 +403,24 @@ export const WorkflowPage = ({
     }
     if (s.kind === 'seed') {
       return <SeedField key={s.key} value={Number(value)} onChange={set} />;
+    }
+    if (s.kind === 'select') {
+      const opts = nodeOptions[s.key] ?? [];
+      return (
+        <div key={s.key} className="col-span-full">
+          <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+            {s.label}
+          </div>
+          <select
+            value={String(value ?? '')}
+            onChange={(e) => set(e.target.value)}
+            className="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-white/25"
+          >
+            {opts.length === 0 && <option value={String(value ?? '')}>{String(value ?? '')}</option>}
+            {opts.map((o) => <option key={o} value={o}>{o}</option>)}
+          </select>
+        </div>
+      );
     }
     if (s.kind === 'text') {
       return (
