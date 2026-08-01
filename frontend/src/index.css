@@ -1347,6 +1347,23 @@ body {
   grid-template-columns: minmax(0, 1fr);
 }
 
+/* Hold the row to a steady height. The live preview allows a 620px image and
+   the source slot fills whatever it is given, so once either had content the
+   row grew tall enough to push the prompt and Generate off screen - the exact
+   problem moving the preview up here was meant to solve. */
+.cockpit-io-row > * {
+  max-height: 340px;
+}
+
+.cockpit-io-row .cockpit-panel > div {
+  max-height: 340px;
+}
+
+.cockpit-io-row img {
+  max-height: 316px;
+  object-fit: contain;
+}
+
 .cockpit-io-row .cockpit-upload-row,
 .cockpit-io-row .workflow-upload-drop,
 .cockpit-io-row .workflow-upload-preview {
