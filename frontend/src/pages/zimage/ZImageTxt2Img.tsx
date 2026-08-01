@@ -600,6 +600,31 @@ export const Txt2ImgPage = ({
     }
   };
 
+  /**
+   * Stop the running job and abandon the rest of a batch.
+   *
+   * The local queue has to be emptied before the interrupt lands, or the
+   * completion handler for the killed job would pull the next prompt off it and
+   * immediately start generating again.
+   */
+  const handleCancel = async () => {
+    batchQueueRef.current = [];
+    setBatchProgress(null);
+    const promptId = pendingPromptIdRef.current;
+    try {
+      await fetch(
+        `${BACKEND_API.BASE_URL}/api/generate/cancel${promptId ? `?prompt_id=${encodeURIComponent(promptId)}` : ''}`,
+        { method: 'POST' },
+      );
+      toast('Cancelled', 'info');
+    } catch {
+      toast('Could not reach the backend to cancel', 'error');
+    } finally {
+      setIsGenerating(false);
+      setPendingPromptId(null);
+    }
+  };
+
   // Keep submitRef current so batch chain always uses latest params
   submitRef.current = _submitGeneration;
 
@@ -907,6 +932,7 @@ export const Txt2ImgPage = ({
         canGenerate={canGenerate}
         isGenerating={isGenerating}
         onGenerate={promptMode === 'multiple' && parsedBatchPrompts.length > 1 ? handleBatchStart : handleGenerate}
+        onCancel={handleCancel}
 
         showMaskSettings={showMaskSettings}
         maskFace={maskFace}

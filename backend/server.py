@@ -4531,6 +4531,37 @@ async def generate(req: GenerateRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/generate/cancel")
+async def cancel_generation(prompt_id: str = ""):
+    """Stop the running job and drop anything still queued.
+
+    Two calls, because they do different things: /interrupt kills the sampler
+    mid-step for the job already executing, while a queued job has not started
+    and can only be removed from the pending list. Cancelling one without the
+    other either leaves the current render burning GPU or lets the next queued
+    job start the moment this one dies - which looks like cancel not working.
+    """
+    stopped = {"interrupted": False, "cleared": False}
+    try:
+        resp = requests.post(f"{COMFY_URL}/interrupt", timeout=5)
+        stopped["interrupted"] = resp.ok
+    except requests_exceptions.ConnectionError:
+        raise HTTPException(status_code=503, detail=_comfy_proxy_error())
+    except Exception as e:
+        logger.warning("Interrupt failed: %s", e)
+
+    try:
+        # A specific id when we have one, so a cancel does not wipe a queue the
+        # user deliberately stacked up elsewhere; otherwise clear the lot.
+        payload = {"delete": [prompt_id]} if prompt_id else {"clear": True}
+        resp = requests.post(f"{COMFY_URL}/queue", json=payload, timeout=5)
+        stopped["cleared"] = resp.ok
+    except Exception as e:
+        logger.warning("Queue clear failed: %s", e)
+
+    return {"success": True, **stopped}
+
+
 @app.get("/api/generate/status/{prompt_id}")
 async def get_generation_status(prompt_id: str, workflow_id: str = ""):
     """Check status of a specific generation job. Returns all output files."""

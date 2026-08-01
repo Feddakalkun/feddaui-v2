@@ -1,5 +1,5 @@
 import { useState, type Dispatch, type RefObject, type SetStateAction } from 'react';
-import { ChevronDown, Loader2, Maximize2, Plus, RefreshCw, Sparkles, Upload } from 'lucide-react';
+import { ChevronDown, Loader2, Maximize2, Plus, RefreshCw, Sparkles, Upload, X } from 'lucide-react';
 import { PromptAssistant, type PromptContext } from '../ui/PromptAssistant';
 import { LoraCharacterCard } from '../ui/LoraCharacterCard';
 import { BACKEND_API } from '../../config/api';
@@ -115,6 +115,8 @@ interface SimpleImageCockpitProps {
   canGenerate: boolean;
   isGenerating: boolean;
   onGenerate: () => void;
+  /** Omit to keep the old behaviour of a disabled button while running. */
+  onCancel?: () => void;
   previewUrl?: string | null;
   hasOutput?: boolean;
 
@@ -202,6 +204,7 @@ export function SimpleImageCockpit({
   canGenerate,
   isGenerating,
   onGenerate,
+  onCancel,
   previewUrl = null,
   hasOutput = false,
 
@@ -626,16 +629,21 @@ export function SimpleImageCockpit({
           </div>
         </div>
 
+        {/* While a job runs the primary button becomes the way to stop it.
+            A disabled "Generating..." button left no way out short of
+            restarting ComfyUI. */}
         <button
           type="button"
-          disabled={!canGenerate}
-          onClick={onGenerate}
-          className={`workflow-cockpit-generate ${!canGenerate ? 'is-disabled' : ''}`}
+          disabled={isGenerating ? !onCancel : !canGenerate}
+          onClick={isGenerating ? onCancel : onGenerate}
+          className={`workflow-cockpit-generate ${
+            isGenerating ? 'is-cancel' : !canGenerate ? 'is-disabled' : ''
+          }`}
         >
           {isGenerating ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Generating...</span>
+              <X className="h-4 w-4" />
+              <span>Cancel</span>
             </>
           ) : (
             <>
