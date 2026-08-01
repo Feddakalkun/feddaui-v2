@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
 import { ArrowLeft, Layers } from 'lucide-react';
 import { useModules } from '../../contexts/ModuleContext';
 import type { FeddaModule } from '../../modules/registry';
@@ -142,7 +143,13 @@ const Card = ({
 
 export const SectionCards = ({ area, kicker, title, onSelect, onBack }: SectionCardsProps) => {
   const { availableModules } = useModules();
-  const [openFamily, setOpenFamily] = useState<string | null>(null);
+  // Persisted per area: Back from a workflow returns to this screen, and with
+  // plain state the open family was lost, so you landed on the family list
+  // instead of the submenu you came from - one navigation that felt like two.
+  const [openFamily, setOpenFamily] = usePersistentState<string | null>(
+    `section_open_family_${area}`,
+    null,
+  );
 
   const families = useMemo<Family[]>(() => {
     const mods = availableModules.filter((m) => m.area === area && m.card && !m.hidden);
