@@ -386,7 +386,7 @@ export const PromptAssistant = ({
                   className={`flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/[0.03] border border-white/8
                   text-[12px] font-black uppercase tracking-widest text-white/35 transition-all ${ACCENT_BTN[accent]}`}
                 >
-                  <ImageIcon className="w-3.5 h-3.5" /> Caption
+                  <ImageIcon className="w-3.5 h-3.5" /> Prompt from image
                 </button>
               )}
               {/* Char count */}
