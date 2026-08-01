@@ -31,7 +31,7 @@ import { comfyService } from '../../services/comfyService';
 export interface WorkflowInputSpec {
   /** Param name sent to the backend. */
   key: string;
-  kind: 'image' | 'video';
+  kind: 'image' | 'video' | 'audio';
   /** Section title — prefer the canonical vocabulary in the audit. */
   label: string;
   hint?: string;
@@ -303,7 +303,7 @@ export const WorkflowPage = ({
 
   // "Send to workflow" hands off one file; it fills the first slot of that kind.
   useState(() => {
-    for (const kind of ['video', 'image'] as const) {
+    for (const kind of ['video', 'audio', 'image'] as const) {
       const slot = inputs.find((i) => i.kind === kind);
       if (!slot) continue;
       const handed = consumeHandoff(kind);
@@ -568,8 +568,8 @@ export const WorkflowPage = ({
                 uploading={!!uploading[input.key]}
                 onFile={(f) => upload(input.key, f)}
                 onUrl={(u) => uploadFromUrl(input.key, u)}
-                accept={input.kind === 'video' ? 'video/*' : 'image/*'}
-                previewKind={input.kind === 'video' ? 'video' : undefined}
+                accept={input.kind === 'video' ? 'video/*' : input.kind === 'audio' ? 'audio/*' : 'image/*'}
+                previewKind={input.kind === 'image' ? undefined : input.kind}
                 label={input.label}
                 hint={input.hint ?? 'Click, drop, or paste a URL'}
                 height={230}
