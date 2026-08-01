@@ -119,6 +119,8 @@ interface SimpleImageCockpitProps {
   onCancel?: () => void;
   previewUrl?: string | null;
   hasOutput?: boolean;
+  /** Finished image, kept in the panel after the run so the result stays visible. */
+  resultImage?: string | null;
 
   showMaskSettings?: boolean;
   maskFace?: boolean;
@@ -207,6 +209,7 @@ export function SimpleImageCockpit({
   onCancel,
   previewUrl = null,
   hasOutput = false,
+  resultImage = null,
 
   showMaskSettings = false,
   maskFace = true,
@@ -320,7 +323,7 @@ export function SimpleImageCockpit({
               <LiveSamplingPreview
                 previewUrl={previewUrl}
                 isRunning={isGenerating}
-                hasOutput={hasOutput}
+                hasOutput={hasOutput || !!resultImage}
                 emptyState={
                   <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-white/10 bg-black/20 p-3">
                     <div className="text-center text-white/35">
@@ -331,13 +334,24 @@ export function SimpleImageCockpit({
                   </div>
                 }
               >
-                <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-white/10 bg-black/20 p-3">
-                  <div className="text-center text-white/35">
-                    <Sparkles className="mx-auto mb-3 h-8 w-8 opacity-40" />
-                    <div className="text-sm font-semibold">Generation complete</div>
-                    <div className="mt-1 text-xs text-white/25">The final output will be shown here once the run finishes.</div>
+                {/* The finished image, not a note saying one exists. The panel
+                    goes live preview -> result and stays there until the next run. */}
+                {resultImage ? (
+                  <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-white/10 bg-black/20 p-3">
+                    <img
+                      src={resultImage}
+                      alt="Result"
+                      className="max-h-[620px] rounded-lg border border-white/10 object-contain"
+                    />
                   </div>
-                </div>
+                ) : (
+                  <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-white/10 bg-black/20 p-3">
+                    <div className="text-center text-white/35">
+                      <Sparkles className="mx-auto mb-3 h-8 w-8 opacity-40" />
+                      <div className="text-sm font-semibold">Generation complete</div>
+                    </div>
+                  </div>
+                )}
               </LiveSamplingPreview>
             </div>
           </div>

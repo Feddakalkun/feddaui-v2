@@ -929,6 +929,7 @@ export const Txt2ImgPage = ({
         isGenerating={isGenerating}
         onGenerate={promptMode === 'multiple' && parsedBatchPrompts.length > 1 ? handleBatchStart : handleGenerate}
         onCancel={handleCancel}
+        resultImage={currentImage}
 
         showMaskSettings={showMaskSettings}
         maskFace={maskFace}
