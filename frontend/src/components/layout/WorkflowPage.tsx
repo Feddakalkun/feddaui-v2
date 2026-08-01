@@ -147,6 +147,12 @@ export const WorkflowPage = ({
     prompt?.defaultValue ?? '',
   );
   const [negativeText, setNegativeText] = usePersistentState(`wf_${workflowId}_negative`, '');
+  // Batch is a mode of the prompt box, matching the image pages: each non-empty
+  // line is its own job, and Single leaves a multi-line prompt as one prompt.
+  const [promptMode, setPromptMode] = usePersistentState<'single' | 'multiple'>(
+    `wf_${workflowId}_prompt_mode`,
+    'single',
+  );
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [loraName, setLoraName] = usePersistentState(`wf_${workflowId}_lora`, '');
@@ -227,10 +233,17 @@ export const WorkflowPage = ({
     return undefined;
   }, [files, inputs, prompt, promptText]);
 
+  const batchPrompts = useMemo(
+    () => (promptMode === 'multiple'
+      ? promptText.split('\n').map((l) => l.trim()).filter(Boolean)
+      : []),
+    [promptMode, promptText],
+  );
+
   const canGenerate = !missing && !run.isGenerating;
 
-  const handleGenerate = () => {
-    if (!canGenerate) return;
+  /** One param-set. Batch calls this per line rather than duplicating the build. */
+  const buildParams = (promptText: string): Record<string, unknown> => {
     const params: Record<string, unknown> = {};
     for (const input of inputs) {
       if (files[input.key]) params[input.key] = files[input.key];
@@ -242,6 +255,7 @@ export const WorkflowPage = ({
     for (const s of settings) {
       const value = values[s.key] ?? settingDefault(s);
       if (s.kind === 'seed') {
+        // Re-rolled per prompt, so a batch is not the same image N times.
         params[s.key] = value === -1 ? Math.floor(Math.random() * 10_000_000_000) : value;
       } else if (s.kind === 'slider' && s.asString) {
         params[s.key] = String(value);
@@ -252,7 +266,16 @@ export const WorkflowPage = ({
     if (lora && loraName) {
       params[lora.paramKey ?? 'lora_slot2'] = { on: true, lora: loraName, strength: loraStrength };
     }
-    run.start({ ...params, ...(extraParams?.(values) ?? {}) });
+    return { ...params, ...(extraParams?.(values) ?? {}) };
+  };
+
+  const handleGenerate = () => {
+    if (!canGenerate) return;
+    if (promptMode === 'multiple' && batchPrompts.length > 1) {
+      void run.startBatch(batchPrompts.map(buildParams));
+      return;
+    }
+    run.start(buildParams(promptText));
   };
 
   const renderSetting = (s: WorkflowSettingSpec) => {
@@ -413,6 +436,8 @@ export const WorkflowPage = ({
                 accent="violet"
                 label={prompt.label}
                 enableCaption={false}
+                mode={promptMode}
+                onModeChange={setPromptMode}
               />
             ) : (
               <textarea
@@ -478,8 +503,10 @@ export const WorkflowPage = ({
           disabled={!canGenerate}
           isGenerating={run.isGenerating}
           onCancel={run.cancel}
-          label={generateLabel}
-          generatingLabel={generatingLabel}
+          label={batchPrompts.length > 1 ? `${generateLabel} — ${batchPrompts.length} prompts` : generateLabel}
+          generatingLabel={run.batchProgress
+            ? `Generating ${run.batchProgress.current} / ${run.batchProgress.total}…`
+            : generatingLabel}
           requirementHint={missing}
         />
       </div>
