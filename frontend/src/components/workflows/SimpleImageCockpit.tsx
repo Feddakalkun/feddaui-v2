@@ -236,6 +236,7 @@ export function SimpleImageCockpit({
   maskBlurAmount = 50,
   setMaskBlurAmount,
 }: SimpleImageCockpitProps) {
+  const [presetsOpen, setPresetsOpen] = useState(false);
   const visibleLoras = loraEntries.length > 0 ? loraEntries : [{ name: '', strength: 1.0 }];
   const presetGroups = promptPresets.reduce<Record<string, SimpleImagePromptPreset[]>>((groups, preset) => {
     const group = preset.group || 'Presets';
@@ -375,7 +376,13 @@ export function SimpleImageCockpit({
 
           {promptPresets.length > 0 && (
             <div className="cockpit-preset-panel">
-              {Object.entries(presetGroups).map(([group, presets]) => (
+              {/* Collapsed by default like the negative prompt: useful when you
+                  want it, four rows of chips in the way when you do not. */}
+              <button type="button" onClick={() => setPresetsOpen((v) => !v)} className="cockpit-collapse">
+                <span>Quick Adds</span>
+                <ChevronDown className={presetsOpen ? 'h-3 w-3 rotate-180' : 'h-3 w-3'} />
+              </button>
+              {presetsOpen && Object.entries(presetGroups).map(([group, presets]) => (
                 <div key={group} className="cockpit-preset-group">
                   <div className="cockpit-preset-label">{group}</div>
                   <div className="cockpit-preset-chips">
