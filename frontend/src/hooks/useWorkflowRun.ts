@@ -3,6 +3,7 @@ import { BACKEND_API } from '../config/api';
 import { useComfyExecution } from '../contexts/ComfyExecutionContext';
 import { comfyService } from '../services/comfyService';
 import { usePersistentState } from './usePersistentState';
+import { cancelGeneration } from '../utils/cancelGeneration';
 import { useToast } from '../components/ui/Toast';
 import type { GenerateResponse, GenerateStatusResponse, NodeMapResponse } from '../types/api';
 
@@ -221,18 +222,10 @@ export const useWorkflowRun = ({
     batchTotalRef.current = 0;
     setBatchProgress(null);
     completionHandledRef.current = true;
-    const promptId = pendingPromptId;
-    try {
-      await fetch(
-        `${BACKEND_API.BASE_URL}/api/generate/cancel${promptId ? `?prompt_id=${encodeURIComponent(promptId)}` : ''}`,
-        { method: 'POST' },
-      );
-    } catch {
-      toast('Could not reach the backend to cancel', 'error');
-    } finally {
-      setIsGenerating(false);
-      setPendingPromptId(null);
-    }
+    const ok = await cancelGeneration(pendingPromptId);
+    toast(ok ? 'Cancelled' : 'Could not cancel — is ComfyUI running?', ok ? 'info' : 'error');
+    setIsGenerating(false);
+    setPendingPromptId(null);
   }, [pendingPromptId, toast]);
 
   /** Queue several param-sets; they run one after another. */

@@ -9,6 +9,7 @@ import { useComfyExecution } from '../../contexts/ComfyExecutionContext';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { comfyService } from '../../services/comfyService';
 import { consumeHandoff } from '../../utils/workflowHandoff';
+import { cancelGeneration } from '../../utils/cancelGeneration';
 import { cn } from '../../lib/styles';
 
 const PRESETS = [
@@ -610,19 +611,10 @@ export const Txt2ImgPage = ({
   const handleCancel = async () => {
     batchQueueRef.current = [];
     setBatchProgress(null);
-    const promptId = pendingPromptIdRef.current;
-    try {
-      await fetch(
-        `${BACKEND_API.BASE_URL}/api/generate/cancel${promptId ? `?prompt_id=${encodeURIComponent(promptId)}` : ''}`,
-        { method: 'POST' },
-      );
-      toast('Cancelled', 'info');
-    } catch {
-      toast('Could not reach the backend to cancel', 'error');
-    } finally {
-      setIsGenerating(false);
-      setPendingPromptId(null);
-    }
+    const ok = await cancelGeneration(pendingPromptIdRef.current);
+    toast(ok ? 'Cancelled' : 'Could not cancel — is ComfyUI running?', ok ? 'info' : 'error');
+    setIsGenerating(false);
+    setPendingPromptId(null);
   };
 
   // Keep submitRef current so batch chain always uses latest params
