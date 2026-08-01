@@ -115,6 +115,8 @@ function FeddaApp() {
     };
   }, [view, activeTab, defaultTab, validTabs]);
 
+  const [backFromTab, setBackFromTab] = useState<string | null>(null);
+
   const parentViewForTab = (tab: string): ViewMode => {
     const module = findModuleForTab(tab, availableModules);
     if (module?.area === 'image') return 'image-section';
@@ -144,10 +146,14 @@ function FeddaApp() {
     return openTab(tab);
   };
 
-  const goHome = () => navigate({ view: 'home', activeTab });
+  const goHome = () => { setBackFromTab(null); return navigate({ view: 'home', activeTab }); };
 
   const goBack = () => {
-    if (view === 'workspace') return navigate({ view: parentViewForTab(activeTab), activeTab });
+    if (view === 'workspace') {
+      // Remember which workflow we left so the studio reopens its family.
+      setBackFromTab(activeTab);
+      return navigate({ view: parentViewForTab(activeTab), activeTab });
+    }
     if (view === 'image-section' || view === 'video-section') return goHome();
     return goHome();
   };
@@ -235,13 +241,13 @@ function FeddaApp() {
               <RichHome onSelect={openHomeCard} />
             ) : view === 'image-section' ? (
               hasImageModules ? (
-                <ImageSectionCards onSelect={openTab} onBack={goHome} />
+                <ImageSectionCards onSelect={openTab} onBack={goHome} reopenFor={backFromTab} />
               ) : (
                 <ModuleUnavailablePage tab="image" moduleLabel="Image Studio" pack="core" />
               )
             ) : view === 'video-section' ? (
               hasVideoModules ? (
-                <VideoSectionCards onSelect={openTab} onBack={goHome} />
+                <VideoSectionCards onSelect={openTab} onBack={goHome} reopenFor={backFromTab} />
               ) : (
                 <ModuleUnavailablePage tab="video" moduleLabel="Video Studio" pack="booster" />
               )

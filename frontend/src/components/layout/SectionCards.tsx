@@ -1,5 +1,4 @@
-import { useMemo } from 'react';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useMemo, useState } from 'react';
 import { ArrowLeft, Layers } from 'lucide-react';
 import { useModules } from '../../contexts/ModuleContext';
 import type { FeddaModule } from '../../modules/registry';
@@ -58,6 +57,8 @@ interface Family {
 
 interface SectionCardsProps {
   area: 'image' | 'video';
+  /** Tab we came back from; its family is reopened so Back lands where you left. */
+  reopenFor?: string | null;
   kicker: string;
   title: string;
   onSelect: (tab: string) => void;
@@ -141,15 +142,13 @@ const Card = ({
   </button>
 );
 
-export const SectionCards = ({ area, kicker, title, onSelect, onBack }: SectionCardsProps) => {
+export const SectionCards = ({ area, kicker, title, onSelect, onBack, reopenFor }: SectionCardsProps) => {
   const { availableModules } = useModules();
-  // Persisted per area: Back from a workflow returns to this screen, and with
-  // plain state the open family was lost, so you landed on the family list
-  // instead of the submenu you came from - one navigation that felt like two.
-  const [openFamily, setOpenFamily] = usePersistentState<string | null>(
-    `section_open_family_${area}`,
-    null,
-  );
+  // Not persisted. Restoring the last family on every visit meant entering the
+  // studio dropped you inside one family's submenu instead of showing the
+  // families - it looked like the other workflows had vanished. It is seeded
+  // only when Back arrives here from a workflow, via reopenFor.
+  const [openFamily, setOpenFamily] = useState<string | null>(null);
 
   const families = useMemo<Family[]>(() => {
     const mods = availableModules.filter((m) => m.area === area && m.card && !m.hidden);
@@ -164,6 +163,14 @@ export const SectionCards = ({ area, kicker, title, onSelect, onBack }: SectionC
       .map(([id, modules]) => ({ id, label: FAMILY_LABELS[id] ?? prettify(id), modules }))
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [availableModules, area]);
+
+  // Seed once from the tab we returned from, so Back reopens that submenu.
+  useState(() => {
+    if (!reopenFor) return undefined;
+    const owner = families.find((f) => f.modules.some((m) => m.defaultTab === reopenFor || m.tabs.includes(reopenFor)));
+    if (owner && owner.modules.length > 1) setOpenFamily(owner.id);
+    return undefined;
+  });
 
   const active = openFamily ? families.find((f) => f.id === openFamily) : undefined;
 
