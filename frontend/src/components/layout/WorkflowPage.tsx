@@ -483,8 +483,10 @@ export const WorkflowPage = ({
           className="cockpit-io-row"
           style={{ gridTemplateColumns: `repeat(${inputs.length + 1}, minmax(0, 1fr))` }}
         >
+          {/* No section header: the slot prints its own label, and a header on
+              the inputs but not the output left the three boxes misaligned. */}
           {inputs.map((input) => (
-            <WorkflowSection key={input.key} title={input.label}>
+            <div key={input.key} className="cockpit-panel">
               <UploadSlot
                 preview={
                   files[input.key]
@@ -502,7 +504,7 @@ export const WorkflowPage = ({
                 filename={files[input.key] ?? undefined}
                 onClear={() => setFile(input.key, null)}
               />
-            </WorkflowSection>
+            </div>
           ))}
           <div className="cockpit-panel">{outputPanel}</div>
         </div>

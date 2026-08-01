@@ -1358,12 +1358,17 @@ body {
   height: 100%;
 }
 
-.cockpit-io-row > .workflow-section {
+/* Every column is a panel with the same padding, so their contents start on the
+   same line. */
+.cockpit-io-row > .cockpit-panel {
   display: flex;
   flex-direction: column;
+  /* Floor as well as ceiling: min-height:0 on the child lets it collapse to
+     almost nothing when the panel has no content yet. */
+  min-height: 264px;
 }
 
-.cockpit-io-row > .workflow-section > *:last-child {
+.cockpit-io-row > .cockpit-panel > *:last-child {
   flex: 1;
   min-height: 0;
 }
