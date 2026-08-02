@@ -155,7 +155,8 @@
         "qwen-txt2img",
         "qwen-image-ref",
         "qwen-rapid-edit-v23",
-        "qwen-multi-angle"
+        "qwen-multi-angle",
+        "chat-edit"
       ],
       "workflows": [
         "qwen-rapid-edit-v23",

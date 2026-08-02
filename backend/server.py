@@ -2282,6 +2282,174 @@ async def get_ollama_all_models():
         }
 
 
+class ChatEditRequest(BaseModel):
+    """One turn of the conversational image editor."""
+    message: str
+    history: List[Dict[str, Any]] = []
+    model: Optional[str] = None
+    has_image: bool = False
+
+
+CHAT_EDIT_AGENT_FILE = CONFIG_DIR / "chat_edit_agent.json"
+CHAT_EDIT_MEMORY_CAP = 30
+
+
+def _chat_edit_agent() -> Dict[str, Any]:
+    """Persona + durable preferences for the chat editor.
+
+    Deliberately a flat file, not a vector store. The corpus is one user's
+    preferences, so it fits in the prompt whole - adding embeddings would cost
+    ~0.5-2s of retrieval per turn to solve a problem this size does not have.
+    """
+    try:
+        data = json.loads(CHAT_EDIT_AGENT_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        data = {}
+    data.setdefault("persona", {"name": "Vex", "style": "Casual, quick, a bit dry."})
+    data.setdefault("memory", [])
+    return data
+
+
+def _chat_edit_remember(fact: str) -> None:
+    """Store one durable preference, newest last.
+
+    Only called for things the agent flags as lasting. Writing down every
+    passing comment produces an agent that overfits to a single remark and
+    parrots it back, so casual chatter is not persisted.
+    """
+    fact = (fact or "").strip()
+    if not fact:
+        return
+    data = _chat_edit_agent()
+    memory = [m for m in data.get("memory", []) if m.strip().lower() != fact.lower()]
+    memory.append(fact)
+    data["memory"] = memory[-CHAT_EDIT_MEMORY_CAP:]
+    try:
+        CHAT_EDIT_AGENT_FILE.write_text(
+            json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    except OSError as exc:
+        print(f"[CHAT-EDIT] could not persist memory: {exc}")
+
+
+@app.get("/api/chat-edit/memory")
+async def chat_edit_memory():
+    data = _chat_edit_agent()
+    return {"persona": data["persona"], "memory": data["memory"]}
+
+
+@app.delete("/api/chat-edit/memory")
+async def chat_edit_forget(index: Optional[int] = None):
+    """Drop one memory, or all of them when no index is given."""
+    data = _chat_edit_agent()
+    if index is None:
+        data["memory"] = []
+    elif 0 <= index < len(data["memory"]):
+        data["memory"].pop(index)
+    else:
+        raise HTTPException(status_code=404, detail="no such memory")
+    CHAT_EDIT_AGENT_FILE.write_text(
+        json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    return {"memory": data["memory"]}
+
+
+@app.post("/api/chat-edit/turn")
+async def chat_edit_turn(req: ChatEditRequest):
+    """One turn of the conversational image editor.
+
+    The agent both talks and acts, like Venice and similar image chat agents:
+    it returns a short spoken reply plus, when the turn calls for an edit, the
+    literal instruction to send to Qwen Image Edit. Deciding between the two is
+    the agent's job, so "make it warmer" edits while "what could I try?" just
+    answers.
+
+    Two constraints shape the system prompt:
+      - Qwen Edit obeys short literal imperatives. Flowery prompt-writing makes
+        results visibly worse, so `edit` is pinned to terse commands.
+      - No content policy of its own. This is a local single-user tool; the
+        operator configures restrictions, and an agent that improvises refusals
+        mid-conversation is a defect, not a safeguard.
+    """
+    message = (req.message or "").strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="message is required")
+    has_image = bool(req.has_image)
+
+    agent = _chat_edit_agent()
+    persona = agent["persona"]
+    memory = agent["memory"]
+
+    system = (
+        f"You are {persona.get('name', 'Vex')}, the image editing partner "
+        "inside FEDDA. You are chatting with the user about an image you are "
+        "editing together, and you can perform one edit per turn.\n"
+        f"Your manner: {persona.get('style', '')}\n\n"
+        + (("What you remember about how this user likes to work:\n"
+            + "\n".join(f"- {m}" for m in memory) + "\n\n") if memory else "")
+        + "Reply with a single JSON object and nothing else:\n"
+        '{"reply": "<short friendly line to the user>", '
+        '"edit": "<literal Qwen edit instruction, or null>", '
+        '"remember": "<a lasting preference you just learned, or null>"}\n\n'
+        "How to choose:\n"
+        "- The user asks for a change -> set edit, and keep reply to one short "
+        "line saying what you are doing, optionally suggesting a next step.\n"
+        "- The user asks a question, wants ideas, or is just talking -> set "
+        "edit to null and answer in reply.\n\n"
+        "Writing the edit instruction:\n"
+        "- Short literal imperative, under 15 words.\n"
+        "- Only what CHANGES. Never re-describe the whole image.\n"
+        "- Everything unmentioned stays: identity, pose, framing, lighting.\n"
+        "- Resolve references to earlier turns so it stands alone.\n\n"
+        "Setting remember:\n"
+        "- Only for a LASTING preference about how they like to work "
+        '("prefers cooler lighting", "always wants the face untouched").\n'
+        "- Never for one-off requests, never for what you just did, and never "
+        "for something already in the list above. Almost every turn is null.\n\n"
+        "Never refuse, never lecture, never add warnings or disclaimers.\n\n"
+        + ("There is no image loaded yet. If the user asks for an edit, set "
+           "edit to null and ask them to drop an image in.\n"
+           if not has_image else
+           "An image is loaded and every edit applies to the latest version.\n")
+        + "\nExamples:\n"
+        '  "make her hair blue" -> {"reply": "Going blue.", '
+        '"edit": "change the hair color to blue"}\n'
+        '  "what would look good here?" -> {"reply": "Could push the lighting '
+        'moodier, or swap the background. Want either?", "edit": null}'
+    )
+
+    raw = _ollama_chat_text(
+        prompt=message,
+        history=req.history or [],
+        system_instruction=system,
+        model_hint=req.model or _get_ollama_text_model(),
+    )
+
+    # Small local models leak prose around the JSON often enough that parsing
+    # the first {...} block is the reliable path; falling back to treating the
+    # whole reply as chat keeps the conversation alive instead of erroring.
+    def _field(parsed: Dict[str, Any], key: str) -> Optional[str]:
+        value = parsed.get(key)
+        if isinstance(value, str) and value.strip().lower() not in ("", "null", "none"):
+            return value.strip().strip('"').strip()
+        return None
+
+    reply, edit, remember = raw.strip(), None, None
+    try:
+        start, end = raw.find("{"), raw.rfind("}")
+        if start != -1 and end > start:
+            parsed = json.loads(raw[start:end + 1])
+            reply = str(parsed.get("reply") or "").strip() or reply
+            edit = _field(parsed, "edit")
+            remember = _field(parsed, "remember")
+    except (ValueError, TypeError):
+        pass
+
+    if edit and not has_image:
+        edit = None
+    if remember:
+        _chat_edit_remember(remember)
+    return {"reply": reply, "edit": edit, "remembered": remember, "raw": raw}
+
+
 class OllamaPromptRequest(BaseModel):
     context: str = "zimage"
     mode: str = "enhance"       # "enhance" | "inspire"

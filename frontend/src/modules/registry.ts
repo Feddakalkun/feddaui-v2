@@ -1,4 +1,4 @@
-import { Bot, Download, Film, Images, LayoutDashboard, Sparkles, Users, Video, Volume2, Heart, Wand2, type LucideIcon } from 'lucide-react';
+import { Bot, Download, Film, Images, LayoutDashboard, MessagesSquare, Sparkles, Users, Video, Volume2, Heart, Wand2, type LucideIcon } from 'lucide-react';
 
 export type ModulePack = 'core' | 'booster';
 export type ModuleArea = 'home' | 'image' | 'video' | 'system' | 'automation';
@@ -428,6 +428,23 @@ export const FEDDA_MODULES: FeddaModule[] = [
     defaultTab: 'qwen-image-ref',
     Icon: Sparkles,
     card: veniceCard(14),
+  },
+  {
+    // Conversational front-end to the same qwen-rapid-edit workflow: each
+    // result becomes the next turn's input, so editing is a chat instead of
+    // a series of re-uploads.
+    id: 'chat-edit',
+    sourceModuleId: 'qwen-image',
+    label: 'Chat Edit',
+    description: 'Edit images by talking to an agent. Each reply builds on the last result.',
+    area: 'image',
+    pack: 'booster',
+
+    tabs: ['chat-edit'],
+    workflows: ['qwen-rapid-edit-v23'],
+    defaultTab: 'chat-edit',
+    Icon: MessagesSquare,
+    card: { poster: '/cards/bunny/chat-edit.jpeg' },
   },
   {
     id: 'qwen-rapid-edit-v23',

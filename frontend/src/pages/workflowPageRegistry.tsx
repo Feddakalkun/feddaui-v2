@@ -7,6 +7,7 @@ import { QwenImageReferencePage } from './qwen/QwenImageReferencePage';
 import { QwenTxt2Img } from './qwen/QwenTxt2Img';
 import { QwenMultiAnglesPage } from './qwen/QwenMultiAnglesPage';
 import { QwenRapidEditPage } from './qwen/QwenRapidEditPage';
+import { ChatEditPage } from './qwen/ChatEditPage';
 import { ZImageDualLoraPage } from './zimage/ZImageDualLoraPage';
 import { ZImage2LorasPage } from './zimage/ZImage2LorasPage';
 import { SDXLInpaintAutomask } from './sdxl/SDXLInpaintAutomask';
@@ -53,6 +54,7 @@ export const IMAGE_WORKFLOW_PAGES: Record<string, ComponentType> = {
   'qwen-txt2img': QwenTxt2Img,
   'qwen-image-ref': QwenImageReferencePage,
   'qwen-rapid-edit-v23': QwenRapidEditPage,
+  'chat-edit': ChatEditPage,
   'qwen-multi-angle': QwenMultiAnglesPage,
   'sdxl-inpaint-automask': SDXLInpaintAutomask,
   'z-image-inpaint-automask': ZImageInpaintAutomask,
