@@ -81,6 +81,23 @@ export const FEDDA_MODULES: FeddaModule[] = [
     card: veniceCard(2),
   },
   {
+    // Conversational front-end to the same qwen-rapid-edit workflow: each
+    // result becomes the next turn's input, so editing is a chat instead of
+    // a series of re-uploads.
+    id: 'chat-edit',
+    sourceModuleId: 'qwen-image',
+    label: 'Chat Edit',
+    description: 'Edit images by talking to an agent. Each reply builds on the last result.',
+    area: 'home',
+    pack: 'booster',
+
+    tabs: ['chat-edit'],
+    workflows: ['qwen-rapid-edit-v23'],
+    defaultTab: 'chat-edit',
+    Icon: MessagesSquare,
+    card: { poster: '/cards/bunny/chat-edit.jpeg' },
+  },
+  {
     id: 'gallery',
     sourceModuleId: 'core-shell',
     label: 'Gallery',
@@ -444,23 +461,6 @@ export const FEDDA_MODULES: FeddaModule[] = [
     defaultTab: 'chat-ltx-flf',
     Icon: MessagesSquare,
     card: { poster: '/cards/bunny/chat-ltx-flf.jpeg' },
-  },
-  {
-    // Conversational front-end to the same qwen-rapid-edit workflow: each
-    // result becomes the next turn's input, so editing is a chat instead of
-    // a series of re-uploads.
-    id: 'chat-edit',
-    sourceModuleId: 'qwen-image',
-    label: 'Chat Edit',
-    description: 'Edit images by talking to an agent. Each reply builds on the last result.',
-    area: 'image',
-    pack: 'booster',
-
-    tabs: ['chat-edit'],
-    workflows: ['qwen-rapid-edit-v23'],
-    defaultTab: 'chat-edit',
-    Icon: MessagesSquare,
-    card: { poster: '/cards/bunny/chat-edit.jpeg' },
   },
   {
     id: 'qwen-rapid-edit-v23',

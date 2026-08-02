@@ -1,7 +1,49 @@
-import { Construction, Sparkles } from 'lucide-react';
+import { ArrowRight, Construction, Sparkles } from 'lucide-react';
 import { useModules } from '../../contexts/ModuleContext';
 import type { FeddaModule } from '../../modules/registry';
 import { HFTokenReminder } from '../ui/HFTokenReminder';
+
+/**
+ * The chat agent gets its own full-width slab above the grid rather than a tile
+ * inside it. It is the one entry point that isn't a workflow - it can reach any
+ * of them - so making it look like a peer of "Gallery" would undersell it.
+ */
+function ChatBanner({ module, onSelect }: { module: FeddaModule; onSelect: (id: string) => void }) {
+  const Icon = module.Icon;
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(module.defaultTab)}
+      aria-label={module.label}
+      className="group relative mb-3 w-full overflow-hidden rounded-2xl border border-cyan-400/25 bg-[#08090d] text-left transition-all hover:-translate-y-0.5 hover:border-cyan-300/50"
+    >
+      {module.card?.poster && (
+        <img
+          src={module.card.poster}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover opacity-45 transition duration-500 group-hover:scale-[1.03] group-hover:opacity-60"
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+        />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-r from-[#050506] via-[#050506]/85 to-cyan-500/10" />
+      <div className="relative flex items-center gap-4 px-5 py-6">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-400/30 bg-cyan-500/10">
+          <Icon className="h-5 w-5 text-cyan-300" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <p className="text-[15px] font-semibold text-zinc-50">{module.label}</p>
+            <span className="rounded-md bg-cyan-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan-200">
+              Agent
+            </span>
+          </div>
+          <p className="mt-0.5 text-[12px] leading-relaxed text-white/45">{module.description}</p>
+        </div>
+        <ArrowRight className="h-5 w-5 shrink-0 text-white/25 transition group-hover:translate-x-0.5 group-hover:text-cyan-300" />
+      </div>
+    </button>
+  );
+}
 
 interface RichHomeProps {
   onSelect: (id: string) => void;
@@ -97,7 +139,10 @@ function AutomationCard({ module, onSelect }: { module?: FeddaModule; onSelect: 
 
 export const RichHome = ({ onSelect }: RichHomeProps) => {
   const { availableModules } = useModules();
-  const cards = availableModules.filter((module) => module.card && (module.area === 'home' || module.area === 'system') && !module.hidden);
+  const allCards = availableModules.filter((module) => module.card && (module.area === 'home' || module.area === 'system') && !module.hidden);
+  // The agent is pulled out of the grid and rendered as its own banner.
+  const chat = allCards.find((module) => module.id === 'chat-edit');
+  const cards = allCards.filter((module) => module.id !== 'chat-edit');
   const topCards = cards.slice(0, 2);
   const bottomCards = cards.slice(2);
   const automations = availableModules.filter((module) => module.area === 'automation' && !module.hidden);
@@ -108,6 +153,7 @@ export const RichHome = ({ onSelect }: RichHomeProps) => {
     <div className="h-full overflow-y-auto custom-scrollbar bg-[#050506]">
       <div className="mx-auto flex min-h-full w-full max-w-7xl flex-col px-6 py-5 pt-3">
         <HFTokenReminder />
+        {chat && <ChatBanner module={chat} onSelect={onSelect} />}
         {automations.length > 0 && (
           <section className="mb-4 flex flex-col items-center space-y-2">
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/40">Automations</p>
