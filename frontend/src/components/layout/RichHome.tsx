@@ -15,31 +15,38 @@ function ChatBanner({ module, onSelect }: { module: FeddaModule; onSelect: (id: 
       type="button"
       onClick={() => onSelect(module.defaultTab)}
       aria-label={module.label}
-      className="group relative mb-3 w-full overflow-hidden rounded-2xl border border-cyan-400/25 bg-[#08090d] text-left transition-all hover:-translate-y-0.5 hover:border-cyan-300/50"
+      className="group relative mb-3 aspect-[1168/300] w-full overflow-hidden rounded-2xl border border-cyan-400/25 bg-[#08090d] text-left transition-all hover:-translate-y-0.5 hover:border-cyan-300/50"
     >
       {module.card?.poster && (
         <img
           src={module.card.poster}
           alt=""
-          className="absolute inset-0 h-full w-full object-cover opacity-45 transition duration-500 group-hover:scale-[1.03] group-hover:opacity-60"
+          // Anchored right so the subject stays in frame while the copy sits
+          // over the darkened left side.
+          // The file is already cut to the banner's exact ratio, so plain cover
+          // needs no focal offset and nothing important gets cropped away.
+          className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]"
           onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
         />
       )}
-      <div className="absolute inset-0 bg-gradient-to-r from-[#050506] via-[#050506]/85 to-cyan-500/10" />
-      <div className="relative flex items-center gap-4 px-5 py-6">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-400/30 bg-cyan-500/10">
-          <Icon className="h-5 w-5 text-cyan-300" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <p className="text-[15px] font-semibold text-zinc-50">{module.label}</p>
-            <span className="rounded-md bg-cyan-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan-200">
-              Agent
-            </span>
+      <div className="absolute inset-0 bg-gradient-to-r from-[#050506] via-[#050506]/75 via-40% to-transparent" />
+      <div className="relative flex h-full max-w-[48%] flex-col justify-center gap-1.5 px-7">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-cyan-400/30 bg-cyan-500/10">
+            <Icon className="h-4 w-4 text-cyan-300" />
           </div>
-          <p className="mt-0.5 text-[12px] leading-relaxed text-white/45">{module.description}</p>
+          <span className="rounded-md bg-cyan-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-cyan-200">
+            Coming soon
+          </span>
         </div>
-        <ArrowRight className="h-5 w-5 shrink-0 text-white/25 transition group-hover:translate-x-0.5 group-hover:text-cyan-300" />
+        <p className="text-[22px] font-bold leading-tight tracking-tight text-zinc-50">
+          {module.label}
+        </p>
+        <p className="text-[12px] leading-relaxed text-white/55">{module.description}</p>
+        <span className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-semibold text-cyan-300">
+          Try the preview
+          <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
+        </span>
       </div>
     </button>
   );

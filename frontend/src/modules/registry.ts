@@ -86,8 +86,8 @@ export const FEDDA_MODULES: FeddaModule[] = [
     // a series of re-uploads.
     id: 'chat-edit',
     sourceModuleId: 'qwen-image',
-    label: 'Chat Edit',
-    description: 'Edit images by talking to an agent. Each reply builds on the last result.',
+    label: 'FEDDA Agent',
+    description: 'Stop filling in forms. Describe what you want and the agent runs the workflow, remembers how you like to work, and builds on every result.',
     area: 'home',
     pack: 'booster',
 
