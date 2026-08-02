@@ -201,7 +201,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     defaultTab: 'transform-reel',
     Icon: Wand2,
     wip: true,
-    card: veniceCard(36),
+    card: { poster: '/cards/bunny/transform-reel.jpeg' },
   },
   {
     id: 'reel-machine',
@@ -215,7 +215,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     defaultTab: 'reel-machine',
     Icon: Film,
     wip: true,
-    card: { poster: '/cards/new/venice/39.jpeg' },
+    card: { poster: '/cards/bunny/reel-machine.jpeg' },
   },
   {
     id: 'scail-studio',
@@ -229,7 +229,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     defaultTab: 'scail-studio',
     Icon: Sparkles,
     wip: true,
-    card: { poster: '/cards/new/venice/40.jpeg' },
+    card: { poster: '/cards/bunny/scail-studio.jpeg' },
   },
   {
     id: 'companion',
@@ -257,7 +257,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['z-image'],
     defaultTab: 'z-image-txt2img',
     Icon: Sparkles,
-    card: veniceCard(7),
+    card: { poster: '/cards/bunny/z-image-basic.jpeg' },
   },
   {
     id: 'z-image-2loras-v2',
@@ -271,7 +271,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['z-image-2loras-v2'],
     defaultTab: 'z-image-2loras-v2',
     Icon: Users,
-    card: { poster: '/cards/deep-teal/z-image-dual-lora.jpg' },
+    card: { poster: '/cards/bunny/z-image-2loras-v2.jpeg' },
   },
   {
     id: 'z-image-dual-lora',
@@ -286,7 +286,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['z-image-dual-lora'],
     defaultTab: 'z-image-dual-lora',
     Icon: Sparkles,
-    card: veniceCard(8),
+    card: { poster: '/cards/bunny/z-image-dual-lora.jpeg' },
   },
   {
     id: 'chroma1-hd',
@@ -300,7 +300,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['chroma1-hd-txt2img'],
     defaultTab: 'chroma-txt2img',
     Icon: Sparkles,
-    card: veniceCard(9),
+    card: { poster: '/cards/bunny/chroma1-hd.jpeg' },
   },
   {
     id: 'chroma-simple',
@@ -314,7 +314,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['chroma-simple-txt2img'],
     defaultTab: 'chroma-simple-txt2img',
     Icon: Sparkles,
-    card: veniceCard(10),
+    card: { poster: '/cards/bunny/chroma-simple.jpeg' },
   },
   {
     id: 'flux2-klein',
@@ -329,7 +329,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['flux2klein-txt2img'],
     defaultTab: 'flux-txt2img',
     Icon: Sparkles,
-    card: veniceCard(11),
+    card: { poster: '/cards/bunny/flux2-klein.jpeg' },
   },
   {
     id: 'klein-inpaint',
@@ -343,7 +343,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['klein-inpaint'],
     defaultTab: 'klein-inpaint',
     Icon: Sparkles,
-    card: { poster: '/cards/deep-teal/klein-inpaint.jpg' },
+    card: { poster: '/cards/bunny/klein-inpaint.jpeg' },
   },
   {
     id: 'flux-headswap',
@@ -357,7 +357,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['flux-headswap'],
     defaultTab: 'flux-headswap',
     Icon: Sparkles,
-    card: { poster: '/cards/deep-teal/flux-headswap.jpg' },
+    card: { poster: '/cards/bunny/flux-headswap.jpeg' },
   },
   {
     id: 'flux-klein-uncensored',
@@ -372,7 +372,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['flux2klein-uncensored-txt2img'],
     defaultTab: 'flux-txt2img',
     Icon: Sparkles,
-    card: veniceCard(31),
+    card: { poster: '/cards/bunny/flux-klein-uncensored.jpeg' },
   },
   {
     id: 'krea2',
@@ -386,7 +386,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['krea2-turbo-txt2img'],
     defaultTab: 'krea2-turbo-txt2img',
     Icon: Sparkles,
-    card: veniceCard(38),
+    card: { poster: '/cards/bunny/krea2.jpeg' },
   },
   {
     id: 'ideogram',
@@ -401,7 +401,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['ideogram-txt2img'],
     defaultTab: 'ideogram-txt2img',
     Icon: Sparkles,
-    card: veniceCard(32),
+    card: { poster: '/cards/bunny/ideogram.jpeg' },
   },
   {
     id: 'firered-image-edit',
@@ -415,7 +415,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['firered-image-edit'],
     defaultTab: 'firered-image-edit',
     Icon: Sparkles,
-    card: veniceCard(12),
+    card: { poster: '/cards/bunny/firered-image-edit.jpeg' },
   },
   {
     id: 'qwen-image',
@@ -429,7 +429,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['qwen-txt2img'],
     defaultTab: 'qwen-txt2img',
     Icon: Sparkles,
-    card: veniceCard(13),
+    card: { poster: '/cards/bunny/qwen-image.jpeg' },
   },
   {
     id: 'qwen-reference',
@@ -444,7 +444,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['qwen-edit-2509-image-reference'],
     defaultTab: 'qwen-image-ref',
     Icon: Sparkles,
-    card: veniceCard(14),
+    card: { poster: '/cards/bunny/qwen-reference.jpeg' },
   },
   {
     // Proof that one conversational driver covers every workflow: this runs
@@ -474,7 +474,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['qwen-rapid-edit-v23'],
     defaultTab: 'qwen-rapid-edit-v23',
     Icon: Sparkles,
-    card: veniceCard(15),
+    card: { poster: '/cards/bunny/qwen-rapid-edit-v23.jpeg' },
   },
   {
     id: 'qwen-multi-angle',
@@ -489,7 +489,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['qwen-multi-angles', 'qwen-multi-angles-fast'],
     defaultTab: 'qwen-multi-angle',
     Icon: Sparkles,
-    card: veniceCard(16),
+    card: { poster: '/cards/bunny/qwen-multi-angle.jpeg' },
   },
   {
     id: 'sdxl-inpaint-automask',
@@ -504,7 +504,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['sdxl-inpaint-automask'],
     defaultTab: 'sdxl-inpaint-automask',
     Icon: Sparkles,
-    card: veniceCard(26),
+    card: { poster: '/cards/bunny/sdxl-inpaint-automask.jpeg' },
   },
   {
     id: 'facefix',
@@ -519,7 +519,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['facefix'],
     defaultTab: 'facefix',
     Icon: Wand2,
-    card: { poster: '/cards/deep-teal/facefix.jpg' },
+    card: { poster: '/cards/bunny/facefix.jpeg' },
   },
   {
     id: 'z-image-inpaint',
@@ -534,7 +534,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['z-image-inpaint-automask'],
     defaultTab: 'z-image-inpaint-automask',
     Icon: Sparkles,
-    card: { poster: '/cards/deep-teal/z-image-inpaint.jpg' },
+    card: { poster: '/cards/bunny/z-image-inpaint.jpeg' },
   },
   {
     id: 'sdxl-outpaint',
@@ -549,7 +549,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['sdxl-outpaint'],
     defaultTab: 'sdxl-outpaint',
     Icon: Sparkles,
-    card: veniceCard(27),
+    card: { poster: '/cards/bunny/sdxl-outpaint.jpeg' },
   },
   {
     id: 'sdxl-controlnet-depth',
@@ -564,7 +564,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['sdxl-controlnet-depth'],
     defaultTab: 'sdxl-controlnet-depth',
     Icon: Sparkles,
-    card: veniceCard(28),
+    card: { poster: '/cards/bunny/sdxl-controlnet-depth.jpeg' },
   },
   {
     id: 'sdxl-controlnet-openpose',
@@ -579,7 +579,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['sdxl-controlnet-openpose'],
     defaultTab: 'sdxl-controlnet-openpose',
     Icon: Sparkles,
-    card: veniceCard(29),
+    card: { poster: '/cards/bunny/sdxl-controlnet-openpose.jpeg' },
   },
   {
     id: 'wan22-img2vid',
@@ -594,7 +594,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['wan22xxx-img2vid'],
     defaultTab: 'wan22xxx-img2vid',
     Icon: Video,
-    card: veniceCard(18),
+    card: { poster: '/cards/bunny/wan22-img2vid.jpeg' },
   },
   {
     id: 'wan22-vid2vid',
@@ -609,7 +609,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['wan22-vid2vid'],
     defaultTab: 'wan22-vid2vid',
     Icon: Video,
-    card: veniceCard(19),
+    card: { poster: '/cards/bunny/wan22-vid2vid.jpeg' },
   },
   {
     id: 'wan22-story',
@@ -624,7 +624,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['wan22-img2vid-6frames'],
     defaultTab: 'wan22-img2vid-6frames',
     Icon: Video,
-    card: veniceCard(20),
+    card: { poster: '/cards/bunny/wan22-story.jpeg' },
   },
   {
     id: 'steady-dancer',
@@ -639,7 +639,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['wan21-steady-dancer', 'z-image-controlnet-pose'],
     defaultTab: 'wan21-steady-dancer',
     Icon: Video,
-    card: veniceCard(21),
+    card: { poster: '/cards/bunny/steady-dancer.jpeg' },
   },
   {
     id: 'wan21-scail2',
@@ -654,7 +654,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['wan21-scail2'],
     defaultTab: 'wan21-scail2',
     Icon: Film,
-    card: veniceCard(30),
+    card: { poster: '/cards/bunny/wan21-scail2.jpeg' },
   },
   {
     id: 'liveportrait',
@@ -671,7 +671,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     Icon: Video,
     // No poster yet -> the section renders the icon+label fallback. Swap in a
     // veniceCard(n) once art exists.
-    card: { poster: '/cards/deep-teal/liveportrait.jpg' },
+    card: { poster: '/cards/bunny/liveportrait.jpeg' },
   },
   {
     id: 'wan22-vace',
@@ -686,7 +686,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['wan22-vace'],
     defaultTab: 'wan22-vace',
     Icon: Film,
-    card: { poster: '/cards/deep-teal/wan22-vace.jpg' },
+    card: { poster: '/cards/bunny/wan22-vace.jpeg' },
   },
   {
     id: 'ltx-img2vid',
@@ -700,7 +700,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['ltx-img2vid'],
     defaultTab: 'ltx-img2vid',
     Icon: Film,
-    card: veniceCard(22),
+    card: { poster: '/cards/bunny/ltx-img2vid.jpeg' },
   },
   {
     id: 'ltx-first-last',
@@ -714,7 +714,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['ltx-flf'],
     defaultTab: 'ltx-flf',
     Icon: Film,
-    card: veniceCard(23),
+    card: { poster: '/cards/bunny/ltx-first-last.jpeg' },
   },
   {
     id: 'ltx-multi-frame',
@@ -728,7 +728,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['ltx-flf3'],
     defaultTab: 'ltx-flf3',
     Icon: Film,
-    card: { poster: '/cards/deep-teal/ltx-multi-frame.jpg' },
+    card: { poster: '/cards/bunny/ltx-multi-frame.jpeg' },
   },
   {
     id: 'ltx-audio-img2vid',
@@ -743,7 +743,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['ltx-ai2v'],
     defaultTab: 'ltx-ai2v',
     Icon: Film,
-    card: { poster: '/cards/new/venice/34.jpeg' },
+    card: { poster: '/cards/bunny/ltx-audio-img2vid.jpeg' },
   },
 
   {
@@ -758,7 +758,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['lipsync-infinitetalk'],
     defaultTab: 'lipsync-infinitetalk',
     Icon: Film,
-    card: { poster: '/cards/new/venice/37.jpeg' },
+    card: { poster: '/cards/bunny/lipsync.jpeg' },
   },
 ];
 
