@@ -65,7 +65,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     tabs: ['image'],
     defaultTab: 'image',
     Icon: Sparkles,
-    card: veniceCard(1),
+    card: { poster: '/cards/bunny/image-studio.jpeg' },
   },
   {
     id: 'video-studio',
@@ -78,7 +78,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     tabs: ['video'],
     defaultTab: 'video',
     Icon: Video,
-    card: veniceCard(2),
+    card: { poster: '/cards/bunny/video-studio.jpeg' },
   },
   {
     // Conversational front-end to the same qwen-rapid-edit workflow: each
@@ -107,7 +107,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     tabs: ['gallery'],
     defaultTab: 'gallery',
     Icon: Images,
-    card: veniceCard(3),
+    card: { poster: '/cards/bunny/gallery.jpeg' },
   },
   {
     id: 'lora-character',
@@ -120,7 +120,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     tabs: ['library'],
     defaultTab: 'library',
     Icon: LayoutDashboard,
-    card: veniceCard(4),
+    card: { poster: '/cards/bunny/lora-character.jpeg' },
   },
   {
     id: 'ollama-models',
@@ -133,7 +133,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     tabs: ['ollama'],
     defaultTab: 'ollama',
     Icon: Bot,
-    card: veniceCard(5),
+    card: { poster: '/cards/bunny/ollama-models.jpeg' },
   },
   {
     id: 'venice',
@@ -174,7 +174,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     tabs: ['zonos-tts'],
     defaultTab: 'zonos-tts',
     Icon: Volume2,
-    card: veniceCard(35),
+    card: { poster: '/cards/bunny/voice-studio.jpeg' },
   },
   {
     id: 'media-downloader',
