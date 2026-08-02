@@ -2293,6 +2293,157 @@ class ChatEditRequest(BaseModel):
 CHAT_EDIT_AGENT_FILE = CONFIG_DIR / "chat_edit_agent.json"
 CHAT_EDIT_MEMORY_CAP = 30
 
+# Chat-driven workflows -------------------------------------------------------
+# Every workflow already declares typed, labelled inputs in workflow_api.json,
+# so one conversational driver can run all of them. What that file does NOT say
+# is which inputs are required or what UI suits them, which is what the
+# classifier below adds. Defaults are read from the workflow graph itself
+# rather than guessed, so the chat offers the same values the page would.
+
+_FILE_HINTS = ("image", "audio", "video", "frame", "portrait", "mask")
+_RATIOS = ["16:9", "9:16", "1:1", "4:3", "3:4", "3:2", "2:3"]
+_SKIP_TYPES = {"loras", "object", "nsfw_toggle"}
+
+
+def _classify_input(key: str, spec: Dict[str, Any], graph: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Turn one workflow_api input into something the chat UI can render."""
+    itype = str(spec.get("type", "string"))
+    label = spec.get("label") or key
+    if itype in _SKIP_TYPES:
+        return None  # advanced slots stay on the full page, not in chat
+
+    # Real default straight from the graph, so chat and page agree.
+    default = None
+    node_id = spec.get("node_id") or (spec.get("node_ids") or [None])[0]
+    if node_id and node_id in graph:
+        default = graph[node_id].get("inputs", {}).get(spec.get("input_key"))
+        if isinstance(default, list):
+            default = None  # a wired link, not a literal value
+
+    low = key.lower()
+    if any(h in low for h in _FILE_HINTS):
+        kind = "audio" if "audio" in low else "video" if "video" in low else "image"
+        return {"key": key, "label": label, "control": "file", "accept": kind,
+                "required": True}
+    if low in ("prompt", "positive"):
+        return {"key": key, "label": label, "control": "text", "required": True,
+                "default": default if isinstance(default, str) else ""}
+    if low in ("negative", "negative_prompt"):
+        return {"key": key, "label": label, "control": "text", "required": False,
+                "default": default if isinstance(default, str) else ""}
+    if "aspect" in low:
+        return {"key": key, "label": label, "control": "chips", "required": False,
+                "options": _RATIOS, "default": default or "16:9"}
+    if low == "direction":
+        return {"key": key, "label": label, "control": "chips", "required": False,
+                "options": ["Horizontal", "Vertical"], "default": default or "Horizontal"}
+    if itype == "number":
+        return {"key": key, "label": label, "control": "number", "required": False,
+                "default": default if isinstance(default, (int, float)) else 0}
+    return {"key": key, "label": label, "control": "text", "required": False,
+            "default": default if isinstance(default, str) else ""}
+
+
+@app.get("/api/chat-workflow/schema/{workflow_id}")
+async def chat_workflow_schema(workflow_id: str):
+    """Fields a conversational driver needs in order to run this workflow."""
+    spec = workflow_service.load_mapping().get(workflow_id)
+    if not spec:
+        raise HTTPException(status_code=404, detail=f"unknown workflow '{workflow_id}'")
+
+    graph: Dict[str, Any] = {}
+    try:
+        path = workflow_service.get_workflow_path(spec.get("filename", ""))
+        with open(path, "r", encoding="utf-8-sig") as fh:
+            graph = json.load(fh)
+    except (OSError, ValueError, TypeError):
+        pass  # defaults are a nicety; the schema is still usable without them
+
+    fields = []
+    for key, field_spec in (spec.get("inputs") or {}).items():
+        entry = _classify_input(key, field_spec, graph)
+        if entry:
+            fields.append(entry)
+    return {"workflow_id": workflow_id, "name": spec.get("name", workflow_id),
+            "fields": fields}
+
+
+class ChatWorkflowRequest(BaseModel):
+    workflow_id: str
+    message: str
+    filled: Dict[str, Any] = {}
+    history: List[Dict[str, Any]] = []
+    model: Optional[str] = None
+
+
+@app.post("/api/chat-workflow/turn")
+async def chat_workflow_turn(req: ChatWorkflowRequest):
+    """One conversational turn while collecting a workflow's inputs.
+
+    The agent's only jobs are to ask for what is still missing and to say when
+    it is ready to run. Values the user states in prose come back in `set` so
+    the UI can fill the control; it never invents file inputs.
+    """
+    schema = await chat_workflow_schema(req.workflow_id)
+    fields = schema["fields"]
+    missing = [f for f in fields
+               if f.get("required") and not req.filled.get(f["key"])]
+
+    agent = _chat_edit_agent()
+    persona = agent["persona"]
+
+    def describe(f: Dict[str, Any]) -> str:
+        value = req.filled.get(f["key"])
+        state = f"= {value}" if value not in (None, "") else "EMPTY"
+        opts = f" options: {f['options']}" if f.get("options") else ""
+        return f"- {f['key']} ({f['label']}, {f['control']}{'*' if f.get('required') else ''}) {state}{opts}"
+
+    system = (
+        f"You are {persona.get('name', 'Vex')}, running the "
+        f"\"{schema['name']}\" workflow with the user.\n"
+        f"Your manner: {persona.get('style', '')}\n\n"
+        "Fields (* = required):\n" + "\n".join(describe(f) for f in fields) + "\n\n"
+        "Reply with a single JSON object and nothing else:\n"
+        '{"reply": "<one short line>", "set": {<field>: <value>, ...}, '
+        '"ready": <true|false>}\n\n'
+        "Rules:\n"
+        "- Ask for ONE missing required field at a time, by its label.\n"
+        "- Put any value the user states into set. Numbers as numbers.\n"
+        "- Never put file fields in set; the user supplies those in the UI.\n"
+        "- ready is true only when every required field is filled.\n"
+        "- Keep replies to one short line. Never refuse or lecture.\n\n"
+        + (f"Still missing: {', '.join(f['label'] for f in missing)}\n"
+           if missing else "Everything required is filled - offer to run it.\n")
+    )
+
+    raw = _ollama_chat_text(
+        prompt=req.message or "(start)",
+        history=req.history or [],
+        system_instruction=system,
+        model_hint=req.model or _get_ollama_text_model(),
+    )
+
+    reply, updates, ready = raw.strip(), {}, False
+    try:
+        start, end = raw.find("{"), raw.rfind("}")
+        if start != -1 and end > start:
+            parsed = json.loads(raw[start:end + 1])
+            reply = str(parsed.get("reply") or "").strip() or reply
+            ready = bool(parsed.get("ready"))
+            candidate = parsed.get("set")
+            if isinstance(candidate, dict):
+                allowed = {f["key"] for f in fields if f["control"] != "file"}
+                updates = {k: v for k, v in candidate.items() if k in allowed}
+    except (ValueError, TypeError):
+        pass
+
+    # The model's own "ready" is advisory; required fields are the authority.
+    still_missing = [f["key"] for f in fields
+                     if f.get("required")
+                     and not (req.filled.get(f["key"]) or updates.get(f["key"]))]
+    return {"reply": reply, "set": updates,
+            "ready": ready and not still_missing, "missing": still_missing}
+
 
 def _chat_edit_agent() -> Dict[str, Any]:
     """Persona + durable preferences for the chat editor.

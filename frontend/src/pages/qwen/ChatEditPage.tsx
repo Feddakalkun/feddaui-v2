@@ -21,9 +21,14 @@ const WORKFLOW_ID = 'qwen-rapid-edit-v23';
 type Msg = {
   role: 'user' | 'agent';
   text: string;
-  image?: string;      // data url or backend url of the result
+  image?: string;      // displayable /comfy/view url
   pending?: boolean;
 };
+
+/** ComfyUI-relative filename -> a URL the browser can render. */
+const viewUrl = (filename: string, subfolder = '', type = 'output') =>
+  `/comfy/view?filename=${encodeURIComponent(filename)}` +
+  `&subfolder=${encodeURIComponent(subfolder)}&type=${type}`;
 
 export const ChatEditPage = () => {
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -32,6 +37,7 @@ export const ChatEditPage = () => {
   const [history, setHistory] = useState<string[]>([]);       // previous images, for undo
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -39,15 +45,29 @@ export const ChatEditPage = () => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: 'smooth' });
   }, [messages]);
 
-  const loadFile = useCallback((file: File) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const url = String(reader.result);
-      setImage(url);
+  // The workflow takes a ComfyUI filename, not a data URL, so every dropped
+  // file is uploaded first and only the returned filename is kept as state.
+  const loadFile = useCallback(async (file: File) => {
+    setError(null);
+    setBusy(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch(`${BACKEND_API.BASE_URL}/api/upload`, { method: 'POST', body: form });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.detail || 'Upload failed');
+      setImage(data.filename);
       setHistory([]);
-      setMessages((m) => [...m, { role: 'agent', text: 'Got it. What should we change?', image: url }]);
-    };
-    reader.readAsDataURL(file);
+      setMessages((m) => [...m, {
+        role: 'agent',
+        text: 'Got it. What should we change?',
+        image: viewUrl(data.filename, '', 'input'),
+      }]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
   }, []);
 
   // Paste an image straight into the conversation.
@@ -56,13 +76,18 @@ export const ChatEditPage = () => {
       const item = Array.from(e.clipboardData?.items ?? [])
         .find((i) => i.type.startsWith('image/'));
       const file = item?.getAsFile();
-      if (file) loadFile(file);
+      if (file) void loadFile(file);
     };
     window.addEventListener('paste', onPaste);
     return () => window.removeEventListener('paste', onPaste);
   }, [loadFile]);
 
-  const runEdit = async (instruction: string) => {
+  /**
+   * /api/generate only queues the job and hands back a prompt_id; the images
+   * arrive by polling /api/generate/status. Reading the POST response for
+   * images silently produced "no image came back" on every successful edit.
+   */
+  const runEdit = async (instruction: string): Promise<{ filename: string; url: string }> => {
     const res = await fetch(`${BACKEND_API.BASE_URL}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -71,14 +96,30 @@ export const ChatEditPage = () => {
         params: { image, prompt: instruction, negative: '' },
       }),
     });
-    if (!res.ok) {
-      const detail = await res.json().catch(() => ({}));
-      throw new Error(detail.detail || `Generation failed (${res.status})`);
+    const queued = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(queued.detail || `Generation failed (${res.status})`);
+    const promptId = queued.prompt_id;
+    if (!promptId) throw new Error(queued.detail || 'ComfyUI did not accept the job');
+
+    for (let i = 0; i < 200; i += 1) {
+      await new Promise((r) => setTimeout(r, 1500));
+      const poll = await fetch(
+        `${BACKEND_API.BASE_URL}/api/generate/status/${encodeURIComponent(promptId)}`);
+      const data = await poll.json();
+      if (!data.success) throw new Error(data.error || 'Status check failed');
+      if (data.status === 'completed') {
+        const images = Array.isArray(data.images) ? data.images : [];
+        const outputs = images.filter((im: { type?: string }) => im.type === 'output');
+        const picked = (outputs.length ? outputs : images)[0];
+        if (!picked) throw new Error('The workflow finished without an image');
+        return {
+          filename: picked.filename,
+          url: viewUrl(picked.filename, picked.subfolder || '', picked.type || 'output'),
+        };
+      }
+      if (data.status === 'not_found' && i > 8) throw new Error('Job vanished from ComfyUI history');
     }
-    const data = await res.json();
-    const out = data.images?.[0] || data.image || data.output?.[0];
-    if (!out) throw new Error('No image came back from the workflow');
-    return typeof out === 'string' ? out : out.url;
+    throw new Error('Timed out waiting for the edit');
   };
 
   const send = async () => {
@@ -115,12 +156,14 @@ export const ChatEditPage = () => {
 
       setMessages((m) => [...m, { role: 'agent', text: reply, pending: true }]);
       const result = await runEdit(edit);
+      // The result becomes the input for the next turn - that loop is the
+      // whole point of this page over the regular edit page.
       if (image) setHistory((h) => [...h, image]);
-      setImage(result);
+      setImage(result.filename);
       setMessages((m) => {
         const next = [...m];
         const i = next.findIndex((x) => x.pending);
-        if (i >= 0) next[i] = { ...next[i], pending: false, image: result };
+        if (i >= 0) next[i] = { ...next[i], pending: false, image: result.url };
         return next;
       });
     } catch (e) {
@@ -136,7 +179,7 @@ export const ChatEditPage = () => {
     const prev = history[history.length - 1];
     setHistory((h) => h.slice(0, -1));
     setImage(prev);
-    setMessages((m) => [...m, { role: 'agent', text: 'Rolled back.', image: prev }]);
+    setMessages((m) => [...m, { role: 'agent', text: 'Rolled back.', image: viewUrl(prev) }]);
   };
 
   const reset = () => {
@@ -146,8 +189,33 @@ export const ChatEditPage = () => {
     setError(null);
   };
 
+  // Drop anywhere on the page. dragenter/over must both preventDefault or the
+  // browser navigates to the file instead of firing onDrop.
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    const file = Array.from(e.dataTransfer.files).find((f) => f.type.startsWith('image/'));
+    if (file) void loadFile(file);
+  };
+
   return (
-    <div className="flex h-full flex-col bg-[#050506]">
+    <div
+      className={cn('relative flex h-full flex-col bg-[#050506]',
+        dragging && 'ring-2 ring-inset ring-cyan-400/60')}
+      onDragEnter={(e) => { e.preventDefault(); setDragging(true); }}
+      onDragOver={(e) => { e.preventDefault(); }}
+      onDragLeave={(e) => {
+        // Only clear when the pointer actually leaves the page, not when it
+        // crosses between children.
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false);
+      }}
+      onDrop={onDrop}
+    >
+      {dragging && (
+        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-cyan-500/10">
+          <p className="rounded-xl bg-black/70 px-4 py-2 text-sm text-cyan-200">Drop the image</p>
+        </div>
+      )}
       <div className="flex items-center gap-2 border-b border-white/8 px-4 py-2">
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">
           Chat Edit · Qwen
@@ -250,7 +318,7 @@ export const ChatEditPage = () => {
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) loadFile(f); e.target.value = ''; }}
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) void loadFile(f); e.target.value = ''; }}
       />
     </div>
   );

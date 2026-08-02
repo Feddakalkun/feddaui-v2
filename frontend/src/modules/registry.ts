@@ -430,6 +430,22 @@ export const FEDDA_MODULES: FeddaModule[] = [
     card: veniceCard(14),
   },
   {
+    // Proof that one conversational driver covers every workflow: this runs
+    // ltx-flf purely from its workflow_api.json declaration, no bespoke code.
+    id: 'chat-ltx-flf',
+    sourceModuleId: 'ltx-video',
+    label: 'Chat · LTX First/Last',
+    description: 'Run LTX First/Last by talking. The agent asks for each frame, then what should happen.',
+    area: 'video',
+    pack: 'booster',
+
+    tabs: ['chat-ltx-flf'],
+    workflows: ['ltx-flf'],
+    defaultTab: 'chat-ltx-flf',
+    Icon: MessagesSquare,
+    card: { poster: '/cards/bunny/chat-ltx-flf.jpeg' },
+  },
+  {
     // Conversational front-end to the same qwen-rapid-edit workflow: each
     // result becomes the next turn's input, so editing is a chat instead of
     // a series of re-uploads.

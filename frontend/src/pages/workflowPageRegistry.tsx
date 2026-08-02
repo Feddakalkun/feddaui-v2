@@ -8,6 +8,7 @@ import { QwenTxt2Img } from './qwen/QwenTxt2Img';
 import { QwenMultiAnglesPage } from './qwen/QwenMultiAnglesPage';
 import { QwenRapidEditPage } from './qwen/QwenRapidEditPage';
 import { ChatEditPage } from './qwen/ChatEditPage';
+import { ChatWorkflowPage } from './ChatWorkflowPage';
 import { ZImageDualLoraPage } from './zimage/ZImageDualLoraPage';
 import { ZImage2LorasPage } from './zimage/ZImage2LorasPage';
 import { SDXLInpaintAutomask } from './sdxl/SDXLInpaintAutomask';
@@ -76,6 +77,8 @@ export const VIDEO_WORKFLOW_PAGES: Record<string, ComponentType> = {
   'ltx': LtxImg2VidPage,
   'ltx-img2vid': LtxImg2VidPage,
   'ltx-flf': LtxFlfPage,
+  // Same workflow, conversational entry point alongside the full page.
+  'chat-ltx-flf': () => <ChatWorkflowPage workflowId="ltx-flf" />,
   'ltx-flf3': LtxMultiFramePage,
   'liveportrait': LivePortraitPage,
   'wan22-vace': Wan22VacePage,

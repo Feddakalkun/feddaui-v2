@@ -287,7 +287,8 @@
         "ltx-img2vid",
         "ltx-flf",
         "ltx-flf3",
-        "ltx-ai2v"
+        "ltx-ai2v",
+        "chat-ltx-flf"
       ],
       "workflows": [
         "ltx-flf",
