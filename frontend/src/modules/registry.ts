@@ -44,14 +44,13 @@ export interface FeddaModule {
 export const APP_VERSION_LABEL = 'FEDDA Hub v2.0';
 export const ACTIVE_TAB_STORAGE_KEY = 'fedda_v21_active_tab';
 
-// Cards are stills for now. The .mp4s are still on disk and both card renderers
-// (RichHome, SectionCards) still handle a `video` field - putting the line back
-// re-enables hover playback everywhere in one edit. Turned off because 38 cards
-// autoplaying on hover is noisy and costs decode work for no real information.
-const veniceCard = (index: number) => ({
-  poster: `/cards/new/venice/${index}.jpeg`,
-  // video: `/cards/new/venice/${index}.mp4`,
-});
+// Every card is now BUNNY CREW art at /cards/bunny/<module-id>.jpeg, so
+// replacing art is a file overwrite and never a change here. The old
+// veniceCard() helper is gone with the last module that used it.
+//
+// Cards are stills. Both renderers (RichHome, SectionCards) still handle a
+// `video` field, so adding one to a card re-enables hover playback - left off
+// because dozens of cards autoplaying is noisy and costs decode work.
 
 export const FEDDA_MODULES: FeddaModule[] = [
   {
@@ -147,7 +146,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     tabs: ['venice'],
     defaultTab: 'venice',
     Icon: Sparkles,
-    card: veniceCard(6),
+    card: { poster: '/cards/bunny/venice.jpeg' },
   },
   {
     id: 'grok',
@@ -161,7 +160,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     tabs: ['grok'],
     defaultTab: 'grok',
     Icon: Sparkles,
-    card: veniceCard(24),
+    card: { poster: '/cards/bunny/grok.jpeg' },
   },
   {
     id: 'zonos-tts',
@@ -243,7 +242,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     tabs: ['companion'],
     defaultTab: 'companion',
     Icon: Heart,
-    card: veniceCard(25),
+    card: { poster: '/cards/bunny/companion.jpeg' },
   },
   {
     id: 'z-image-basic',
@@ -669,8 +668,6 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['liveportrait'],
     defaultTab: 'liveportrait',
     Icon: Video,
-    // No poster yet -> the section renders the icon+label fallback. Swap in a
-    // veniceCard(n) once art exists.
     card: { poster: '/cards/bunny/liveportrait.jpeg' },
   },
   {
