@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Check, MessageSquare, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { Brain, Check, ChevronDown, ChevronRight, MessageSquare, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { BACKEND_API } from '../../config/api';
 import { cn } from '../../lib/styles';
 
@@ -35,6 +35,9 @@ export const ChatSidebar = ({ activeId, onOpen, onNew, refreshKey }: Props) => {
   });
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
+  const [memory, setMemory] = useState<string[]>([]);
+  const [persona, setPersona] = useState<{ name?: string } | null>(null);
+  const [memOpen, setMemOpen] = useState(false);
 
   const load = async () => {
     try {
@@ -46,7 +49,26 @@ export const ChatSidebar = ({ activeId, onOpen, onNew, refreshKey }: Props) => {
     }
   };
 
-  useEffect(() => { void load(); }, [refreshKey]);
+  const loadMemory = async () => {
+    try {
+      const res = await fetch(`${BACKEND_API.BASE_URL}/api/chat-edit/memory`);
+      const data = await res.json();
+      setMemory(Array.isArray(data.memory) ? data.memory : []);
+      setPersona(data.persona ?? null);
+    } catch {
+      setMemory([]);
+    }
+  };
+
+  // Memory is refreshed alongside the chat list because the agent may have
+  // written something new during the turn that just saved.
+  useEffect(() => { void load(); void loadMemory(); }, [refreshKey]);
+
+  const forget = async (index?: number) => {
+    const query = index === undefined ? '' : `?index=${index}`;
+    await fetch(`${BACKEND_API.BASE_URL}/api/chat-edit/memory${query}`, { method: 'DELETE' });
+    void loadMemory();
+  };
 
   const toggle = () => {
     setCollapsed((c) => {
@@ -186,6 +208,57 @@ export const ChatSidebar = ({ activeId, onOpen, onNew, refreshKey }: Props) => {
             )}
           </div>
         ))}
+      </div>
+
+      <div className="border-t border-white/8">
+        <button
+          type="button"
+          onClick={() => setMemOpen((o) => !o)}
+          className="flex w-full items-center gap-1.5 px-3 py-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/25 transition hover:text-white/60"
+        >
+          {memOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+          <Brain className="h-3 w-3" />
+          Memory
+          <span className="ml-auto tabular-nums">{memory.length}</span>
+        </button>
+
+        {memOpen && (
+          <div className="custom-scrollbar max-h-52 overflow-y-auto px-2 pb-3">
+            {persona?.name && (
+              <p className="px-2 pb-1.5 text-[10px] text-white/30">
+                Agent: <span className="text-white/55">{persona.name}</span>
+              </p>
+            )}
+            {memory.length === 0 ? (
+              <p className="px-2 py-1 text-[10px] leading-relaxed text-white/25">
+                Nothing yet. It writes down lasting preferences on its own.
+              </p>
+            ) : (
+              <>
+                {memory.map((m, i) => (
+                  <div key={i} className="group mb-0.5 flex items-start gap-1 rounded-lg px-2 py-1 text-white/45 hover:bg-white/[0.04]">
+                    <span className="min-w-0 flex-1 text-[10px] leading-relaxed">{m}</span>
+                    <button
+                      type="button"
+                      onClick={() => { void forget(i); }}
+                      title="Forget this"
+                      className="mt-0.5 p-0.5 text-white/0 transition group-hover:text-white/40 hover:!text-red-400"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => { void forget(); }}
+                  className="mt-1 w-full rounded-lg border border-white/8 px-2 py-1 text-[10px] text-white/30 transition hover:border-red-500/30 hover:text-red-400"
+                >
+                  Forget everything
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
