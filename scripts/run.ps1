@@ -18,6 +18,41 @@ Write-Host "    FEDDA Hub v2.0  -  single-window launcher" -ForegroundColor Cyan
 Write-Host "  ============================================================" -ForegroundColor Cyan
 Write-Host ""
 
+<#
+    Is there a newer version on GitHub?
+
+    Uses `git ls-remote`, which asks the server for one ref and downloads no
+    objects, so it costs a fraction of a second rather than a fetch. It only
+    ever reports - pulling on launch could swap code under a session the user
+    is already working in, and a broken start is worse than an old version.
+
+    Every failure path is silent: offline, no git, not a clone. A launcher must
+    never refuse to start because it could not check for updates.
+#>
+function Test-FeddaUpdate {
+    param([string]$Root)
+    try {
+        if (-not (Test-Path (Join-Path $Root ".git"))) { return }
+        $local = (& git -C $Root rev-parse HEAD 2>$null)
+        if (-not $local) { return }
+
+        $job = Start-Job { param($r) & git -C $r ls-remote origin HEAD 2>$null } -ArgumentList $Root
+        $done = Wait-Job $job -Timeout 6
+        if (-not $done) { Stop-Job $job -ErrorAction SilentlyContinue; Remove-Job $job -Force -ErrorAction SilentlyContinue; return }
+        $remoteLine = Receive-Job $job
+        Remove-Job $job -Force -ErrorAction SilentlyContinue
+        if (-not $remoteLine) { return }
+
+        $remote = ($remoteLine -split "\s+")[0]
+        if ($remote -and $remote -ne $local.Trim()) {
+            Write-Host "  A newer version of FEDDA is available." -ForegroundColor Yellow
+            Write-Host "  Close this window and run update.bat to get it." -ForegroundColor DarkGray
+            Write-Host ""
+        }
+    } catch { }
+}
+Test-FeddaUpdate -Root $RootPath
+
 if (-not (Test-Path $Python)) {
     Write-Host "  [ERROR] python_embeded not found. Run the installer first." -ForegroundColor Red
     Write-Host ""; Read-Host "Press Enter to exit"; exit 1
