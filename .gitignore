@@ -84,3 +84,9 @@ backend/prompt_harvester.py
 
 # raw card sources (large PNG exports)
 frontend/public/cards/v4/
+
+# Per-install agent state. The memory file holds what the agent has learned
+# about whoever uses this install, and the sessions file holds their actual
+# conversations - neither belongs in a repo that gets shared.
+config/chat_edit_agent.json
+config/chat_edit_sessions.json

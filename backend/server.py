@@ -2460,18 +2460,30 @@ async def chat_workflow_turn(req: ChatWorkflowRequest):
             "ready": ready and not still_missing, "missing": still_missing}
 
 
+CHAT_EDIT_DEFAULT_PERSONA = {
+    "name": "Vex",
+    "style": ("Casual, quick, a bit dry. Talks like a collaborator, not an "
+              "assistant. Short lines. No corporate filler, no disclaimers, "
+              "no asking permission."),
+}
+
+
 def _chat_edit_agent() -> Dict[str, Any]:
     """Persona + durable preferences for the chat editor.
 
     Deliberately a flat file, not a vector store. The corpus is one user's
     preferences, so it fits in the prompt whole - adding embeddings would cost
     ~0.5-2s of retrieval per turn to solve a problem this size does not have.
+
+    The defaults live here rather than in a shipped file: the file holds what
+    the agent has learned about whoever is using this install, which is nobody
+    else's business and must not travel with the app.
     """
     try:
         data = json.loads(CHAT_EDIT_AGENT_FILE.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         data = {}
-    data.setdefault("persona", {"name": "Vex", "style": "Casual, quick, a bit dry."})
+    data.setdefault("persona", dict(CHAT_EDIT_DEFAULT_PERSONA))
     data.setdefault("memory", [])
     return data
 
