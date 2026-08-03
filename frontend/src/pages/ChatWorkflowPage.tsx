@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Loader2, Play, RotateCcw, Upload } from 'lucide-react';
+import { ChevronDown, ChevronRight, Loader2, Play, RotateCcw, Upload } from 'lucide-react';
 import { BACKEND_API } from '../config/api';
 import { ChatImage } from '../components/chat/ChatImage';
 import { useComfyExecution } from '../contexts/ComfyExecutionContext';
@@ -44,6 +44,7 @@ export const ChatWorkflowPage = ({ workflowId }: { workflowId: string }) => {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragField, setDragField] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   // Same reason as the chat editor: /api/generate skips queueWorkflow, so
   // the context must be told a job started for the strip and preview to live.
@@ -98,6 +99,10 @@ export const ChatWorkflowPage = ({ workflowId }: { workflowId: string }) => {
   }, []);
 
   const missing = fields.filter((f) => f.required && !values[f.key]);
+  // Files have to be handed over by hand; everything else the agent fills in
+  // from the conversation, so it does not belong on screen by default.
+  const fileFields = fields.filter((f) => f.control === 'file');
+  const settingFields = fields.filter((f) => f.control !== 'file');
 
   const send = async () => {
     const text = input.trim();
@@ -302,7 +307,29 @@ export const ChatWorkflowPage = ({ workflowId }: { workflowId: string }) => {
 
       <div className="px-4 pb-4 pt-2">
         <div className="mx-auto w-full max-w-3xl">
-          <div className="mb-2.5 flex flex-wrap items-center gap-2">{fields.map(control)}</div>
+          {/* Only what the user must hand over lives out here: files cannot be
+              typed. Prompts and sampler settings are the agent's job, so they
+              stay out of sight - a parameter grid above the composer is the
+              exact thing this page exists to replace. */}
+          {fileFields.length > 0 && (
+            <div className="mb-2.5 flex flex-wrap items-center gap-2">{fileFields.map(control)}</div>
+          )}
+
+          {settingFields.length > 0 && (
+            <div className="mb-2">
+              <button
+                type="button"
+                onClick={() => setShowSettings((v) => !v)}
+                className="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/25 transition hover:text-white/60"
+              >
+                {showSettings ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                Settings
+              </button>
+              {showSettings && (
+                <div className="mt-2 flex flex-wrap items-center gap-2">{settingFields.map(control)}</div>
+              )}
+            </div>
+          )}
           <div className="flex items-end gap-2 rounded-2xl bg-white/[0.06] p-1.5 focus-within:bg-white/[0.09]">
             <textarea
               value={input}

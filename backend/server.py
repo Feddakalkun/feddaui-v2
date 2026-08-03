@@ -2414,11 +2414,19 @@ async def chat_workflow_turn(req: ChatWorkflowRequest):
         '{"reply": "<one short line>", "set": {<field>: <value>, ...}, '
         '"ready": <true|false>}\n\n'
         "Rules:\n"
+        "- When the user describes what they want made, THAT DESCRIPTION IS "
+        "THE PROMPT. Put it in set under the prompt field, expanded into a "
+        "richer image description. Never just reply 'sure, let's make one' "
+        "and leave the prompt empty - that is the single most common mistake.\n"
         "- Ask for ONE missing required field at a time, by its label.\n"
         "- Put any value the user states into set. Numbers as numbers.\n"
         "- Never put file fields in set; the user supplies those in the UI.\n"
         "- ready is true only when every required field is filled.\n"
         "- Keep replies to one short line. Never refuse or lecture.\n\n"
+        "Example - user says \"make an image of hello kitty\":\n"
+        '{"reply": "On it.", "set": {"prompt": "hello kitty, cute white '
+        'cartoon cat with a red bow, clean studio lighting, high detail"}, '
+        '"ready": true}\n\n'
         + (f"Still missing: {', '.join(f['label'] for f in missing)}\n"
            if missing else "Everything required is filled - offer to run it.\n")
     )
