@@ -2166,6 +2166,13 @@ def _resolve_agent_model_for_profile(profile: str) -> Optional[str]:
     if not models:
         return None
 
+    # An explicit choice in Settings beats the size heuristics below. Without
+    # this, picking a model only held until something asked for a profile -
+    # "fast" would grab a 3b and the user's pick appeared to reset itself.
+    preferred = (load_settings().get("ollama_text_model") or "").strip()
+    if preferred and any(m.lower() == preferred.lower() for m in models):
+        return next(m for m in models if m.lower() == preferred.lower())
+
     def pick(priority: List[str]) -> Optional[str]:
         for p in priority:
             for model in models:

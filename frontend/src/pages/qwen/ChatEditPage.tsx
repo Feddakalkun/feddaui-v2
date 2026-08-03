@@ -17,6 +17,7 @@ import { cn } from '../../lib/styles';
  */
 
 const WORKFLOW_ID = 'qwen-rapid-edit-v23';
+const MODEL_KEY = 'fedda.chat-edit.model';
 
 type Msg = {
   role: 'user' | 'agent';
@@ -45,18 +46,28 @@ export const ChatEditPage = () => {
 
   // Which local model drives the agent. Empty means "whatever the backend
   // considers the default", so the picker never has to be touched to work.
+  // A per-page override is remembered so it does not reset on every visit.
   useEffect(() => {
     (async () => {
+      let saved = '';
+      try { saved = localStorage.getItem(MODEL_KEY) || ''; } catch { /* private mode */ }
       try {
         const res = await fetch(`${BACKEND_API.BASE_URL}/api/ollama/models`);
         const data = await res.json();
-        setModels(Array.isArray(data.models) ? data.models : []);
-        setModel(data.text_model || '');
+        const available: string[] = Array.isArray(data.models) ? data.models : [];
+        setModels(available);
+        // Drop a remembered model that has since been deleted from Ollama.
+        setModel(saved && available.includes(saved) ? saved : (data.text_model || ''));
       } catch {
         setModels([]);
       }
     })();
   }, []);
+
+  const chooseModel = (name: string) => {
+    setModel(name);
+    try { localStorage.setItem(MODEL_KEY, name); } catch { /* private mode */ }
+  };
 
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: 'smooth' });
@@ -264,7 +275,7 @@ export const ChatEditPage = () => {
         {models.length > 0 && (
           <select
             value={model}
-            onChange={(e) => setModel(e.target.value)}
+            onChange={(e) => chooseModel(e.target.value)}
             title="Which local model drives the agent"
             className="max-w-[190px] rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1 text-[10px] text-white/55 outline-none focus:border-white/25"
           >
