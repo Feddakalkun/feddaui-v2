@@ -37,8 +37,11 @@ function ChatBanner({ module, onSelect }: { module: FeddaModule; onSelect: (id: 
           <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-cyan-400/30 bg-cyan-500/10">
             <Icon className="h-4 w-4 text-cyan-300" />
           </div>
+          {/* It works - chat, memory, history and Studio all run - so "coming
+              soon" both undersold it and contradicted the "try the preview"
+              link right below. Early, not absent. */}
           <span className="rounded-md bg-cyan-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-cyan-200">
-            Coming soon
+            Preview
           </span>
         </div>
         <p className="text-[22px] font-bold leading-tight tracking-tight text-zinc-50">
@@ -46,7 +49,7 @@ function ChatBanner({ module, onSelect }: { module: FeddaModule; onSelect: (id: 
         </p>
         <p className="text-[12px] leading-relaxed text-white/55">{module.description}</p>
         <span className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-semibold text-cyan-300">
-          Try the preview
+          Open it
           <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
         </span>
       </div>
