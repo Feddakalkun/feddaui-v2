@@ -12,6 +12,51 @@ $env:GIT_TERMINAL_PROMPT = '0'
 $env:GCM_INTERACTIVE = 'never'
 
 $ErrorActionPreference = "Stop"
+
+<#
+    Apply a custom node's repair_dependency_list.txt ourselves instead of
+    running its repair_dependency.bat.
+
+    LayerStyle's script froze every update: it ends in `pause`, so an automated
+    run waits forever for a keypress nobody is there to give. It also installs
+    from a Chinese PyPI mirror, which from Europe is slow enough to look like a
+    second hang, and it uninstalls onnxruntime without ever reinstalling it -
+    taking out a package controlnet_aux and ReActor both need.
+
+    So: same intent, none of that. The list is installed from the default
+    index, conflicting opencv builds are cleared first because having several
+    side by side is the actual problem these scripts exist to fix, and
+    onnxruntime is left alone.
+#>
+function Invoke-NodeDependencyRepair {
+    param(
+        [string]$NodeDir,
+        [string]$NodeName,
+        [string]$PyExe
+    )
+    $list = Join-Path $NodeDir "repair_dependency_list.txt"
+    if (-not (Test-Path $list)) { return }
+
+    $pkgs = Get-Content $list | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith("#") }
+    if (-not $pkgs) { return }
+
+    Write-Host "  [$NodeName] Repairing dependencies ($($pkgs.Count))..." -ForegroundColor Gray
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        if ($pkgs -match "opencv") {
+            & $PyExe -s -m pip uninstall -y opencv-python opencv-contrib-python `
+                opencv-python-headless opencv-contrib-python-headless 2>&1 | Out-Null
+        }
+        foreach ($p in $pkgs) {
+            & $PyExe -s -m pip install --no-input --no-warn-script-location "$p" 2>&1 | Out-Null
+        }
+    } catch {
+        Write-Host "  [$NodeName] Dependency repair failed - continuing." -ForegroundColor DarkYellow
+    } finally {
+        $ErrorActionPreference = $prev
+    }
+}
 $ScriptPath = $PSScriptRoot
 $RootPath = Split-Path -Parent $ScriptPath
 Set-Location $RootPath
@@ -237,19 +282,7 @@ if ($NeedNodeUpdate -or $HasMissing) {
                         Remove-Item $TmpReq -Force -ErrorAction SilentlyContinue
                     }
 
-                    $RepairBat = Join-Path $NodeDir_Install "repair_dependency.bat"
-                    if (Test-Path $RepairBat) {
-                        Write-Host "  [$($Node.name)] Running repair_dependency.bat..." -ForegroundColor Gray
-                        try {
-                            Push-Location $NodeDir_Install
-                            $ErrorActionPreference = "Continue"
-                            & cmd /c "repair_dependency.bat" 2>&1 | Out-Null
-                            $ErrorActionPreference = "Stop"
-                            Pop-Location
-                        } catch {
-                            Pop-Location
-                        }
-                    }
+                    Invoke-NodeDependencyRepair -NodeDir $NodeDir_Install -NodeName $Node.name -PyExe $PyExe
                 } else {
                     Write-Host "  [$($Node.name)] Clone failed!" -ForegroundColor Red
                     $FailedCount++
@@ -300,19 +333,9 @@ if ($NeedNodeUpdate -or $HasMissing) {
                 Write-Host "  [$($Node.name)] Deps skipped (heavy node - already satisfied)" -ForegroundColor DarkGray
             }
 
-            # Also skip repair_dependency.bat for heavy nodes — it reruns pip internally
-            $RepairBat = Join-Path $NodeDir_Install "repair_dependency.bat"
-            if ((Test-Path $RepairBat) -and (-not $skipDeps)) {
-                Write-Host "  [$($Node.name)] Running repair_dependency.bat..." -ForegroundColor Gray
-                try {
-                    Push-Location $NodeDir_Install
-                    $ErrorActionPreference = "Continue"
-                    & cmd /c "repair_dependency.bat" 2>&1 | Out-Null
-                    $ErrorActionPreference = "Stop"
-                    Pop-Location
-                } catch {
-                    Pop-Location
-                }
+            # Skipped for heavy nodes, whose deps are already satisfied.
+            if (-not $skipDeps) {
+                Invoke-NodeDependencyRepair -NodeDir $NodeDir_Install -NodeName $Node.name -PyExe $PyExe
             }
         }
         else {
