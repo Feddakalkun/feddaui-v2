@@ -355,7 +355,7 @@ export const ChatEditPage = ({ openId = null, onSaved }: ChatEditPageProps = {})
           <p className="rounded-xl bg-black/70 px-4 py-2 text-sm text-cyan-200">Drop the image</p>
         </div>
       )}
-      <div className="flex items-center gap-2 border-b border-white/8 px-4 py-2">
+      <div className="flex items-center gap-2 px-4 py-2.5">
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">
           Chat Edit · Qwen
         </p>
@@ -364,7 +364,7 @@ export const ChatEditPage = ({ openId = null, onSaved }: ChatEditPageProps = {})
             value={model}
             onChange={(e) => chooseModel(e.target.value)}
             title="Which local model drives the agent"
-            className="max-w-[190px] rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1 text-[10px] text-white/55 outline-none focus:border-white/25"
+            className="max-w-[190px] rounded-lg bg-white/[0.05] px-2 py-1.5 text-[10px] text-white/55 outline-none focus:bg-white/[0.08]"
           >
             <option value="">Default model</option>
             {models.map((m) => <option key={m} value={m}>{m}</option>)}
@@ -375,14 +375,14 @@ export const ChatEditPage = ({ openId = null, onSaved }: ChatEditPageProps = {})
             type="button"
             onClick={undo}
             disabled={!history.length}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-1 text-[10px] font-semibold text-white/50 transition hover:text-white disabled:opacity-30"
+            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-semibold text-white/45 transition hover:bg-white/[0.06] hover:text-white disabled:opacity-25"
           >
             <Undo2 className="h-3 w-3" /> Undo
           </button>
           <button
             type="button"
             onClick={reset}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-1 text-[10px] font-semibold text-white/50 transition hover:text-white"
+            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-semibold text-white/45 transition hover:bg-white/[0.06] hover:text-white"
           >
             <RotateCcw className="h-3 w-3" /> New
           </button>
@@ -390,12 +390,12 @@ export const ChatEditPage = ({ openId = null, onSaved }: ChatEditPageProps = {})
       </div>
 
       <div ref={scroller} className="custom-scrollbar flex-1 overflow-y-auto px-4 py-5">
-        <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-5">
           {messages.length === 0 && (
             <button
               type="button"
               onClick={() => fileInput.current?.click()}
-              className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-white/12 py-16 transition hover:border-white/25"
+              className="flex flex-col items-center gap-3 rounded-2xl bg-white/[0.03] py-16 transition hover:bg-white/[0.06]"
             >
               <ImagePlus className="h-7 w-7 text-white/25" />
               <span className="text-sm text-white/45">Drop, paste or click to add an image</span>
@@ -409,7 +409,7 @@ export const ChatEditPage = ({ openId = null, onSaved }: ChatEditPageProps = {})
                 'max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[13px]',
                 m.role === 'user'
                   ? 'bg-cyan-500/15 text-cyan-50'
-                  : 'border border-white/8 bg-white/[0.03] text-zinc-200',
+                  : 'bg-white/[0.06] text-zinc-200',
               )}>
                 <p className="whitespace-pre-wrap">{m.text}</p>
                 {m.pending && (
@@ -427,19 +427,22 @@ export const ChatEditPage = ({ openId = null, onSaved }: ChatEditPageProps = {})
           ))}
 
           {error && (
-            <p className="rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-[12px] text-red-300">
+            <p className="rounded-xl bg-red-500/12 px-3 py-2 text-[12px] text-red-300">
               {error}
             </p>
           )}
         </div>
       </div>
 
-      <div className="border-t border-white/8 px-4 py-3">
-        <div className="mx-auto flex w-full max-w-2xl items-end gap-2">
+      <div className="px-4 pb-4 pt-2">
+        {/* One raised bar holds the whole composer, so the attach button, the
+            field and Send read as a single control rather than three outlined
+            boxes sitting next to each other. */}
+        <div className="mx-auto flex w-full max-w-2xl items-end gap-2 rounded-2xl bg-white/[0.06] p-1.5 focus-within:bg-white/[0.09]">
           <button
             type="button"
             onClick={() => fileInput.current?.click()}
-            className="shrink-0 rounded-xl border border-white/10 p-2.5 text-white/40 transition hover:text-white"
+            className="shrink-0 rounded-lg p-2 text-white/40 transition hover:bg-white/[0.07] hover:text-white"
             title="Add image"
           >
             <ImagePlus className="h-4 w-4" />
@@ -452,13 +455,13 @@ export const ChatEditPage = ({ openId = null, onSaved }: ChatEditPageProps = {})
             }}
             rows={1}
             placeholder={image ? 'What should we change?' : 'Add an image to start…'}
-            className="max-h-32 flex-1 resize-none rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-[13px] text-zinc-100 outline-none placeholder:text-white/25 focus:border-white/20"
+            className="max-h-32 flex-1 resize-none bg-transparent px-1 py-1.5 text-[13px] text-zinc-100 outline-none placeholder:text-white/30"
           />
           <button
             type="button"
             onClick={() => { void send(); }}
             disabled={busy || !input.trim()}
-            className="shrink-0 rounded-xl bg-cyan-500/85 p-2.5 text-white transition hover:bg-cyan-400 disabled:opacity-30"
+            className="shrink-0 rounded-xl bg-cyan-500/90 p-2 text-white transition hover:bg-cyan-400 disabled:opacity-25"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </button>

@@ -40,7 +40,7 @@ export const StudioPane = ({ workflowId, onPick, onClear }: Props) => {
         <button
           type="button"
           onClick={onClear}
-          className="flex items-center gap-1.5 border-b border-white/8 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35 transition hover:text-white"
+          className="flex items-center gap-1.5 px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35 transition hover:text-white"
         >
           <ArrowLeft className="h-3 w-3" /> Choose another workflow
         </button>
@@ -105,7 +105,7 @@ export const StudioPane = ({ workflowId, onPick, onClear }: Props) => {
                   if (isFamily) return setOpenFamily(item.id);
                   if (target) onPick(target, item.label);
                 }}
-                className="group relative aspect-[1168/784] overflow-hidden rounded-xl border border-white/10 bg-[#08090d] text-left transition-all hover:-translate-y-0.5 hover:border-white/25"
+                className="group relative aspect-[1168/784] overflow-hidden rounded-xl bg-[#0b0b10] text-left ring-1 ring-white/5 transition-all hover:-translate-y-0.5 hover:ring-white/20"
               >
                 {item.poster && (
                   <img src={item.poster} alt=""

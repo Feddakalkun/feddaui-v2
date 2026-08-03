@@ -196,10 +196,10 @@ export const ChatWorkflowPage = ({ workflowId }: { workflowId: string }) => {
             if (file) void upload(f.key, file);
           }}
           className={cn(
-            'flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-[11px] transition',
-            dragField === f.key ? 'border-cyan-400/70 bg-cyan-500/10'
-              : filled ? 'border-emerald-500/40 text-emerald-300'
-              : 'border-white/12 text-white/45 hover:border-white/25',
+            'flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-[11px] transition',
+            dragField === f.key ? 'bg-cyan-500/20 text-cyan-100'
+              : filled ? 'bg-emerald-500/12 text-emerald-300'
+              : 'bg-white/[0.06] text-white/45 hover:bg-white/[0.1]',
           )}
         >
           {filled
@@ -224,9 +224,9 @@ export const ChatWorkflowPage = ({ workflowId }: { workflowId: string }) => {
               key={o}
               type="button"
               onClick={() => setValues((v) => ({ ...v, [f.key]: o }))}
-              className={cn('rounded-full border px-2 py-0.5 text-[11px] transition',
-                value === o ? 'border-cyan-400/60 bg-cyan-500/15 text-cyan-100'
-                            : 'border-white/12 text-white/40 hover:text-white')}
+              className={cn('rounded-full px-2.5 py-1 text-[11px] transition',
+                value === o ? 'bg-cyan-500/20 text-cyan-100'
+                            : 'bg-white/[0.06] text-white/40 hover:bg-white/[0.1] hover:text-white')}
             >{o}</button>
           ))}
         </div>
@@ -240,7 +240,7 @@ export const ChatWorkflowPage = ({ workflowId }: { workflowId: string }) => {
             type="number"
             value={value ?? ''}
             onChange={(e) => setValues((v) => ({ ...v, [f.key]: Number(e.target.value) }))}
-            className="w-20 rounded-lg border border-white/12 bg-white/[0.03] px-2 py-1 text-[11px] text-zinc-100 outline-none focus:border-white/25"
+            className="w-20 rounded-lg bg-white/[0.06] px-2 py-1 text-[11px] text-zinc-100 outline-none focus:bg-white/[0.1]"
           />
         </label>
       );
@@ -251,7 +251,7 @@ export const ChatWorkflowPage = ({ workflowId }: { workflowId: string }) => {
         <input
           value={String(value ?? '')}
           onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
-          className="flex-1 rounded-lg border border-white/12 bg-white/[0.03] px-2 py-1 text-[11px] text-zinc-100 outline-none focus:border-white/25"
+          className="flex-1 rounded-lg bg-white/[0.06] px-2 py-1 text-[11px] text-zinc-100 outline-none focus:bg-white/[0.1]"
         />
       </label>
     );
@@ -259,7 +259,7 @@ export const ChatWorkflowPage = ({ workflowId }: { workflowId: string }) => {
 
   return (
     <div className="flex h-full flex-col bg-[#050506]">
-      <div className="flex items-center gap-2 border-b border-white/8 px-4 py-2">
+      <div className="flex items-center gap-2 px-4 py-2.5">
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">
           {name || workflowId}
         </p>
@@ -269,7 +269,7 @@ export const ChatWorkflowPage = ({ workflowId }: { workflowId: string }) => {
         <button
           type="button"
           onClick={() => { setMessages([]); setValues({}); setError(null); }}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-1 text-[10px] font-semibold text-white/50 transition hover:text-white"
+          className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-semibold text-white/45 transition hover:bg-white/[0.06] hover:text-white"
         >
           <RotateCcw className="h-3 w-3" /> Reset
         </button>
@@ -281,7 +281,7 @@ export const ChatWorkflowPage = ({ workflowId }: { workflowId: string }) => {
             <div key={i} className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
               <div className={cn('max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[13px]',
                 m.role === 'user' ? 'bg-cyan-500/15 text-cyan-50'
-                                  : 'border border-white/8 bg-white/[0.03] text-zinc-200')}>
+                                  : 'bg-white/[0.06] text-zinc-200')}>
                 <p className="whitespace-pre-wrap">{m.text}</p>
                 {m.image && <ChatImage src={m.image} />}
               </div>
@@ -293,17 +293,17 @@ export const ChatWorkflowPage = ({ workflowId }: { workflowId: string }) => {
             </div>
           )}
           {error && (
-            <p className="rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-[12px] text-red-300">
+            <p className="rounded-xl bg-red-500/12 px-3 py-2 text-[12px] text-red-300">
               {error}
             </p>
           )}
         </div>
       </div>
 
-      <div className="border-t border-white/8 px-4 py-3">
+      <div className="px-4 pb-4 pt-2">
         <div className="mx-auto w-full max-w-3xl">
           <div className="mb-2.5 flex flex-wrap items-center gap-2">{fields.map(control)}</div>
-          <div className="flex items-end gap-2">
+          <div className="flex items-end gap-2 rounded-2xl bg-white/[0.06] p-1.5 focus-within:bg-white/[0.09]">
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -312,13 +312,13 @@ export const ChatWorkflowPage = ({ workflowId }: { workflowId: string }) => {
               }}
               rows={1}
               placeholder="Tell it what you want, or just fill the fields…"
-              className="max-h-32 flex-1 resize-none rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-[13px] text-zinc-100 outline-none placeholder:text-white/25 focus:border-white/20"
+              className="max-h-32 flex-1 resize-none bg-transparent px-1 py-1.5 text-[13px] text-zinc-100 outline-none placeholder:text-white/30"
             />
             <button
               type="button"
               onClick={() => { void send(); }}
               disabled={busy || !input.trim()}
-              className="shrink-0 rounded-xl border border-white/12 px-3 py-2.5 text-[12px] text-white/60 transition hover:text-white disabled:opacity-30"
+              className="shrink-0 rounded-xl px-3 py-2 text-[12px] text-white/55 transition hover:bg-white/[0.07] hover:text-white disabled:opacity-25"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Send'}
             </button>
@@ -327,7 +327,7 @@ export const ChatWorkflowPage = ({ workflowId }: { workflowId: string }) => {
               onClick={() => { void run(); }}
               disabled={Boolean(missing.length) || running}
               title={missing.length ? `Still needs: ${missing.map((f) => f.label).join(', ')}` : 'Run'}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-cyan-500/85 px-3.5 py-2.5 text-[12px] font-semibold text-white transition hover:bg-cyan-400 disabled:opacity-30"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-cyan-500/90 px-3.5 py-2 text-[12px] font-semibold text-white transition hover:bg-cyan-400 disabled:opacity-25"
             >
               {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
               Run

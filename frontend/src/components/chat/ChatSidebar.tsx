@@ -146,7 +146,7 @@ export const ChatSidebar = ({ mode, onMode, activeId, onOpen, onNew, refreshKey 
 
   if (collapsed) {
     return (
-      <div className="flex w-11 shrink-0 flex-col items-center gap-2 border-r border-white/8 py-3">
+      <div className="flex w-11 shrink-0 flex-col items-center gap-2 bg-[#0b0b10] py-3">
         <button type="button" onClick={toggle} title="Show chats"
           className="rounded-lg p-2 text-white/35 transition hover:text-white">
           <PanelLeftOpen className="h-4 w-4" />
@@ -173,9 +173,9 @@ export const ChatSidebar = ({ mode, onMode, activeId, onOpen, onNew, refreshKey 
   );
 
   return (
-    <div className="flex w-60 shrink-0 flex-col border-r border-white/8">
+    <div className="flex w-60 shrink-0 flex-col bg-[#0b0b10]">
       <div className="flex items-center gap-1 px-3 pt-3">
-        <div className="flex flex-1 gap-1 rounded-xl border border-white/8 p-0.5">
+        <div className="flex flex-1 gap-1 rounded-xl bg-white/[0.04] p-0.5">
           {modeButton('chat', 'Chat', MessageSquare)}
           {modeButton('studio', 'Studio', Sparkles)}
         </div>
@@ -189,7 +189,7 @@ export const ChatSidebar = ({ mode, onMode, activeId, onOpen, onNew, refreshKey 
         <button
           type="button"
           onClick={onNew}
-          className="flex w-full items-center gap-2 rounded-lg border border-white/10 px-2.5 py-1.5 text-[12px] text-white/60 transition hover:border-white/25 hover:text-white"
+          className="flex w-full items-center gap-2 rounded-lg bg-white/[0.05] px-2.5 py-2 text-[12px] text-white/70 transition hover:bg-white/[0.09] hover:text-white"
         >
           <Plus className="h-3.5 w-3.5" /> New chat
         </button>
@@ -201,7 +201,7 @@ export const ChatSidebar = ({ mode, onMode, activeId, onOpen, onNew, refreshKey 
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search chats…"
-          className="w-full rounded-lg border border-white/8 bg-white/[0.03] py-1.5 pl-7 pr-2 text-[11px] text-zinc-100 outline-none placeholder:text-white/25 focus:border-white/20"
+          className="w-full rounded-lg bg-white/[0.05] py-2 pl-7 pr-2 text-[11px] text-zinc-100 outline-none placeholder:text-white/30 focus:bg-white/[0.08]"
         />
       </div>
 
@@ -248,7 +248,7 @@ export const ChatSidebar = ({ mode, onMode, activeId, onOpen, onNew, refreshKey 
                         if (e.key === 'Enter') { void patch(c.id, { title: draft.trim() }); setEditing(null); }
                         if (e.key === 'Escape') setEditing(null);
                       }}
-                      className="min-w-0 flex-1 rounded border border-white/15 bg-black/40 px-1.5 py-0.5 text-[11px] text-white outline-none"
+                      className="min-w-0 flex-1 rounded bg-black/50 px-1.5 py-0.5 text-[11px] text-white outline-none"
                     />
                     <button type="button" onClick={() => { void patch(c.id, { title: draft.trim() }); setEditing(null); }} className="p-0.5 text-emerald-400">
                       <Check className="h-3 w-3" />
@@ -269,7 +269,7 @@ export const ChatSidebar = ({ mode, onMode, activeId, onOpen, onNew, refreshKey 
                         if (e.key === 'Enter') { void patch(c.id, { folder: draft.trim() }); setFiling(null); }
                         if (e.key === 'Escape') setFiling(null);
                       }}
-                      className="min-w-0 flex-1 rounded border border-white/15 bg-black/40 px-1.5 py-0.5 text-[11px] text-white outline-none"
+                      className="min-w-0 flex-1 rounded bg-black/50 px-1.5 py-0.5 text-[11px] text-white outline-none"
                     />
                     <button type="button" onClick={() => { void patch(c.id, { folder: draft.trim() }); setFiling(null); }} className="p-0.5 text-emerald-400">
                       <Check className="h-3 w-3" />
@@ -315,7 +315,7 @@ export const ChatSidebar = ({ mode, onMode, activeId, onOpen, onNew, refreshKey 
         </datalist>
       </div>
 
-      <div className="border-t border-white/8">
+      <div className="mt-1 bg-black/25">
         <button
           type="button"
           onClick={() => setMemOpen((o) => !o)}
@@ -352,7 +352,7 @@ export const ChatSidebar = ({ mode, onMode, activeId, onOpen, onNew, refreshKey 
                 <button
                   type="button"
                   onClick={() => { void forget(); }}
-                  className="mt-1 w-full rounded-lg border border-white/8 px-2 py-1 text-[10px] text-white/30 transition hover:border-red-500/30 hover:text-red-400"
+                  className="mt-1 w-full rounded-lg bg-white/[0.04] px-2 py-1.5 text-[10px] text-white/35 transition hover:bg-red-500/15 hover:text-red-300"
                 >
                   Forget everything
                 </button>
