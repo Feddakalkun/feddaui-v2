@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ImagePlus, Loader2, RotateCcw, Send, Undo2 } from 'lucide-react';
 import { BACKEND_API } from '../../config/api';
+import { ChatImage } from '../../components/chat/ChatImage';
 import { useComfyExecution } from '../../contexts/ComfyExecutionContext';
 import { cn } from '../../lib/styles';
 
@@ -417,14 +418,10 @@ export const ChatEditPage = ({ openId = null, onSaved }: ChatEditPageProps = {})
                       <Loader2 className="h-3 w-3 animate-spin" /> editing…
                     </p>
                     {/* Live sampling frame, straight from the execution context. */}
-                    {previewUrl && (
-                      <img src={previewUrl} alt="" className="mt-2 max-h-[420px] rounded-xl opacity-90" />
-                    )}
+                    {previewUrl && <ChatImage src={previewUrl} dim />}
                   </>
                 )}
-                {m.image && (
-                  <img src={m.image} alt="" className="mt-2.5 max-h-[420px] rounded-xl" />
-                )}
+                {m.image && <ChatImage src={m.image} />}
               </div>
             </div>
           ))}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Loader2, Play, RotateCcw, Upload } from 'lucide-react';
 import { BACKEND_API } from '../config/api';
+import { ChatImage } from '../components/chat/ChatImage';
 import { useComfyExecution } from '../contexts/ComfyExecutionContext';
 import { cn } from '../lib/styles';
 
@@ -282,13 +283,13 @@ export const ChatWorkflowPage = ({ workflowId }: { workflowId: string }) => {
                 m.role === 'user' ? 'bg-cyan-500/15 text-cyan-50'
                                   : 'border border-white/8 bg-white/[0.03] text-zinc-200')}>
                 <p className="whitespace-pre-wrap">{m.text}</p>
-                {m.image && <img src={m.image} alt="" className="mt-2.5 max-h-[420px] rounded-xl" />}
+                {m.image && <ChatImage src={m.image} />}
               </div>
             </div>
           ))}
           {running && previewUrl && (
             <div className="flex justify-start">
-              <img src={previewUrl} alt="" className="max-h-[420px] rounded-xl opacity-90" />
+              <ChatImage src={previewUrl} dim />
             </div>
           )}
           {error && (
