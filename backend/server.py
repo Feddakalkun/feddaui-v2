@@ -2489,6 +2489,97 @@ def _chat_edit_remember(fact: str) -> None:
         print(f"[CHAT-EDIT] could not persist memory: {exc}")
 
 
+CHAT_EDIT_SESSIONS_FILE = CONFIG_DIR / "chat_edit_sessions.json"
+CHAT_EDIT_SESSION_CAP = 200
+
+
+def _chat_sessions() -> List[Dict[str, Any]]:
+    try:
+        data = json.loads(CHAT_EDIT_SESSIONS_FILE.read_text(encoding="utf-8"))
+        return data.get("sessions", []) if isinstance(data, dict) else []
+    except (OSError, ValueError):
+        return []
+
+
+def _write_chat_sessions(sessions: List[Dict[str, Any]]) -> None:
+    CHAT_EDIT_SESSIONS_FILE.write_text(
+        json.dumps({"sessions": sessions[:CHAT_EDIT_SESSION_CAP]}, indent=2,
+                   ensure_ascii=False),
+        encoding="utf-8")
+
+
+class ChatSessionBody(BaseModel):
+    id: Optional[str] = None
+    title: Optional[str] = None
+    messages: List[Dict[str, Any]] = []
+    image: Optional[str] = None
+    history: List[str] = []
+
+
+@app.get("/api/chat-edit/sessions")
+async def chat_sessions_list():
+    """Summaries only - the sidebar does not need every message."""
+    return {"sessions": [
+        {"id": s["id"], "title": s.get("title") or "New chat",
+         "updated": s.get("updated"), "count": len(s.get("messages", []))}
+        for s in _chat_sessions()
+    ]}
+
+
+@app.get("/api/chat-edit/sessions/{session_id}")
+async def chat_session_get(session_id: str):
+    for s in _chat_sessions():
+        if s["id"] == session_id:
+            return s
+    raise HTTPException(status_code=404, detail="no such chat")
+
+
+@app.post("/api/chat-edit/sessions")
+async def chat_session_save(body: ChatSessionBody):
+    """Upsert one chat. Newest first, so the sidebar needs no sorting."""
+    sessions = _chat_sessions()
+    sid = body.id or f"c{int(time.time() * 1000)}"
+    # Title from the first thing the user actually said, not the agent's
+    # greeting, so the list reads like what you asked for.
+    title = body.title
+    if not title:
+        first = next((m for m in body.messages if m.get("role") == "user"), None)
+        title = (first or {}).get("text", "") or "New chat"
+    record = {
+        "id": sid,
+        "title": title[:60],
+        "updated": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "messages": body.messages,
+        "image": body.image,
+        "history": body.history,
+    }
+    sessions = [s for s in sessions if s["id"] != sid]
+    sessions.insert(0, record)
+    _write_chat_sessions(sessions)
+    return {"id": sid, "title": record["title"], "updated": record["updated"]}
+
+
+@app.patch("/api/chat-edit/sessions/{session_id}")
+async def chat_session_rename(session_id: str, body: ChatSessionBody):
+    sessions = _chat_sessions()
+    for s in sessions:
+        if s["id"] == session_id:
+            s["title"] = (body.title or s.get("title") or "New chat")[:60]
+            _write_chat_sessions(sessions)
+            return {"ok": True, "title": s["title"]}
+    raise HTTPException(status_code=404, detail="no such chat")
+
+
+@app.delete("/api/chat-edit/sessions/{session_id}")
+async def chat_session_delete(session_id: str):
+    sessions = _chat_sessions()
+    remaining = [s for s in sessions if s["id"] != session_id]
+    if len(remaining) == len(sessions):
+        raise HTTPException(status_code=404, detail="no such chat")
+    _write_chat_sessions(remaining)
+    return {"ok": True}
+
+
 @app.get("/api/chat-edit/memory")
 async def chat_edit_memory():
     data = _chat_edit_agent()

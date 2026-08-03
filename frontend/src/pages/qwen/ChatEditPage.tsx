@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ImagePlus, Loader2, RotateCcw, Send, Undo2 } from 'lucide-react';
 import { BACKEND_API } from '../../config/api';
+import { ChatSidebar } from '../../components/chat/ChatSidebar';
 import { cn } from '../../lib/styles';
 
 /**
@@ -41,8 +42,57 @@ export const ChatEditPage = () => {
   const [dragging, setDragging] = useState(false);
   const [models, setModels] = useState<string[]>([]);
   const [model, setModel] = useState('');
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sidebarKey, setSidebarKey] = useState(0);
   const scroller = useRef<HTMLDivElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  /**
+   * Persist the conversation.
+   *
+   * Called after a turn settles rather than on every state change: saving mid
+   * edit would store a message still marked pending, which would come back
+   * from history stuck on "editing…".
+   */
+  const persist = async (nextMessages: Msg[], nextImage: string | null, nextHistory: string[]) => {
+    if (!nextMessages.some((m) => m.role === 'user')) return;
+    try {
+      const res = await fetch(`${BACKEND_API.BASE_URL}/api/chat-edit/sessions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: sessionId,
+          messages: nextMessages,
+          image: nextImage,
+          history: nextHistory,
+        }),
+      });
+      const data = await res.json();
+      if (data.id) setSessionId(data.id);
+      setSidebarKey((k) => k + 1);
+    } catch { /* history is a convenience; never break the chat over it */ }
+  };
+
+  const openSession = async (id: string) => {
+    try {
+      const res = await fetch(`${BACKEND_API.BASE_URL}/api/chat-edit/sessions/${encodeURIComponent(id)}`);
+      if (!res.ok) return;
+      const s = await res.json();
+      setSessionId(s.id);
+      setMessages(Array.isArray(s.messages) ? s.messages : []);
+      setImage(s.image ?? null);
+      setHistory(Array.isArray(s.history) ? s.history : []);
+      setError(null);
+    } catch { /* leave the current chat alone */ }
+  };
+
+  const newSession = () => {
+    setSessionId(null);
+    setMessages([]);
+    setImage(null);
+    setHistory([]);
+    setError(null);
+  };
 
   // Which local model drives the agent. Empty means "whatever the backend
   // considers the default", so the picker never has to be touched to work.
@@ -201,7 +251,9 @@ export const ChatEditPage = () => {
       const { reply, edit } = await turn.json();
 
       if (!edit) {
+        const next: Msg[] = [...messages, { role: 'user', text }, { role: 'agent', text: reply }];
         setMessages((m) => [...m, { role: 'agent', text: reply }]);
+        void persist(next, image, history);
         return;
       }
 
@@ -209,14 +261,21 @@ export const ChatEditPage = () => {
       const result = await runEdit(edit);
       // The result becomes the input for the next turn - that loop is the
       // whole point of this page over the regular edit page.
-      if (image) setHistory((h) => [...h, image]);
+      const nextHistory = image ? [...history, image] : history;
+      if (image) setHistory(nextHistory);
       setImage(result.filename);
+      const settled: Msg[] = [
+        ...messages,
+        { role: 'user', text },
+        { role: 'agent', text: reply, image: result.url },
+      ];
       setMessages((m) => {
         const next = [...m];
         const i = next.findIndex((x) => x.pending);
         if (i >= 0) next[i] = { ...next[i], pending: false, image: result.url };
         return next;
       });
+      void persist(settled, result.filename, nextHistory);
     } catch (e) {
       setMessages((m) => m.filter((x) => !x.pending));
       setError(e instanceof Error ? e.message : String(e));
@@ -251,8 +310,15 @@ export const ChatEditPage = () => {
   };
 
   return (
+    <div className="flex h-full bg-[#050506]">
+      <ChatSidebar
+        activeId={sessionId}
+        onOpen={(id) => { void openSession(id); }}
+        onNew={newSession}
+        refreshKey={sidebarKey}
+      />
     <div
-      className={cn('relative flex h-full flex-col bg-[#050506]',
+      className={cn('relative flex h-full min-w-0 flex-1 flex-col bg-[#050506]',
         dragging && 'ring-2 ring-inset ring-cyan-400/60')}
       onDragEnter={(e) => { e.preventDefault(); setDragging(true); }}
       onDragOver={(e) => { e.preventDefault(); }}
@@ -383,6 +449,7 @@ export const ChatEditPage = () => {
         className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) void loadFile(f); e.target.value = ''; }}
       />
+    </div>
     </div>
   );
 };
