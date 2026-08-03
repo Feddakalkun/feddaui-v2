@@ -28,6 +28,30 @@ $ErrorActionPreference = "Stop"
     side by side is the actual problem these scripts exist to fix, and
     onnxruntime is left alone.
 #>
+<#
+    Run pip without Windows PowerShell dressing its stderr up as failures.
+
+    `& python -m pip ... 2>&1` turns every warning pip writes to stderr into an
+    ErrorRecord, so a normal update scrolls past red "NativeCommandError" blocks
+    about resolver conflicts that are not errors at all - it looks like the
+    update is failing when it is doing exactly what it should. Piping through
+    Out-String keeps the text and drops the pretence.
+#>
+function Invoke-Pip {
+    param([string]$PyExe, [string[]]$PipArgs)
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        # No 2>&1. The redirection is what makes Windows PowerShell wrap each
+        # stderr line in an ErrorRecord; left alone, pip's warnings print as
+        # plain text and the run stops looking like it is failing.
+        & $PyExe @PipArgs
+    } finally {
+        $ErrorActionPreference = $prev
+    }
+}
+
+
 function Invoke-NodeDependencyRepair {
     param(
         [string]$NodeDir,
@@ -277,7 +301,7 @@ if ($NeedNodeUpdate -or $HasMissing) {
                         $TmpReq = Join-Path $NodeDir_Install "_req_filtered.txt"
                         Set-Content -Path $TmpReq -Value $Filtered
                         $ErrorActionPreference = "Continue"
-                        & $PyExe -m pip install -r "$TmpReq" --no-warn-script-location 2>&1
+                        Invoke-Pip -PyExe $PyExe -PipArgs @("-m","pip","install","-r","$TmpReq","--no-warn-script-location")
                         $ErrorActionPreference = "Stop"
                         Remove-Item $TmpReq -Force -ErrorAction SilentlyContinue
                     }
@@ -326,7 +350,7 @@ if ($NeedNodeUpdate -or $HasMissing) {
                 $TmpReq = Join-Path $NodeDir_Install "_req_filtered.txt"
                 Set-Content -Path $TmpReq -Value $Filtered
                 $ErrorActionPreference = "Continue"
-                & $PyExe -m pip install -q -r "$TmpReq" --no-warn-script-location 2>&1
+                Invoke-Pip -PyExe $PyExe -PipArgs @("-m","pip","install","-q","-r","$TmpReq","--no-warn-script-location")
                 $ErrorActionPreference = "Stop"
                 Remove-Item $TmpReq -Force -ErrorAction SilentlyContinue
             } elseif ($skipDeps) {
