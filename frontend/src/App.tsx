@@ -22,7 +22,7 @@ import { TransformReelPage } from './pages/tools/TransformReelPage';
 import { ScailStudioPage } from './pages/tools/ScailStudioPage';
 import { ReelMachinePage } from './pages/tools/ReelMachinePage';
 import { ModuleUnavailablePage } from './pages/ModuleUnavailablePage';
-import { ChatEditPage } from './pages/qwen/ChatEditPage';
+import { AgentShell } from './pages/AgentShell';
 import {
   ACTIVE_TAB_STORAGE_KEY,
   APP_VERSION_LABEL,
@@ -193,7 +193,7 @@ function FeddaApp() {
     if (activeTab === 'companion') return <UIAgentPage />;
     // Lives in the 'home' area so it can own the banner on the front page,
     // which means the area-based dispatch below never reaches it.
-    if (activeTab === 'chat-edit') return <ChatEditPage />;
+    if (activeTab === 'chat-edit') return <AgentShell />;
     if (activeTab === 'media-downloader') return <MediaDownloaderPage />;
     if (activeTab === 'transform-reel') return <TransformReelPage />;
     if (activeTab === 'scail-studio') return <ScailStudioPage />;

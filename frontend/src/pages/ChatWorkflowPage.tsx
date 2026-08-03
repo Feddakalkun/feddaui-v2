@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Loader2, Play, RotateCcw, Upload } from 'lucide-react';
 import { BACKEND_API } from '../config/api';
+import { useComfyExecution } from '../contexts/ComfyExecutionContext';
 import { cn } from '../lib/styles';
 
 /**
@@ -43,6 +44,9 @@ export const ChatWorkflowPage = ({ workflowId }: { workflowId: string }) => {
   const [error, setError] = useState<string | null>(null);
   const [dragField, setDragField] = useState<string | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
+  // Same reason as the chat editor: /api/generate skips queueWorkflow, so
+  // the context must be told a job started for the strip and preview to live.
+  const { registerNodeMap, startExecution, previewUrl } = useComfyExecution();
 
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: 'smooth' });
@@ -133,6 +137,12 @@ export const ChatWorkflowPage = ({ workflowId }: { workflowId: string }) => {
     setError(null);
     setMessages((m) => [...m, { role: 'agent', text: 'Running…' }]);
     try {
+      try {
+        const map = await fetch(
+          `${BACKEND_API.BASE_URL}/api/workflow/node-map/${workflowId}`).then((r) => r.json());
+        if (map.success) registerNodeMap(map.node_map);
+      } catch { /* preview is a nicety; never block the run on it */ }
+      startExecution();
       const res = await fetch(`${BACKEND_API.BASE_URL}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -276,6 +286,11 @@ export const ChatWorkflowPage = ({ workflowId }: { workflowId: string }) => {
               </div>
             </div>
           ))}
+          {running && previewUrl && (
+            <div className="flex justify-start">
+              <img src={previewUrl} alt="" className="max-h-[420px] rounded-xl opacity-90" />
+            </div>
+          )}
           {error && (
             <p className="rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-[12px] text-red-300">
               {error}

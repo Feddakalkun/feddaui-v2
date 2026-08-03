@@ -2514,15 +2514,35 @@ class ChatSessionBody(BaseModel):
     messages: List[Dict[str, Any]] = []
     image: Optional[str] = None
     history: List[str] = []
+    folder: Optional[str] = None
+    # Which workflow the chat drives. Absent means the Qwen editor, so every
+    # chat saved before Studio existed keeps opening where it used to.
+    workflow_id: Optional[str] = None
 
 
 @app.get("/api/chat-edit/sessions")
-async def chat_sessions_list():
-    """Summaries only - the sidebar does not need every message."""
+async def chat_sessions_list(q: Optional[str] = None):
+    """Summaries only - the sidebar does not need every message.
+
+    Search covers message text as well as the title, because the thing you
+    actually remember is "the chat where I did the blue eyes", which never
+    appears in a title.
+    """
+    sessions = _chat_sessions()
+    needle = (q or "").strip().lower()
+    if needle:
+        def hit(s: Dict[str, Any]) -> bool:
+            if needle in str(s.get("title", "")).lower():
+                return True
+            return any(needle in str(m.get("text", "")).lower()
+                       for m in s.get("messages", []))
+        sessions = [s for s in sessions if hit(s)]
     return {"sessions": [
         {"id": s["id"], "title": s.get("title") or "New chat",
-         "updated": s.get("updated"), "count": len(s.get("messages", []))}
-        for s in _chat_sessions()
+         "updated": s.get("updated"), "count": len(s.get("messages", [])),
+         "folder": s.get("folder") or None,
+         "workflow_id": s.get("workflow_id") or None}
+        for s in sessions
     ]}
 
 
@@ -2552,6 +2572,11 @@ async def chat_session_save(body: ChatSessionBody):
         "messages": body.messages,
         "image": body.image,
         "history": body.history,
+        # Keep the existing folder when a save does not mention one, so
+        # filing a chat is not undone by the next message in it.
+        "folder": body.folder if body.folder is not None else next(
+            (s.get("folder") for s in sessions if s["id"] == sid), None),
+        "workflow_id": body.workflow_id,
     }
     sessions = [s for s in sessions if s["id"] != sid]
     sessions.insert(0, record)
@@ -2560,14 +2585,41 @@ async def chat_session_save(body: ChatSessionBody):
 
 
 @app.patch("/api/chat-edit/sessions/{session_id}")
-async def chat_session_rename(session_id: str, body: ChatSessionBody):
+async def chat_session_update(session_id: str, body: ChatSessionBody):
+    """Rename a chat and/or file it in a folder.
+
+    A folder is just a string on the session, not an entity, so there is
+    nothing to create, no orphans when the last chat leaves it, and renaming
+    one is a rewrite of this field across its chats.
+    """
     sessions = _chat_sessions()
     for s in sessions:
         if s["id"] == session_id:
-            s["title"] = (body.title or s.get("title") or "New chat")[:60]
+            if body.title is not None:
+                s["title"] = (body.title or "New chat")[:60]
+            if body.folder is not None:
+                s["folder"] = body.folder.strip()[:40] or None
             _write_chat_sessions(sessions)
-            return {"ok": True, "title": s["title"]}
+            return {"ok": True, "title": s["title"], "folder": s.get("folder")}
     raise HTTPException(status_code=404, detail="no such chat")
+
+
+class FolderRenameBody(BaseModel):
+    old: str
+    new: str
+
+
+@app.post("/api/chat-edit/folders/rename")
+async def chat_folder_rename(body: FolderRenameBody):
+    sessions = _chat_sessions()
+    new = body.new.strip()[:40] or None
+    touched = 0
+    for s in sessions:
+        if (s.get("folder") or "") == body.old:
+            s["folder"] = new
+            touched += 1
+    _write_chat_sessions(sessions)
+    return {"ok": True, "moved": touched}
 
 
 @app.delete("/api/chat-edit/sessions/{session_id}")

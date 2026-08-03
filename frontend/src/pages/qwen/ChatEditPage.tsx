@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ImagePlus, Loader2, RotateCcw, Send, Undo2 } from 'lucide-react';
 import { BACKEND_API } from '../../config/api';
-import { ChatSidebar } from '../../components/chat/ChatSidebar';
+import { useComfyExecution } from '../../contexts/ComfyExecutionContext';
 import { cn } from '../../lib/styles';
 
 /**
@@ -32,7 +32,14 @@ const viewUrl = (filename: string, subfolder = '', type = 'output') =>
   `/comfy/view?filename=${encodeURIComponent(filename)}` +
   `&subfolder=${encodeURIComponent(subfolder)}&type=${type}`;
 
-export const ChatEditPage = () => {
+interface ChatEditPageProps {
+  /** Session id to load on mount, or null for a fresh chat. */
+  openId?: string | null;
+  /** Told when a chat is saved so the shell can refresh the sidebar. */
+  onSaved?: (id: string) => void;
+}
+
+export const ChatEditPage = ({ openId = null, onSaved }: ChatEditPageProps = {}) => {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [image, setImage] = useState<string | null>(null);   // current working image (data url)
@@ -43,9 +50,12 @@ export const ChatEditPage = () => {
   const [models, setModels] = useState<string[]>([]);
   const [model, setModel] = useState('');
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [sidebarKey, setSidebarKey] = useState(0);
   const scroller = useRef<HTMLDivElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  // Submitting via /api/generate bypasses queueWorkflow, so the execution
+  // context has to be told a job started or the output strip and the live
+  // preview both stay dead on this page.
+  const { registerNodeMap, startExecution, previewUrl } = useComfyExecution();
 
   /**
    * Persist the conversation.
@@ -68,31 +78,40 @@ export const ChatEditPage = () => {
         }),
       });
       const data = await res.json();
-      if (data.id) setSessionId(data.id);
-      setSidebarKey((k) => k + 1);
+      if (data.id) {
+        setSessionId(data.id);
+        onSaved?.(data.id);
+      }
     } catch { /* history is a convenience; never break the chat over it */ }
   };
 
-  const openSession = async (id: string) => {
-    try {
-      const res = await fetch(`${BACKEND_API.BASE_URL}/api/chat-edit/sessions/${encodeURIComponent(id)}`);
-      if (!res.ok) return;
-      const s = await res.json();
-      setSessionId(s.id);
-      setMessages(Array.isArray(s.messages) ? s.messages : []);
-      setImage(s.image ?? null);
-      setHistory(Array.isArray(s.history) ? s.history : []);
+  // The shell owns which chat is open; this loads whatever it points at, and
+  // resets to an empty conversation when it points at nothing.
+  useEffect(() => {
+    let cancelled = false;
+    if (!openId) {
+      setSessionId(null);
+      setMessages([]);
+      setImage(null);
+      setHistory([]);
       setError(null);
-    } catch { /* leave the current chat alone */ }
-  };
-
-  const newSession = () => {
-    setSessionId(null);
-    setMessages([]);
-    setImage(null);
-    setHistory([]);
-    setError(null);
-  };
+      return;
+    }
+    (async () => {
+      try {
+        const res = await fetch(`${BACKEND_API.BASE_URL}/api/chat-edit/sessions/${encodeURIComponent(openId)}`);
+        if (!res.ok || cancelled) return;
+        const s = await res.json();
+        if (cancelled) return;
+        setSessionId(s.id);
+        setMessages(Array.isArray(s.messages) ? s.messages : []);
+        setImage(s.image ?? null);
+        setHistory(Array.isArray(s.history) ? s.history : []);
+        setError(null);
+      } catch { /* leave the current chat alone */ }
+    })();
+    return () => { cancelled = true; };
+  }, [openId]);
 
   // Which local model drives the agent. Empty means "whatever the backend
   // considers the default", so the picker never has to be touched to work.
@@ -189,6 +208,14 @@ export const ChatEditPage = () => {
    * images silently produced "no image came back" on every successful edit.
    */
   const runEdit = async (instruction: string): Promise<{ filename: string; url: string }> => {
+    // Register before submitting so the strip shows during model loading too.
+    try {
+      const map = await fetch(
+        `${BACKEND_API.BASE_URL}/api/workflow/node-map/${WORKFLOW_ID}`).then((r) => r.json());
+      if (map.success) registerNodeMap(map.node_map);
+    } catch { /* preview is a nicety; never block the edit on it */ }
+    startExecution();
+
     const res = await fetch(`${BACKEND_API.BASE_URL}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -310,13 +337,6 @@ export const ChatEditPage = () => {
   };
 
   return (
-    <div className="flex h-full bg-[#050506]">
-      <ChatSidebar
-        activeId={sessionId}
-        onOpen={(id) => { void openSession(id); }}
-        onNew={newSession}
-        refreshKey={sidebarKey}
-      />
     <div
       className={cn('relative flex h-full min-w-0 flex-1 flex-col bg-[#050506]',
         dragging && 'ring-2 ring-inset ring-cyan-400/60')}
@@ -392,9 +412,15 @@ export const ChatEditPage = () => {
               )}>
                 <p className="whitespace-pre-wrap">{m.text}</p>
                 {m.pending && (
-                  <p className="mt-2 flex items-center gap-1.5 text-[11px] text-white/40">
-                    <Loader2 className="h-3 w-3 animate-spin" /> editing…
-                  </p>
+                  <>
+                    <p className="mt-2 flex items-center gap-1.5 text-[11px] text-white/40">
+                      <Loader2 className="h-3 w-3 animate-spin" /> editing…
+                    </p>
+                    {/* Live sampling frame, straight from the execution context. */}
+                    {previewUrl && (
+                      <img src={previewUrl} alt="" className="mt-2 max-h-[420px] rounded-xl opacity-90" />
+                    )}
+                  </>
                 )}
                 {m.image && (
                   <img src={m.image} alt="" className="mt-2.5 max-h-[420px] rounded-xl" />
@@ -449,7 +475,6 @@ export const ChatEditPage = () => {
         className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) void loadFile(f); e.target.value = ''; }}
       />
-    </div>
     </div>
   );
 };

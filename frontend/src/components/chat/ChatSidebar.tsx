@@ -1,47 +1,61 @@
-import { useEffect, useState } from 'react';
-import { Brain, Check, ChevronDown, ChevronRight, MessageSquare, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Brain, Check, ChevronDown, ChevronRight, FolderPlus, MessageSquare,
+  PanelLeftClose, PanelLeftOpen, Pencil, Plus, Search, Sparkles, Trash2, X,
+} from 'lucide-react';
 import { BACKEND_API } from '../../config/api';
 import { cn } from '../../lib/styles';
 
 /**
- * Collapsible chat history rail.
+ * Collapsible chat rail: modes, search, folders, history and the memory log.
  *
- * Collapsed state is remembered, because this is a tool people keep open for a
+ * Collapsed state is remembered, because this is a panel people keep open for a
  * whole session and re-collapsing it on every visit is exactly the kind of
  * small friction that makes a panel feel unfinished.
  */
 
 const COLLAPSED_KEY = 'fedda.chat.sidebar.collapsed';
+const UNFILED = '__unfiled__';
+
+export type ChatMode = 'chat' | 'studio';
 
 export type ChatSummary = {
   id: string;
   title: string;
   updated?: string;
   count?: number;
+  folder?: string | null;
+  workflow_id?: string | null;
 };
 
 interface Props {
+  mode: ChatMode;
+  onMode: (mode: ChatMode) => void;
   activeId: string | null;
-  onOpen: (id: string) => void;
+  onOpen: (chat: ChatSummary) => void;
   onNew: () => void;
   /** Bumped by the parent after a save so the list refreshes. */
   refreshKey: number;
 }
 
-export const ChatSidebar = ({ activeId, onOpen, onNew, refreshKey }: Props) => {
+export const ChatSidebar = ({ mode, onMode, activeId, onOpen, onNew, refreshKey }: Props) => {
   const [chats, setChats] = useState<ChatSummary[]>([]);
+  const [query, setQuery] = useState('');
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem(COLLAPSED_KEY) === '1'; } catch { return false; }
   });
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
+  const [filing, setFiling] = useState<string | null>(null);
+  const [closedFolders, setClosedFolders] = useState<Set<string>>(new Set());
   const [memory, setMemory] = useState<string[]>([]);
   const [persona, setPersona] = useState<{ name?: string } | null>(null);
   const [memOpen, setMemOpen] = useState(false);
 
-  const load = async () => {
+  const load = async (q = query) => {
     try {
-      const res = await fetch(`${BACKEND_API.BASE_URL}/api/chat-edit/sessions`);
+      const url = `${BACKEND_API.BASE_URL}/api/chat-edit/sessions${q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ''}`;
+      const res = await fetch(url);
       const data = await res.json();
       setChats(Array.isArray(data.sessions) ? data.sessions : []);
     } catch {
@@ -60,15 +74,37 @@ export const ChatSidebar = ({ activeId, onOpen, onNew, refreshKey }: Props) => {
     }
   };
 
-  // Memory is refreshed alongside the chat list because the agent may have
-  // written something new during the turn that just saved.
+  // Memory refreshes alongside the list because the agent may have written
+  // something new during the turn that just saved.
   useEffect(() => { void load(); void loadMemory(); }, [refreshKey]);
 
-  const forget = async (index?: number) => {
-    const query = index === undefined ? '' : `?index=${index}`;
-    await fetch(`${BACKEND_API.BASE_URL}/api/chat-edit/memory${query}`, { method: 'DELETE' });
-    void loadMemory();
-  };
+  // Search hits the backend so it can match message text, not just titles.
+  // Debounced so typing does not fire a request per keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => { void load(query); }, 200);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  const folders = useMemo(() => {
+    const groups = new Map<string, ChatSummary[]>();
+    for (const c of chats) {
+      const key = c.folder || UNFILED;
+      const list = groups.get(key);
+      if (list) list.push(c);
+      else groups.set(key, [c]);
+    }
+    // Real folders first, alphabetically; loose chats last.
+    return [...groups.entries()].sort(([a], [b]) => {
+      if (a === UNFILED) return 1;
+      if (b === UNFILED) return -1;
+      return a.localeCompare(b);
+    });
+  }, [chats]);
+
+  const knownFolders = useMemo(
+    () => [...new Set(chats.map((c) => c.folder).filter(Boolean))] as string[],
+    [chats],
+  );
 
   const toggle = () => {
     setCollapsed((c) => {
@@ -78,14 +114,11 @@ export const ChatSidebar = ({ activeId, onOpen, onNew, refreshKey }: Props) => {
     });
   };
 
-  const rename = async (id: string) => {
-    const title = draft.trim();
-    setEditing(null);
-    if (!title) return;
+  const patch = async (id: string, body: Record<string, string>) => {
     await fetch(`${BACKEND_API.BASE_URL}/api/chat-edit/sessions/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title }),
+      body: JSON.stringify(body),
     });
     void load();
   };
@@ -97,117 +130,189 @@ export const ChatSidebar = ({ activeId, onOpen, onNew, refreshKey }: Props) => {
     void load();
   };
 
+  const forget = async (index?: number) => {
+    await fetch(`${BACKEND_API.BASE_URL}/api/chat-edit/memory${index === undefined ? '' : `?index=${index}`}`,
+      { method: 'DELETE' });
+    void loadMemory();
+  };
+
+  const toggleFolder = (name: string) => {
+    setClosedFolders((s) => {
+      const next = new Set(s);
+      if (next.has(name)) next.delete(name); else next.add(name);
+      return next;
+    });
+  };
+
   if (collapsed) {
     return (
       <div className="flex w-11 shrink-0 flex-col items-center gap-2 border-r border-white/8 py-3">
-        <button
-          type="button"
-          onClick={toggle}
-          title="Show chats"
-          className="rounded-lg p-2 text-white/35 transition hover:text-white"
-        >
+        <button type="button" onClick={toggle} title="Show chats"
+          className="rounded-lg p-2 text-white/35 transition hover:text-white">
           <PanelLeftOpen className="h-4 w-4" />
         </button>
-        <button
-          type="button"
-          onClick={onNew}
-          title="New chat"
-          className="rounded-lg p-2 text-white/35 transition hover:text-white"
-        >
+        <button type="button" onClick={onNew} title="New chat"
+          className="rounded-lg p-2 text-white/35 transition hover:text-white">
           <Plus className="h-4 w-4" />
         </button>
       </div>
     );
   }
 
+  const modeButton = (id: ChatMode, label: string, Icon: typeof MessageSquare) => (
+    <button
+      type="button"
+      onClick={() => onMode(id)}
+      className={cn(
+        'flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-semibold transition',
+        mode === id ? 'bg-cyan-500/15 text-cyan-100' : 'text-white/40 hover:text-white',
+      )}
+    >
+      <Icon className="h-3.5 w-3.5" /> {label}
+    </button>
+  );
+
   return (
     <div className="flex w-60 shrink-0 flex-col border-r border-white/8">
-      <div className="flex items-center gap-1 px-3 py-3">
-        <button
-          type="button"
-          onClick={onNew}
-          className="flex flex-1 items-center gap-2 rounded-lg border border-white/10 px-2.5 py-1.5 text-[12px] text-white/60 transition hover:border-white/25 hover:text-white"
-        >
-          <Plus className="h-3.5 w-3.5" /> New chat
-        </button>
-        <button
-          type="button"
-          onClick={toggle}
-          title="Hide chats"
-          className="rounded-lg p-1.5 text-white/30 transition hover:text-white"
-        >
+      <div className="flex items-center gap-1 px-3 pt-3">
+        <div className="flex flex-1 gap-1 rounded-xl border border-white/8 p-0.5">
+          {modeButton('chat', 'Chat', MessageSquare)}
+          {modeButton('studio', 'Studio', Sparkles)}
+        </div>
+        <button type="button" onClick={toggle} title="Hide chats"
+          className="rounded-lg p-1.5 text-white/30 transition hover:text-white">
           <PanelLeftClose className="h-4 w-4" />
         </button>
       </div>
 
-      <p className="px-3 pb-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/25">
-        Chats
-      </p>
+      <div className="px-3 pt-2">
+        <button
+          type="button"
+          onClick={onNew}
+          className="flex w-full items-center gap-2 rounded-lg border border-white/10 px-2.5 py-1.5 text-[12px] text-white/60 transition hover:border-white/25 hover:text-white"
+        >
+          <Plus className="h-3.5 w-3.5" /> New chat
+        </button>
+      </div>
 
-      <div className="custom-scrollbar flex-1 overflow-y-auto px-2 pb-3">
+      <div className="relative px-3 pt-2">
+        <Search className="pointer-events-none absolute left-5 top-1/2 h-3 w-3 -translate-y-1/2 text-white/25" />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search chats…"
+          className="w-full rounded-lg border border-white/8 bg-white/[0.03] py-1.5 pl-7 pr-2 text-[11px] text-zinc-100 outline-none placeholder:text-white/25 focus:border-white/20"
+        />
+      </div>
+
+      <div className="custom-scrollbar mt-2 flex-1 overflow-y-auto px-2 pb-3">
         {chats.length === 0 && (
           <p className="px-2 py-3 text-[11px] leading-relaxed text-white/25">
-            Nothing saved yet. Chats appear here once you send a message.
+            {query.trim() ? 'No chats match that.' : 'Nothing saved yet. Chats appear here once you send a message.'}
           </p>
         )}
-        {chats.map((c) => (
-          <div
-            key={c.id}
-            className={cn(
-              'group mb-0.5 flex items-center gap-1 rounded-lg px-2 py-1.5 transition',
-              c.id === activeId ? 'bg-cyan-500/10 text-cyan-100' : 'text-white/50 hover:bg-white/[0.04]',
+
+        {folders.map(([folder, items]) => (
+          <div key={folder} className="mb-1">
+            {folder !== UNFILED && (
+              <button
+                type="button"
+                onClick={() => toggleFolder(folder)}
+                className="flex w-full items-center gap-1 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-white/25 transition hover:text-white/55"
+              >
+                {closedFolders.has(folder) ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                {folder}
+                <span className="ml-auto tabular-nums">{items.length}</span>
+              </button>
             )}
-          >
-            <MessageSquare className="h-3 w-3 shrink-0 opacity-50" />
-            {editing === c.id ? (
-              <>
-                <input
-                  autoFocus
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') void rename(c.id);
-                    if (e.key === 'Escape') setEditing(null);
-                  }}
-                  className="min-w-0 flex-1 rounded border border-white/15 bg-black/40 px-1.5 py-0.5 text-[11px] text-white outline-none"
-                />
-                <button type="button" onClick={() => { void rename(c.id); }} className="p-0.5 text-emerald-400">
-                  <Check className="h-3 w-3" />
-                </button>
-                <button type="button" onClick={() => setEditing(null)} className="p-0.5 text-white/40">
-                  <X className="h-3 w-3" />
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={() => onOpen(c.id)}
-                  className="min-w-0 flex-1 truncate text-left text-[11px]"
-                  title={c.title}
-                >
-                  {c.title}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setEditing(c.id); setDraft(c.title); }}
-                  title="Rename"
-                  className="p-0.5 text-white/0 transition group-hover:text-white/40 hover:!text-white"
-                >
-                  <Pencil className="h-3 w-3" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { void remove(c.id); }}
-                  title="Delete"
-                  className="p-0.5 text-white/0 transition group-hover:text-white/40 hover:!text-red-400"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
-              </>
-            )}
+
+            {!closedFolders.has(folder) && items.map((c) => (
+              <div
+                key={c.id}
+                className={cn(
+                  'group mb-0.5 flex items-center gap-1 rounded-lg px-2 py-1.5 transition',
+                  c.id === activeId ? 'bg-cyan-500/10 text-cyan-100' : 'text-white/50 hover:bg-white/[0.04]',
+                )}
+              >
+                {c.workflow_id
+                  ? <Sparkles className="h-3 w-3 shrink-0 opacity-50" />
+                  : <MessageSquare className="h-3 w-3 shrink-0 opacity-50" />}
+
+                {editing === c.id ? (
+                  <>
+                    <input
+                      autoFocus
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') { void patch(c.id, { title: draft.trim() }); setEditing(null); }
+                        if (e.key === 'Escape') setEditing(null);
+                      }}
+                      className="min-w-0 flex-1 rounded border border-white/15 bg-black/40 px-1.5 py-0.5 text-[11px] text-white outline-none"
+                    />
+                    <button type="button" onClick={() => { void patch(c.id, { title: draft.trim() }); setEditing(null); }} className="p-0.5 text-emerald-400">
+                      <Check className="h-3 w-3" />
+                    </button>
+                    <button type="button" onClick={() => setEditing(null)} className="p-0.5 text-white/40">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </>
+                ) : filing === c.id ? (
+                  <>
+                    <input
+                      autoFocus
+                      list="fedda-folders"
+                      value={draft}
+                      placeholder="Folder name"
+                      onChange={(e) => setDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') { void patch(c.id, { folder: draft.trim() }); setFiling(null); }
+                        if (e.key === 'Escape') setFiling(null);
+                      }}
+                      className="min-w-0 flex-1 rounded border border-white/15 bg-black/40 px-1.5 py-0.5 text-[11px] text-white outline-none"
+                    />
+                    <button type="button" onClick={() => { void patch(c.id, { folder: draft.trim() }); setFiling(null); }} className="p-0.5 text-emerald-400">
+                      <Check className="h-3 w-3" />
+                    </button>
+                    <button type="button" onClick={() => setFiling(null)} className="p-0.5 text-white/40">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => onOpen(c)}
+                      className="min-w-0 flex-1 truncate text-left text-[11px]"
+                      title={c.title}
+                    >
+                      {c.title}
+                    </button>
+                    <button type="button" onClick={() => { setFiling(c.id); setDraft(c.folder || ''); }}
+                      title="Move to folder"
+                      className="p-0.5 text-white/0 transition group-hover:text-white/40 hover:!text-white">
+                      <FolderPlus className="h-3 w-3" />
+                    </button>
+                    <button type="button" onClick={() => { setEditing(c.id); setDraft(c.title); }}
+                      title="Rename"
+                      className="p-0.5 text-white/0 transition group-hover:text-white/40 hover:!text-white">
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                    <button type="button" onClick={() => { void remove(c.id); }}
+                      title="Delete"
+                      className="p-0.5 text-white/0 transition group-hover:text-white/40 hover:!text-red-400">
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </>
+                )}
+              </div>
+            ))}
           </div>
         ))}
+
+        <datalist id="fedda-folders">
+          {knownFolders.map((f) => <option key={f} value={f} />)}
+        </datalist>
       </div>
 
       <div className="border-t border-white/8">
@@ -238,12 +343,8 @@ export const ChatSidebar = ({ activeId, onOpen, onNew, refreshKey }: Props) => {
                 {memory.map((m, i) => (
                   <div key={i} className="group mb-0.5 flex items-start gap-1 rounded-lg px-2 py-1 text-white/45 hover:bg-white/[0.04]">
                     <span className="min-w-0 flex-1 text-[10px] leading-relaxed">{m}</span>
-                    <button
-                      type="button"
-                      onClick={() => { void forget(i); }}
-                      title="Forget this"
-                      className="mt-0.5 p-0.5 text-white/0 transition group-hover:text-white/40 hover:!text-red-400"
-                    >
+                    <button type="button" onClick={() => { void forget(i); }} title="Forget this"
+                      className="mt-0.5 p-0.5 text-white/0 transition group-hover:text-white/40 hover:!text-red-400">
                       <X className="h-3 w-3" />
                     </button>
                   </div>

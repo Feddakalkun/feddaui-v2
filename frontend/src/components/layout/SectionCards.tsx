@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { ArrowLeft, Layers } from 'lucide-react';
 import { useModules } from '../../contexts/ModuleContext';
 import type { FeddaModule } from '../../modules/registry';
+import { groupIntoFamilies, type WorkflowFamily } from '../../modules/workflowFamilies';
 
 /**
  * Two-level workflow browser for a studio area.
@@ -15,21 +16,6 @@ import type { FeddaModule } from '../../modules/registry';
  * and open it directly — a submenu holding one card is just an extra click.
  */
 
-const FAMILY_LABELS: Record<string, string> = {
-  'ltx-video': 'LTX Video',
-  'wan-video': 'WAN Video',
-  lipsync: 'Lipsync',
-  'z-image-core': 'Z-Image',
-  'z-image-advanced': 'Z-Image Advanced',
-  'sdxl-pack': 'SDXL',
-  'qwen-image': 'Qwen',
-  'chroma-image': 'Chroma',
-  'firered-image': 'FireRed',
-  'flux-klein': 'FLUX',
-  ideogram: 'Ideogram',
-  'krea2-txt2img': 'KREA2',
-};
-
 /**
  * Purpose-made art per family.
  *
@@ -42,18 +28,9 @@ const FAMILY_ART: Record<string, string> = {
   'wan-video': '/cards/deep-teal/family/wan-video.jpg',
 };
 
-const prettify = (id: string) =>
-  id.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-
 /** "an LTX Video", "a WAN Video" — letters like L/M/N/S read as vowels when spoken. */
 const article = (word: string) =>
   /^[AEIOUaeiou]/.test(word) || /^[FHLMNRSX]$/.test(word[0] ?? '') ? 'an' : 'a';
-
-interface Family {
-  id: string;
-  label: string;
-  modules: FeddaModule[];
-}
 
 interface SectionCardsProps {
   area: 'image' | 'video';
@@ -150,19 +127,10 @@ export const SectionCards = ({ area, kicker, title, onSelect, onBack, reopenFor 
   // only when Back arrives here from a workflow, via reopenFor.
   const [openFamily, setOpenFamily] = useState<string | null>(null);
 
-  const families = useMemo<Family[]>(() => {
-    const mods = availableModules.filter((m) => m.area === area && m.card && !m.hidden);
-    const byId = new Map<string, FeddaModule[]>();
-    for (const m of mods) {
-      const key = m.sourceModuleId || m.id;
-      const list = byId.get(key);
-      if (list) list.push(m);
-      else byId.set(key, [m]);
-    }
-    return [...byId.entries()]
-      .map(([id, modules]) => ({ id, label: FAMILY_LABELS[id] ?? prettify(id), modules }))
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }, [availableModules, area]);
+  const families = useMemo<WorkflowFamily[]>(
+    () => groupIntoFamilies(availableModules, [area]).filter((f) => f.modules.some((m) => m.card)),
+    [availableModules, area],
+  );
 
   // Seed once from the tab we returned from, so Back reopens that submenu.
   useState(() => {
