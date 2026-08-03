@@ -107,24 +107,32 @@ PACKS: Dict[str, Dict[str, str]] = {
     },
 }
 
+# The starter LoRAs that ship with the app, from the public FeddaKalkun/free-loras
+# dataset. The URLs must match the repo's actual layout: the files live in a
+# folder per character and are capitalised there, so the flat lowercase paths
+# this list used to carry 404'd on every install. Verified anonymously - no HF
+# token needed, which is the point of a starter pack.
 FREE_LORAS = [
     {
         "id":       "emmy",
         "name":     "Emmy",
         "filename": "emmy.safetensors",
-        "url":      "https://huggingface.co/datasets/FeddaKalkun/free-loras/resolve/main/emmy.safetensors",
+        "url":      "https://huggingface.co/datasets/FeddaKalkun/free-loras/resolve/main/Emmy/Emmy.safetensors",
     },
     {
+        # Displayed as Zana; the id and filename stay "sana" because that is
+        # what the file is actually called in the dataset. Renaming those would
+        # break the download for a cosmetic change.
         "id":       "sana",
-        "name":     "Sana",
+        "name":     "Zana",
         "filename": "sana.safetensors",
-        "url":      "https://huggingface.co/datasets/FeddaKalkun/free-loras/resolve/main/sana.safetensors",
+        "url":      "https://huggingface.co/datasets/FeddaKalkun/free-loras/resolve/main/Sana/sana.safetensors",
     },
     {
         "id":       "maya",
         "name":     "Maya",
         "filename": "maya.safetensors",
-        "url":      "https://huggingface.co/datasets/FeddaKalkun/free-loras/resolve/main/maya.safetensors",
+        "url":      "https://huggingface.co/datasets/FeddaKalkun/free-loras/resolve/main/Maya/Maya-Sol.safetensors",
     },
 ]
 
