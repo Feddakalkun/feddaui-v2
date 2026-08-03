@@ -15,7 +15,9 @@ function ChatBanner({ module, onSelect }: { module: FeddaModule; onSelect: (id: 
       type="button"
       onClick={() => onSelect(module.defaultTab)}
       aria-label={module.label}
-      className="group relative mb-3 aspect-[1168/300] w-full overflow-hidden rounded-2xl border border-cyan-400/25 bg-[#08090d] text-left transition-all hover:-translate-y-0.5 hover:border-cyan-300/50"
+      // Capped against viewport height as well as its ratio, so on a wide
+      // window the banner cannot grow until it squeezes the card rows.
+      className="group relative aspect-[1168/300] max-h-[20vh] w-full overflow-hidden rounded-2xl border border-cyan-400/25 bg-[#08090d] text-left transition-all hover:-translate-y-0.5 hover:border-cyan-300/50"
     >
       {module.card?.poster && (
         <img
@@ -62,7 +64,11 @@ function HomeCard({ module, onSelect }: { module: FeddaModule; onSelect: (id: st
     <button
       onClick={() => onSelect(module.defaultTab)}
       aria-label={module.label}
-      className="group relative aspect-[1168/784] overflow-hidden rounded-lg border border-white/10 bg-[#08090d] transition-all hover:-translate-y-0.5 hover:border-white/25"
+      // Height comes from the row, not from an aspect ratio. Fixing the ratio
+      // made the cards grow with the window width until the page scrolled;
+      // letting the row size them is what keeps the home on one screen at any
+      // zoom level. The poster still fills via object-cover.
+      className="group relative h-full min-h-0 w-full overflow-hidden rounded-lg border border-white/10 bg-[#08090d] transition-all hover:-translate-y-0.5 hover:border-white/25"
     >
       {module.card?.poster ? (
         <>
@@ -156,13 +162,24 @@ export const RichHome = ({ onSelect }: RichHomeProps) => {
   // Pad to 4 slots (undefined = "coming soon" placeholder)
   const automationSlots: (FeddaModule | undefined)[] = [...automations, undefined, undefined, undefined, undefined].slice(0, 4);
 
+  // The home fits the viewport instead of scrolling: the two card rows share
+  // whatever height is left over, so zooming in or out reflows rather than
+  // pushing the bottom row out of sight.
+  //
+  // The rows carry a floor rather than shrinking freely. Without one they
+  // collapsed to ~40px slivers on a short window, and a card too thin to read
+  // is worse than a little scrolling - which is all that happens below roughly
+  // 560px of height.
   return (
-    <div className="h-full overflow-y-auto custom-scrollbar bg-[#050506]">
-      <div className="mx-auto flex min-h-full w-full max-w-7xl flex-col px-6 py-5 pt-3">
-        <HFTokenReminder />
-        {chat && <ChatBanner module={chat} onSelect={onSelect} />}
+    <div className="flex h-full flex-col overflow-hidden bg-[#050506]">
+      <div className="mx-auto flex h-full w-full max-w-7xl flex-col gap-3 px-6 pb-5 pt-3">
+        <div className="shrink-0">
+          <HFTokenReminder />
+          {chat && <ChatBanner module={chat} onSelect={onSelect} />}
+        </div>
+
         {automations.length > 0 && (
-          <section className="mb-4 flex flex-col items-center space-y-2">
+          <section className="flex shrink-0 flex-col items-center space-y-2">
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/40">Automations</p>
             <div className="grid w-full max-w-2xl gap-3 grid-cols-4">
               {automationSlots.map((module, i) => (
@@ -171,18 +188,17 @@ export const RichHome = ({ onSelect }: RichHomeProps) => {
             </div>
           </section>
         )}
-        <section className="space-y-3">
-          <div className="grid w-full gap-3 md:grid-cols-2">
-            {topCards.map((module) => (
-              <HomeCard key={module.id} module={module} onSelect={onSelect} />
-            ))}
-          </div>
-          <div className="grid w-full gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-            {bottomCards.map((module) => (
-              <HomeCard key={module.id} module={module} onSelect={onSelect} />
-            ))}
-          </div>
-        </section>
+
+        <div className="grid min-h-[150px] w-full flex-[3] gap-3 md:grid-cols-2">
+          {topCards.map((module) => (
+            <HomeCard key={module.id} module={module} onSelect={onSelect} />
+          ))}
+        </div>
+        <div className="grid min-h-[104px] w-full flex-[2] gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {bottomCards.map((module) => (
+            <HomeCard key={module.id} module={module} onSelect={onSelect} />
+          ))}
+        </div>
       </div>
     </div>
   );
