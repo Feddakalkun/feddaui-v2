@@ -38,8 +38,25 @@ export const ChatEditPage = () => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [models, setModels] = useState<string[]>([]);
+  const [model, setModel] = useState('');
   const scroller = useRef<HTMLDivElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  // Which local model drives the agent. Empty means "whatever the backend
+  // considers the default", so the picker never has to be touched to work.
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${BACKEND_API.BASE_URL}/api/ollama/models`);
+        const data = await res.json();
+        setModels(Array.isArray(data.models) ? data.models : []);
+        setModel(data.text_model || '');
+      } catch {
+        setModels([]);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: 'smooth' });
@@ -83,6 +100,29 @@ export const ChatEditPage = () => {
   }, [loadFile]);
 
   /**
+   * Copy a generated image back into ComfyUI's input directory.
+   *
+   * Results land in output/ but LoadImage only reads input/, so feeding an
+   * output filename into the next turn made every second edit fail with "the
+   * workflow finished without an image". This is what makes the conversation
+   * able to build on itself.
+   */
+  const importToInput = async (img: { filename: string; subfolder?: string; type?: string }) => {
+    const res = await fetch(`${BACKEND_API.BASE_URL}/api/media/import-image`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filename: img.filename,
+        subfolder: img.subfolder || '',
+        type: img.type || 'output',
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.detail || 'Could not keep the result');
+    return data.filename as string;
+  };
+
+  /**
    * /api/generate only queues the job and hands back a prompt_id; the images
    * arrive by polling /api/generate/status. Reading the POST response for
    * images silently produced "no image came back" on every successful edit.
@@ -112,10 +152,9 @@ export const ChatEditPage = () => {
         const outputs = images.filter((im: { type?: string }) => im.type === 'output');
         const picked = (outputs.length ? outputs : images)[0];
         if (!picked) throw new Error('The workflow finished without an image');
-        return {
-          filename: picked.filename,
-          url: viewUrl(picked.filename, picked.subfolder || '', picked.type || 'output'),
-        };
+        // Land it in input/ straight away so the next turn can edit it.
+        const inputName = await importToInput(picked);
+        return { filename: inputName, url: viewUrl(inputName, '', 'input') };
       }
       if (data.status === 'not_found' && i > 8) throw new Error('Job vanished from ComfyUI history');
     }
@@ -137,6 +176,7 @@ export const ChatEditPage = () => {
         body: JSON.stringify({
           message: text,
           has_image: Boolean(image),
+          model: model || undefined,
           history: messages.map((m) => ({
             role: m.role === 'agent' ? 'assistant' : 'user',
             content: m.text,
@@ -179,7 +219,8 @@ export const ChatEditPage = () => {
     const prev = history[history.length - 1];
     setHistory((h) => h.slice(0, -1));
     setImage(prev);
-    setMessages((m) => [...m, { role: 'agent', text: 'Rolled back.', image: viewUrl(prev) }]);
+    // Everything held in state is an input-dir filename, uploaded or imported.
+    setMessages((m) => [...m, { role: 'agent', text: 'Rolled back.', image: viewUrl(prev, '', 'input') }]);
   };
 
   const reset = () => {
@@ -220,6 +261,17 @@ export const ChatEditPage = () => {
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">
           Chat Edit · Qwen
         </p>
+        {models.length > 0 && (
+          <select
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            title="Which local model drives the agent"
+            className="max-w-[190px] rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1 text-[10px] text-white/55 outline-none focus:border-white/25"
+          >
+            <option value="">Default model</option>
+            {models.map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
+        )}
         <div className="ml-auto flex items-center gap-2">
           <button
             type="button"
