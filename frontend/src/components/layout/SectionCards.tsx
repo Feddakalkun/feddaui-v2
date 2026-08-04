@@ -22,10 +22,14 @@ import { groupIntoFamilies, type WorkflowFamily } from '../../modules/workflowFa
  * Without this a family tile shows the poster of whichever workflow sorts
  * first, so "LTX Video" showed the Img2Vid picture. Families not listed here
  * still borrow, so adding art is one line and needs no other change.
+ *
+ * These two are also the reason the bunny sweep left two teal elves behind:
+ * they are not module cards, so replacing every `card:` in the registry went
+ * straight past them.
  */
 const FAMILY_ART: Record<string, string> = {
-  'ltx-video': '/cards/deep-teal/family/ltx-video.jpg',
-  'wan-video': '/cards/deep-teal/family/wan-video.jpg',
+  'ltx-video': '/cards/bunny/family/ltx-video.jpeg',
+  'wan-video': '/cards/bunny/family/wan-video.jpeg',
 };
 
 /** "an LTX Video", "a WAN Video" — letters like L/M/N/S read as vowels when spoken. */
