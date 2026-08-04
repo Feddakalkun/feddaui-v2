@@ -858,3 +858,21 @@ Write-Host "         Report: $ReportFile                              " -Foregro
 Write-Host "         Run: RUN.bat                                     " -ForegroundColor Green
 Write-Host "  ========================================================" -ForegroundColor Green
 Write-Host ""
+
+# Only the core nodes are installed above, which leaves roughly a third of
+# config/nodes.json on disk. That is deliberate - the heavy packs arrive with
+# the models of whichever workflow needs them - but without saying so the
+# install looks half-finished, and the first "missing nodes" message looks like
+# a bug rather than the design.
+Write-Host "  What happens next" -ForegroundColor Cyan
+Write-Host "    Start with RUN.bat - the app is ready to use." -ForegroundColor Gray
+Write-Host ""
+Write-Host "    Only the shared core nodes are installed right now. Heavy" -ForegroundColor Gray
+Write-Host "    workflow packs (WAN, LTX, LayerStyle, ControlNet, ...) download" -ForegroundColor Gray
+Write-Host "    the first time you open a workflow that needs them, together" -ForegroundColor Gray
+Write-Host "    with that workflow's models. So the first run of a big workflow" -ForegroundColor Gray
+Write-Host "    takes a while - it is downloading, not stuck." -ForegroundColor Gray
+Write-Host ""
+Write-Host "    Prefer to fetch everything up front? Run UPDATE.bat once." -ForegroundColor Gray
+Write-Host "    It installs every node pack now instead of on demand." -ForegroundColor Gray
+Write-Host ""
