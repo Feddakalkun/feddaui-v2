@@ -326,7 +326,8 @@
       "workflows": [
         "flux2klein-txt2img",
         "flux-headswap",
-        "klein-inpaint"
+        "klein-inpaint",
+        "flux2klein-uncensored-txt2img"
       ],
       "custom_nodes": [
         "rgthree-comfy",

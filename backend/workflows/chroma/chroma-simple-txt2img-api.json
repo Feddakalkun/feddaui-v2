@@ -18,16 +18,31 @@
   },
   "298": {
     "inputs": {
-      "samples": ["747", 0],
-      "vae": ["710", 0]
+      "samples": [
+        "747",
+        0
+      ],
+      "vae": [
+        "710",
+        0
+      ]
     },
     "class_type": "VAEDecode"
   },
   "694": {
     "inputs": {
-      "model": ["701", 0],
-      "positive": ["748", 0],
-      "negative": ["749", 0],
+      "model": [
+        "701",
+        0
+      ],
+      "positive": [
+        "748",
+        0
+      ],
+      "negative": [
+        "749",
+        0
+      ],
       "cfg": 1.25
     },
     "class_type": "CFGGuider"
@@ -40,7 +55,10 @@
   },
   "701": {
     "inputs": {
-      "model": ["731", 0],
+      "model": [
+        "800",
+        0
+      ],
       "shift": 1.0
     },
     "class_type": "ModelSamplingAuraFlow"
@@ -82,14 +100,20 @@
   },
   "740": {
     "inputs": {
-      "images": ["298", 0],
+      "images": [
+        "298",
+        0
+      ],
       "filename_prefix": "IMAGE/CHROMA-SIMPLE/0"
     },
     "class_type": "SaveImage"
   },
   "741": {
     "inputs": {
-      "clip": ["733", 0],
+      "clip": [
+        "800",
+        1
+      ],
       "min_padding": 0,
       "min_length": 0
     },
@@ -97,17 +121,35 @@
   },
   "747": {
     "inputs": {
-      "noise": ["718", 0],
-      "guider": ["694", 0],
-      "sampler": ["700", 0],
-      "sigmas": ["751", 0],
-      "latent_image": ["737", 0]
+      "noise": [
+        "718",
+        0
+      ],
+      "guider": [
+        "694",
+        0
+      ],
+      "sampler": [
+        "700",
+        0
+      ],
+      "sigmas": [
+        "751",
+        0
+      ],
+      "latent_image": [
+        "737",
+        0
+      ]
     },
     "class_type": "SamplerCustomAdvanced"
   },
   "748": {
     "inputs": {
-      "clip": ["741", 0],
+      "clip": [
+        "741",
+        0
+      ],
       "text": "A natural, cinematic portrait photo with realistic skin, coherent anatomy, clean background detail, soft natural light."
     },
     "class_type": "CLIPTextEncode",
@@ -117,7 +159,10 @@
   },
   "749": {
     "inputs": {
-      "clip": ["741", 0],
+      "clip": [
+        "741",
+        0
+      ],
       "text": "low quality, ugly, unfinished, out of focus, blurry, smudged, body horror, mutated creature, extra animal, fish, monster, malformed arms, deformed hands, fused anatomy, melted body, muddy skin artifacts, extra limbs, bad anatomy, duplicate face"
     },
     "class_type": "CLIPTextEncode",
@@ -127,11 +172,33 @@
   },
   "751": {
     "inputs": {
-      "model": ["701", 0],
+      "model": [
+        "701",
+        0
+      ],
       "steps": 32,
       "alpha": 0.35,
       "beta": 0.35
     },
     "class_type": "BetaSamplingScheduler"
+  },
+  "800": {
+    "class_type": "LoraLoader",
+    "_meta": {
+      "title": "LoRA (FEDDA placeholder)"
+    },
+    "inputs": {
+      "lora_name": "none.safetensors",
+      "strength_model": 1.0,
+      "strength_clip": 1.0,
+      "model": [
+        "731",
+        0
+      ],
+      "clip": [
+        "733",
+        0
+      ]
+    }
   }
 }

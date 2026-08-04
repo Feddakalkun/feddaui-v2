@@ -1,0 +1,301 @@
+{
+  "1205": {
+    "inputs": {
+      "noise_seed": 1074742713512551
+    },
+    "class_type": "RandomNoise",
+    "_meta": {
+      "title": "RandomNoise"
+    }
+  },
+  "1206": {
+    "inputs": {
+      "filename_prefix": "IMAGE/FLUX-2-klein/0",
+      "images": [
+        "1220",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "1207": {
+    "inputs": {
+      "delimiter": ", ",
+      "clean_whitespace": "true",
+      "text_a": [
+        "1212",
+        0
+      ],
+      "text_b": [
+        "1211",
+        0
+      ]
+    },
+    "class_type": "Text Concatenate",
+    "_meta": {
+      "title": "Text Concatenate"
+    }
+  },
+  "1208": {
+    "inputs": {
+      "value": 10
+    },
+    "class_type": "easy int",
+    "_meta": {
+      "title": "STEPS"
+    }
+  },
+  "1210": {
+    "inputs": {
+      "width": 1504,
+      "height": 1504,
+      "aspect_ratio": "16:9",
+      "direction": "Horizontal"
+    },
+    "class_type": "AspectRatioImageSize",
+    "_meta": {
+      "title": "🧩 Aspect Ratio Image Size"
+    }
+  },
+  "1211": {
+    "inputs": {
+      "styles": "No Style",
+      "csv_file_path": "styles.csv"
+    },
+    "class_type": "Load Styles CSV",
+    "_meta": {
+      "title": "Load Styles CSV"
+    }
+  },
+  "1212": {
+    "inputs": {
+      "value": "a cowgirls on a horse on the beach at sunset riding sexy nude"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Prompt"
+    }
+  },
+  "1213": {
+    "inputs": {
+      "noise": [
+        "1205",
+        0
+      ],
+      "guider": [
+        "1223",
+        0
+      ],
+      "sampler": [
+        "1222",
+        0
+      ],
+      "sigmas": [
+        "1221",
+        0
+      ],
+      "latent_image": [
+        "1214",
+        0
+      ]
+    },
+    "class_type": "SamplerCustomAdvanced",
+    "_meta": {
+      "title": "SamplerCustomAdvanced"
+    }
+  },
+  "1214": {
+    "inputs": {
+      "width": [
+        "1210",
+        0
+      ],
+      "height": [
+        "1210",
+        1
+      ],
+      "batch_size": 1
+    },
+    "class_type": "EmptyFlux2LatentImage",
+    "_meta": {
+      "title": "Empty Flux 2 Latent"
+    }
+  },
+  "1215": {
+    "inputs": {
+      "text": "",
+      "clip": [
+        "1294",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Negative Prompt)"
+    }
+  },
+  "1216": {
+    "inputs": {
+      "unet_name": "nsfwKlein.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model"
+    }
+  },
+  "1217": {
+    "inputs": {
+      "clip_name": "qwen_3_8b_fp8mixed.safetensors",
+      "type": "flux2",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "1218": {
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "1219": {
+    "inputs": {
+      "text": [
+        "1207",
+        0
+      ],
+      "clip": [
+        "1294",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "1220": {
+    "inputs": {
+      "samples": [
+        "1213",
+        0
+      ],
+      "vae": [
+        "1218",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "1221": {
+    "inputs": {
+      "steps": [
+        "1208",
+        0
+      ],
+      "width": [
+        "1210",
+        0
+      ],
+      "height": [
+        "1210",
+        1
+      ]
+    },
+    "class_type": "Flux2Scheduler",
+    "_meta": {
+      "title": "Flux2Scheduler"
+    }
+  },
+  "1222": {
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "KSamplerSelect"
+    }
+  },
+  "1223": {
+    "inputs": {
+      "cfg": 1,
+      "model": [
+        "1294",
+        0
+      ],
+      "positive": [
+        "1219",
+        0
+      ],
+      "negative": [
+        "1215",
+        0
+      ]
+    },
+    "class_type": "CFGGuider",
+    "_meta": {
+      "title": "CFGGuider"
+    }
+  },
+  "1225": {
+    "inputs": {
+      "download_links": "https://huggingface.co/comfyuistudio/nsfwKLein/resolve/main/nsfwKlein.safetensors diffusion_models\nhttps://huggingface.co/Comfy-Org/flux2-klein-9B/resolve/main/split_files/text_encoders/qwen_3_8b_fp8mixed.safetensors text_encoders\nhttps://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors vae",
+      "auto_download": true,
+      "max_concurrent_downloads": 3,
+      "max_download_speed_mbps": 0,
+      "enable_resume": true,
+      "validate_files": false,
+      "enable_notifications": true,
+      "auto_organize": false,
+      "hf_token": ""
+    },
+    "class_type": "HuggingFaceDownloader",
+    "_meta": {
+      "title": "🤗 HuggingFace Model Downloader Pro"
+    }
+  },
+  "1244": {
+    "inputs": {
+      "text": "=== DOWNLOAD REPORT ===\nTotal files: 3\nSuccessful downloads: 0\nAlready existed: 3\nInterrupted: 0\nFailed: 0\nMax concurrent: 3\nSpeed limit: Unlimited\nResume enabled: True\nValidation enabled: False\nAuto-organize: False\n\nDetails:\n✓ nsfwKlein.safetensors: Already exists (8.46 GB)\n✓ qwen_3_8b_fp8mixed.safetensors: Already exists (8.07 GB)\n✓ flux2-vae.safetensors: Already exists (320.64 MB)",
+      "anything": [
+        "1225",
+        0
+      ]
+    },
+    "class_type": "easy showAnything",
+    "_meta": {
+      "title": "Show Any"
+    }
+  },
+  "1294": {
+    "inputs": {
+      "lora_name": "Flux2-Klein-9B-consistency-V2.safetensors",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "1216",
+        0
+      ],
+      "clip": [
+        "1217",
+        0
+      ]
+    },
+    "class_type": "LoraLoader",
+    "_meta": {
+      "title": "Load LoRA (Model and CLIP)"
+    }
+  }
+}

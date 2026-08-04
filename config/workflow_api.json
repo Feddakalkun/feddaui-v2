@@ -1693,6 +1693,11 @@
         "input_key": "beta",
         "type": "number",
         "label": "Scheduler Beta"
+      },
+      "loras": {
+        "node_id": "800",
+        "type": "loras",
+        "label": "LoRAs"
       }
     }
   },
@@ -1766,6 +1771,11 @@
         "input_key": "beta",
         "type": "number",
         "label": "Scheduler Beta"
+      },
+      "loras": {
+        "node_id": "800",
+        "type": "loras",
+        "label": "LoRAs"
       }
     }
   },
@@ -1898,6 +1908,11 @@
         "input_key": "denoise",
         "type": "number",
         "label": "Edit Strength"
+      },
+      "loras": {
+        "node_id": "200",
+        "type": "loras",
+        "label": "LoRAs"
       }
     }
   },
@@ -3752,6 +3767,72 @@
         "input_key": "height",
         "type": "number",
         "label": "Height"
+      }
+    }
+  },
+  "flux2klein-uncensored-txt2img": {
+    "name": "FLUX2-KLEIN NSFW",
+    "filename": "fluxklein/KLEINNSFW.json",
+    "description": "FLUX.2-klein uncensored text-to-image. Carries its own HuggingFaceDownloader for the nsfwKlein weights.",
+    "inputs": {
+      "prompt": {
+        "node_id": "1212",
+        "input_key": "value",
+        "type": "string",
+        "label": "Positive Prompt"
+      },
+      "negative": {
+        "node_id": "1215",
+        "input_key": "text",
+        "type": "string",
+        "label": "Negative Prompt"
+      },
+      "seed": {
+        "node_id": "1205",
+        "input_key": "noise_seed",
+        "type": "number",
+        "label": "Seed"
+      },
+      "steps": {
+        "node_id": "1208",
+        "input_key": "value",
+        "type": "number",
+        "label": "Steps"
+      },
+      "cfg": {
+        "node_id": "1223",
+        "input_key": "cfg",
+        "type": "number",
+        "label": "CFG Scale"
+      },
+      "sampler_name": {
+        "node_id": "1222",
+        "input_key": "sampler_name",
+        "type": "string",
+        "label": "Sampler"
+      },
+      "width": {
+        "node_id": "1210",
+        "input_key": "width",
+        "type": "number",
+        "label": "Width"
+      },
+      "height": {
+        "node_id": "1210",
+        "input_key": "height",
+        "type": "number",
+        "label": "Height"
+      },
+      "aspect_ratio": {
+        "node_id": "1210",
+        "input_key": "aspect_ratio",
+        "type": "string",
+        "label": "Aspect Ratio"
+      },
+      "loras": {
+        "node_id": "1294",
+        "type": "loras",
+        "label": "LoRAs"
       }
     }
   }

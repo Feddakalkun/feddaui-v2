@@ -361,7 +361,9 @@ export const FEDDA_MODULES: FeddaModule[] = [
   {
     id: 'flux-klein-uncensored',
     hidden: true,
-    sourceModuleId: 'flux-klein-uncensored',
+    // Ships inside the flux-klein pack; there has never been a module of its
+    // own, which is why this entry pointed at a source id nothing declared.
+    sourceModuleId: 'flux-klein',
     label: 'FLUX KLEIN UNCENSORED',
     description: 'FLUX KLEIN UNCENSORED image generation.',
     area: 'image',

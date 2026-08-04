@@ -31,7 +31,7 @@
       "scheduler": "beta",
       "denoise": 0.85,
       "model": [
-        "1",
+        "200",
         0
       ],
       "positive": [
@@ -53,7 +53,7 @@
     "inputs": {
       "prompt": "Edit the image naturally while preserving identity, pose, composition, and lighting.",
       "clip": [
-        "1",
+        "200",
         1
       ],
       "vae": [
@@ -75,7 +75,7 @@
     "inputs": {
       "prompt": "",
       "clip": [
-        "1",
+        "200",
         1
       ],
       "vae": [
@@ -150,6 +150,25 @@
     "class_type": "VAEEncode",
     "_meta": {
       "title": "Encode Source (img2img)"
+    }
+  },
+  "200": {
+    "class_type": "LoraLoader",
+    "_meta": {
+      "title": "LoRA (FEDDA placeholder)"
+    },
+    "inputs": {
+      "lora_name": "none.safetensors",
+      "strength_model": 1.0,
+      "strength_clip": 1.0,
+      "model": [
+        "1",
+        0
+      ],
+      "clip": [
+        "1",
+        1
+      ]
     }
   }
 }
