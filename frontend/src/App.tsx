@@ -8,6 +8,8 @@ import { GlobalOutputStrip } from './components/layout/GlobalOutputStrip';
 import { ToastProvider } from './components/ui/Toast';
 import { ComfyExecutionProvider } from './contexts/ComfyExecutionContext';
 import { ModuleProvider, useModules } from './contexts/ModuleContext';
+import { AgentWorkflowProvider, useAgentWorkflow } from './contexts/AgentWorkflowContext';
+import { WorkflowSwitcher } from './components/chat/WorkflowSwitcher';
 import { ImageStudioPage } from './pages/ImageStudioPage';
 import { VideoStudioPage } from './pages/VideoStudioPage';
 import { GalleryPage } from './pages/GalleryPage';
@@ -46,6 +48,10 @@ function FeddaApp() {
     defaultTab,
     isTabAvailable,
   } = useModules();
+
+  // Set by the agent shell while it is mounted, so the workflow bar above only
+  // shows where it means something.
+  const { active: agentOpen } = useAgentWorkflow();
 
   const resolveTab = (tab: string | null | undefined): string => {
     return tab && validTabs.has(tab) ? tab : defaultTab;
@@ -236,6 +242,10 @@ function FeddaApp() {
           <TopSystemStrip />
         </header>
 
+        {/* Above the generations rail, because choosing what to make comes
+            before looking at what was made. Only while the agent is open. */}
+        {agentOpen && <WorkflowSwitcher />}
+
         {/* Global recent-generations rail — same strip on every page */}
         {view !== 'home' && <GlobalOutputStrip />}
 
@@ -270,7 +280,11 @@ export default function App() {
     <ComfyExecutionProvider>
       <ToastProvider>
         <ModuleProvider>
-          <FeddaApp />
+          {/* Inside ModuleProvider: the workflow bar reads the registry and
+              what is installed from it. */}
+          <AgentWorkflowProvider>
+            <FeddaApp />
+          </AgentWorkflowProvider>
         </ModuleProvider>
       </ToastProvider>
     </ComfyExecutionProvider>

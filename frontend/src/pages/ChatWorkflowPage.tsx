@@ -4,7 +4,6 @@ import {
 } from 'lucide-react';
 import { BACKEND_API } from '../config/api';
 import { ChatImage } from '../components/chat/ChatImage';
-import { WorkflowSwitcher } from '../components/chat/WorkflowSwitcher';
 import { useComfyExecution } from '../contexts/ComfyExecutionContext';
 import { cn } from '../lib/styles';
 
@@ -75,11 +74,9 @@ interface Props {
   openId?: string | null;
   /** Told when a chat is saved so the shell can refresh the sidebar. */
   onSaved?: (id: string) => void;
-  /** Given, the workflow name becomes a picker for every other workflow. */
-  onPickWorkflow?: (workflowId: string) => void;
 }
 
-export const ChatWorkflowPage = ({ workflowId, openId = null, onSaved, onPickWorkflow }: Props) => {
+export const ChatWorkflowPage = ({ workflowId, openId = null, onSaved }: Props) => {
   const [fields, setFields] = useState<Field[]>([]);
   const [name, setName] = useState('');
   const [values, setValues] = useState<Record<string, string | number>>({});
@@ -530,10 +527,6 @@ export const ChatWorkflowPage = ({ workflowId, openId = null, onSaved, onPickWor
           </button>
         </div>
       </div>
-
-      {onPickWorkflow && (
-        <WorkflowSwitcher workflowId={workflowId} onPick={onPickWorkflow} />
-      )}
 
       <div ref={scroller} className="custom-scrollbar flex-1 overflow-y-auto px-4 py-5">
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-5">
