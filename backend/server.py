@@ -110,6 +110,12 @@ SETTINGS_PATH = CONFIG_DIR / "runtime_settings.json"
 OUTPUT_DIR = COMFY_DIR / "output"
 
 COMFY_URL = os.environ.get("COMFY_URL", "http://127.0.0.1:8199")
+
+# How long to let a poll wait on ComfyUI. Generous on purpose: ComfyUI serves
+# HTTP from the same thread that loads models, so on the first run of a
+# workflow it can go quiet for several seconds while multi-GB weights come off
+# disk. A short timeout there does not detect a problem, it invents one.
+COMFY_POLL_TIMEOUT = 15
 MOCKINGBIRD_URL = os.environ.get("MOCKINGBIRD_URL", "http://127.0.0.1:8020")
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 AGENT_DB_PATH = CONFIG_DIR / "agent_memory.db"
@@ -1645,6 +1651,16 @@ async def refresh_models():
     try:
         resp = requests.post(f"{COMFY_URL}/api/models/refresh", timeout=5)
         return {"success": resp.ok}
+    except requests_exceptions.ReadTimeout:
+        # Busy, not broken. Reporting failure here aborted the caller's poll
+        # loop on the very first run, when loading weights blocks ComfyUI's
+        # HTTP handler for longer than the timeout.
+        #
+        # Deliberately ReadTimeout and not Timeout: a read timeout proves the
+        # connection was accepted, so ComfyUI is alive and busy. A ConnectTimeout
+        # means nothing answered at all, and must keep falling through to the
+        # ConnectionError branch below rather than being reported as progress.
+        return {"success": True, "status": "running", "images": [], "videos": [], "audios": []}
     except requests_exceptions.ConnectionError:
         return {"success": False, "error": _comfy_proxy_error()}
     except Exception as e:
@@ -5220,7 +5236,9 @@ async def get_generation_status(prompt_id: str, workflow_id: str = ""):
 
     try:
         # Check history first
-        resp = requests.get(f"{COMFY_URL}/history/{prompt_id}", timeout=2)
+        # 2s was too tight: on a first run ComfyUI is loading several GB of
+        # weights and its HTTP handler does not answer until that finishes.
+        resp = requests.get(f"{COMFY_URL}/history/{prompt_id}", timeout=COMFY_POLL_TIMEOUT)
         if resp.ok:
             data = resp.json()
             if prompt_id in data:
@@ -5286,7 +5304,7 @@ async def get_generation_status(prompt_id: str, workflow_id: str = ""):
                 }
 
         # Check queue
-        q_resp = requests.get(f"{COMFY_URL}/queue", timeout=2)
+        q_resp = requests.get(f"{COMFY_URL}/queue", timeout=COMFY_POLL_TIMEOUT)
         if q_resp.ok:
             q_data = q_resp.json()
             running = q_data.get("queue_running", [])
