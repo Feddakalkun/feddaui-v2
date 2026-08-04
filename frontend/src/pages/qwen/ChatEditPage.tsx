@@ -33,6 +33,33 @@ const viewUrl = (filename: string, subfolder = '', type = 'output') =>
   `/comfy/view?filename=${encodeURIComponent(filename)}` +
   `&subfolder=${encodeURIComponent(subfolder)}&type=${type}`;
 
+/**
+ * The graph's ImageScale node is hardcoded to 768x768, so anything that is not
+ * square comes back squashed. Sending width/height that preserve the source
+ * aspect is what keeps a portrait a portrait.
+ *
+ * The pixel budget matches the original 768x768 so speed and VRAM stay where
+ * the workflow author put them, and both sides snap to a multiple of 16 because
+ * the sampler works in latent blocks.
+ */
+const PIXEL_BUDGET = 768 * 768;
+
+const fitToBudget = (w: number, h: number) => {
+  if (!w || !h) return { width: 768, height: 768 };
+  const scale = Math.sqrt(PIXEL_BUDGET / (w * h));
+  const snap = (v: number) => Math.max(256, Math.round((v * scale) / 16) * 16);
+  return { width: snap(w), height: snap(h) };
+};
+
+/** Natural pixel size of an image URL, or null if it will not load. */
+const measure = (src: string) =>
+  new Promise<{ w: number; h: number } | null>((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+
 interface ChatEditPageProps {
   /** Session id to load on mount, or null for a fresh chat. */
   openId?: string | null;
@@ -51,6 +78,8 @@ export const ChatEditPage = ({ openId = null, onSaved }: ChatEditPageProps = {})
   const [models, setModels] = useState<string[]>([]);
   const [model, setModel] = useState('');
   const [sessionId, setSessionId] = useState<string | null>(null);
+  // Source aspect of the working image, so edits keep its shape.
+  const [dims, setDims] = useState<{ w: number; h: number } | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   // Submitting via /api/generate bypasses queueWorkflow, so the execution
@@ -96,6 +125,7 @@ export const ChatEditPage = ({ openId = null, onSaved }: ChatEditPageProps = {})
       setImage(null);
       setHistory([]);
       setError(null);
+      setDims(null);
       return;
     }
     (async () => {
@@ -109,6 +139,7 @@ export const ChatEditPage = ({ openId = null, onSaved }: ChatEditPageProps = {})
         setImage(s.image ?? null);
         setHistory(Array.isArray(s.history) ? s.history : []);
         setError(null);
+        setDims(s.image ? await measure(viewUrl(s.image, '', 'input')) : null);
       } catch { /* leave the current chat alone */ }
     })();
     return () => { cancelled = true; };
@@ -156,6 +187,7 @@ export const ChatEditPage = ({ openId = null, onSaved }: ChatEditPageProps = {})
       if (!res.ok || !data.success) throw new Error(data.detail || 'Upload failed');
       setImage(data.filename);
       setHistory([]);
+      setDims(await measure(viewUrl(data.filename, '', 'input')));
       setMessages((m) => [...m, {
         role: 'agent',
         text: 'Got it. What should we change?',
@@ -222,7 +254,13 @@ export const ChatEditPage = ({ openId = null, onSaved }: ChatEditPageProps = {})
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         workflow_id: WORKFLOW_ID,
-        params: { image, prompt: instruction, negative: '' },
+        params: {
+          image,
+          prompt: instruction,
+          negative: '',
+          // Without these the graph's fixed 768x768 squashes the image.
+          ...fitToBudget(dims?.w ?? 0, dims?.h ?? 0),
+        },
       }),
     });
     const queued = await res.json().catch(() => ({}));
