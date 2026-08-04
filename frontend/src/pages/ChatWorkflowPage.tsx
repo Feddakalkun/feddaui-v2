@@ -495,13 +495,9 @@ export const ChatWorkflowPage = ({ workflowId, openId = null, onSaved, onPickWor
   return (
     <div className="flex h-full min-w-0 flex-1 flex-col bg-[#050506]">
       <div className="flex items-center gap-2 px-4 py-2.5">
-        {onPickWorkflow ? (
-          <WorkflowSwitcher workflowId={workflowId} fallbackName={name} onPick={onPickWorkflow} />
-        ) : (
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">
-            {name || workflowId}
-          </p>
-        )}
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">
+          {name || workflowId}
+        </p>
         <span className="text-[10px] text-white/25">
           {missing.length ? `${missing.length} still needed` : 'ready'}
         </span>
@@ -534,6 +530,10 @@ export const ChatWorkflowPage = ({ workflowId, openId = null, onSaved, onPickWor
           </button>
         </div>
       </div>
+
+      {onPickWorkflow && (
+        <WorkflowSwitcher workflowId={workflowId} onPick={onPickWorkflow} />
+      )}
 
       <div ref={scroller} className="custom-scrollbar flex-1 overflow-y-auto px-4 py-5">
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-5">
