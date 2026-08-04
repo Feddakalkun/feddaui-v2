@@ -50,7 +50,12 @@ export const WorkflowSwitcher = ({ workflowId, fallbackName, onPick }: Props) =>
         const id = m.workflows?.[0];
         if (!id || seen.has(id)) return [];
         seen.add(id);
-        return [{ id, label: m.label, poster: m.card?.poster, family: f.label }];
+        return [{ id, label: m.label, poster: m.card?.poster, family: f.label,
+                  // The strip has its own portrait art, published beside the
+                  // landscape set under a matching filename. Deriving the path
+                  // keeps one source of truth; anything not rendered yet falls
+                  // back to the landscape card rather than showing a gap.
+                  poster916: m.card?.poster?.replace('/cards/bunny/', '/cards/bunny916/') }];
       }));
   }, [families]);
 
@@ -110,7 +115,7 @@ export const WorkflowSwitcher = ({ workflowId, fallbackName, onPick }: Props) =>
                hovered card grows into has to be reserved up front. It grows
                upward from its own bottom edge, which keeps the row itself
                anchored and needs the room in one direction instead of two. */
-            <div className="custom-scrollbar flex items-end gap-2 overflow-x-auto overflow-y-hidden px-16 pb-4 pt-24">
+            <div className="custom-scrollbar flex items-end gap-2 overflow-x-auto overflow-y-hidden px-12 pb-4 pt-36">
               {shown.map((e) => (
                 <button
                   key={e.id}
@@ -118,8 +123,8 @@ export const WorkflowSwitcher = ({ workflowId, fallbackName, onPick }: Props) =>
                   onClick={() => { onPick(e.id); setOpen(false); }}
                   title={`${e.label} — ${e.family}`}
                   className={cn(
-                    'group relative aspect-[1168/784] w-24 shrink-0 overflow-visible rounded-lg text-left',
-                    'origin-bottom transition-transform duration-200 hover:z-20 hover:scale-[2.4]',
+                    'group relative aspect-[9/16] w-16 shrink-0 overflow-visible rounded-lg text-left',
+                    'origin-bottom transition-transform duration-200 hover:z-20 hover:scale-[2.2]',
                   )}
                 >
                   <span
@@ -128,9 +133,23 @@ export const WorkflowSwitcher = ({ workflowId, fallbackName, onPick }: Props) =>
                       e.id === workflowId ? 'ring-cyan-400/80' : 'ring-white/10 group-hover:ring-white/30',
                     )}
                   >
-                    {e.poster && (
-                      <img src={e.poster} alt="" loading="lazy"
-                        className="h-full w-full object-cover" />
+                    {(e.poster916 || e.poster) && (
+                      <img
+                        src={e.poster916 || e.poster}
+                        alt=""
+                        loading="lazy"
+                        onError={(ev) => {
+                          // A flag, not a src comparison: the browser resolves
+                          // src to an absolute URL, so comparing it against the
+                          // relative path never matches and retries forever.
+                          const img = ev.currentTarget;
+                          if (e.poster && !img.dataset.fellBack) {
+                            img.dataset.fellBack = '1';
+                            img.src = e.poster;
+                          }
+                        }}
+                        className="h-full w-full object-cover"
+                      />
                     )}
                     {/* The names only appear once a card is big enough to read
                         them; at rest they would be an illegible smear. */}
