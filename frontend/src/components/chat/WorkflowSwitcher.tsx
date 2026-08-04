@@ -35,6 +35,22 @@ import { cn } from '../../lib/styles';
 
 const OPEN_KEY = 'fedda.chat.switcher.open';
 
+/**
+ * Why a card cannot be picked, in the fewest words that are still actionable.
+ *
+ * Nodes come first when both are missing: a missing model is a download the app
+ * offers, while a missing node needs the pack installed, so it is the bigger
+ * blocker of the two.
+ */
+const whyNot = (e: { missing: number; missingNodes: string[] }) => {
+  if (e.missingNodes.length) {
+    return e.missingNodes.length === 1
+      ? `needs node ${e.missingNodes[0]}`
+      : `needs ${e.missingNodes.length} custom nodes`;
+  }
+  return `${e.missing} model file${e.missing === 1 ? '' : 's'} missing`;
+};
+
 type Entry = {
   id: string;
   label: string;
@@ -43,6 +59,9 @@ type Entry = {
   ready: boolean;
   /** How many model files are missing, for the tooltip. */
   missing: number;
+  /** Custom nodes ComfyUI does not have. A workflow can have every model and
+      still die on one of these, which is what "ready" used to miss. */
+  missingNodes: string[];
   poster?: string;
   poster916?: string;
 };
@@ -54,7 +73,8 @@ export const WorkflowSwitcher = () => {
   });
   const [query, setQuery] = useState('');
   const [peek, setPeek] = useState<{ entry: Entry; x: number; y: number } | null>(null);
-  const [readiness, setReadiness] = useState<Record<string, { ready: boolean; missing: number }> | null>(null);
+  const [readiness, setReadiness] = useState<
+    Record<string, { ready: boolean; missing: number; missing_nodes?: string[] }> | null>(null);
 
   // One request for the whole library; the per-workflow endpoint would be 34.
   useEffect(() => {
@@ -96,6 +116,7 @@ export const WorkflowSwitcher = () => {
           family: f.label,
           ready: readiness ? Boolean(readiness[id]?.ready) : true,
           missing: readiness?.[id]?.missing ?? 0,
+          missingNodes: readiness?.[id]?.missing_nodes ?? [],
           poster: m.card?.poster,
           // The strip has its own portrait art, published beside the landscape
           // set under a matching filename. Deriving the path keeps one source
@@ -184,9 +205,7 @@ export const WorkflowSwitcher = () => {
                 setPeek({ entry: e, x: r.left + r.width / 2, y: r.bottom });
               }}
               onMouseLeave={() => setPeek(null)}
-              title={e.ready
-                ? `${e.label} — ${e.family}`
-                : `${e.label} — ${e.missing} model file${e.missing === 1 ? '' : 's'} missing`}
+              title={e.ready ? `${e.label} — ${e.family}` : `${e.label} — ${whyNot(e)}`}
               className={cn(
                 'relative h-16 w-9 shrink-0 overflow-hidden rounded-md bg-[#141420] ring-1 transition',
                 !e.ready ? 'cursor-not-allowed opacity-30 ring-white/5 grayscale'
@@ -233,8 +252,8 @@ export const WorkflowSwitcher = () => {
         >
           <img src={src(peek.entry)} alt="" className="w-full" />
           {!peek.entry.ready && (
-            <span className="absolute inset-x-0 bottom-0 bg-black/80 py-1 text-center text-[10px] font-semibold text-white/70">
-              {peek.entry.missing} model{peek.entry.missing === 1 ? '' : 's'} missing
+            <span className="absolute inset-x-0 bottom-0 bg-black/80 px-1.5 py-1 text-center text-[10px] font-semibold text-white/70">
+              {whyNot(peek.entry)}
             </span>
           )}
         </div>

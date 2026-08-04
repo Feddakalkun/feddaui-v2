@@ -4705,6 +4705,19 @@ async def get_workflow_model_readiness():
     except Exception as exc:  # noqa: BLE001 - report, never take the UI down
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
+    # Missing models are only half of it: a workflow can have every file it
+    # needs and still die on "Node 'Load Fooocus Inpaint' not found", because
+    # custom nodes install lazily here. One call gives every class ComfyUI can
+    # actually run; if it is unreachable we skip the node check rather than
+    # declare the whole library broken.
+    known_nodes: Optional[set] = None
+    try:
+        resp = requests.get(f"{COMFY_URL}/object_info", timeout=20)
+        if resp.ok:
+            known_nodes = set(resp.json().keys())
+    except requests_exceptions.RequestException:
+        known_nodes = None
+
     for workflow_id, mapping in mappings.items():
         path = workflow_service.get_workflow_path(mapping.get("filename", ""))
         if not path:
@@ -4724,12 +4737,23 @@ async def get_workflow_model_readiness():
             continue
 
         missing = [f for f in files if not f.get("exists")]
+
+        missing_nodes: List[str] = []
+        if known_nodes is not None:
+            missing_nodes = sorted({
+                node["class_type"] for node in workflow.values()
+                if isinstance(node, dict)
+                and isinstance(node.get("class_type"), str)
+                and node["class_type"] not in known_nodes
+            })
+
         out[workflow_id] = {
-            "ready": not missing,
+            "ready": not missing and not missing_nodes,
             "missing": len(missing),
             "total": len(files),
+            "missing_nodes": missing_nodes,
         }
-    return {"success": True, "workflows": out}
+    return {"success": True, "workflows": out, "nodes_checked": known_nodes is not None}
 
 
 @app.get("/api/workflow/model-status/{workflow_id}")
