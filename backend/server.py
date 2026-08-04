@@ -2454,26 +2454,35 @@ async def chat_workflow_turn(req: ChatWorkflowRequest):
         model_hint=req.model or _get_ollama_text_model(),
     )
 
-    reply, updates, ready = raw.strip(), {}, False
-    try:
-        start, end = raw.find("{"), raw.rfind("}")
-        if start != -1 and end > start:
-            parsed = json.loads(raw[start:end + 1])
-            reply = str(parsed.get("reply") or "").strip() or reply
-            ready = bool(parsed.get("ready"))
-            candidate = parsed.get("set")
-            if isinstance(candidate, dict):
-                allowed = {f["key"] for f in fields if f["control"] != "file"}
-                updates = {k: v for k, v in candidate.items() if k in allowed}
-    except (ValueError, TypeError):
-        pass
+    parsed = _loads_first_object(raw)
+    reply, updates, ready = "", {}, False
+    if parsed is not None:
+        reply = str(parsed.get("reply") or "").strip()
+        ready = bool(parsed.get("ready"))
+        candidate = parsed.get("set")
+        if isinstance(candidate, dict):
+            allowed = {f["key"] for f in fields if f["control"] != "file"}
+            updates = {k: v for k, v in candidate.items() if k in allowed}
+    if not reply:
+        # Never let a malformed object reach the transcript. Small models drop
+        # and double braces often enough that a raw fallback showed the user a
+        # wall of JSON instead of an answer.
+        reply = "Working on it." if updates else raw.strip()
+        if reply.lstrip().startswith("{"):
+            reply = "Sorry - I garbled that. Say it again?"
 
     # The model's own "ready" is advisory; required fields are the authority.
     still_missing = [f["key"] for f in fields
                      if f.get("required")
                      and not (req.filled.get(f["key"]) or updates.get(f["key"]))]
+
+    # The model's own "ready" is unreliable - it says false while handing over a
+    # complete prompt. Filling a field is the intent to run, so treat that as
+    # ready too. Chit-chat sets nothing and still will not fire, and a missing
+    # required field always wins over either signal.
     return {"reply": reply, "set": updates,
-            "ready": ready and not still_missing, "missing": still_missing}
+            "ready": (ready or bool(updates)) and not still_missing,
+            "missing": still_missing}
 
 
 CHAT_EDIT_DEFAULT_PERSONA = {
@@ -2523,6 +2532,45 @@ def _chat_edit_remember(fact: str) -> None:
             json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
     except OSError as exc:
         print(f"[CHAT-EDIT] could not persist memory: {exc}")
+
+
+def _loads_first_object(text: str) -> Optional[Dict[str, Any]]:
+    """Pull the first complete JSON object out of a model's reply.
+
+    Local models wrap the object in prose and mis-balance braces - a real reply
+    ended `..."}}, "ready": false}`, one brace too many, which made a plain
+    json.loads fail and dumped the whole blob into the chat as the answer.
+
+    So: find the opening brace, then walk forward tracking string state and
+    depth, and cut at the point the object actually closes. Anything trailing is
+    the model's mistake and is discarded rather than allowed to fail the parse.
+    """
+    start = text.find("{")
+    if start == -1:
+        return None
+    depth, in_str, esc = 0, False, False
+    for i in range(start, len(text)):
+        ch = text[i]
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                try:
+                    return json.loads(text[start:i + 1])
+                except ValueError:
+                    return None
+    return None
 
 
 CHAT_EDIT_SESSIONS_FILE = CONFIG_DIR / "chat_edit_sessions.json"
