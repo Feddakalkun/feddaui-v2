@@ -65,6 +65,41 @@ export function VenicePage() {
   const [isImgGenerating, setIsImgGenerating] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const [imgError, setImgError] = useState('');
+  const [liveModels, setLiveModels] = useState<{ id: string; label: string }[] | null>(null);
+
+  /**
+   * Ask Venice what it actually offers.
+   *
+   * The list below is hardcoded, so it goes stale every time Venice adds or
+   * retires a model - and a stale entry fails at generate time with a 400 that
+   * looks like a bug in the app. Asking costs one request and no credits.
+   * The hardcoded list stays as the fallback for a missing key or a bad day.
+   */
+  useEffect(() => {
+    const apiKey = localStorage.getItem('venice_api_key') || '';
+    if (!apiKey) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('https://api.venice.ai/api/v1/models?type=image', {
+          headers: { Authorization: 'Bearer ' + apiKey },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const rows = Array.isArray(data?.data) ? data.data : [];
+        const models = rows
+          .map((m: { id?: string; model_spec?: { name?: string } }) => ({
+            id: String(m.id || ''),
+            label: m.model_spec?.name || String(m.id || ''),
+          }))
+          .filter((m: { id: string }) => m.id);
+        if (!cancelled && models.length) setLiveModels(models);
+      } catch { /* offline or blocked - the fallback list still works */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const imageModels = liveModels ?? VENICE_IMAGE_MODELS;
 
   const generateImage = async () => {
     const apiKey = localStorage.getItem('venice_api_key') || '';
@@ -495,7 +530,7 @@ Current context: User is requesting images of Elara at the safari camp, now spec
                       onChange={e => setImgModel(e.target.value)}
                       className="w-full rounded-xl fedda-input p-3 text-sm focus:border-violet-500/40"
                     >
-                      {VENICE_IMAGE_MODELS.map(m => (
+                      {imageModels.map(m => (
                         <option key={m.id} value={m.id}>{m.label}</option>
                       ))}
                     </select>
@@ -556,7 +591,7 @@ Current context: User is requesting images of Elara at the safari camp, now spec
                     {isImgGenerating ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Generating with {VENICE_IMAGE_MODELS.find(m => m.id === imgModel)?.label.split(' (')[0] || imgModel}…</span>
+                        <span>Generating with {imageModels.find(m => m.id === imgModel)?.label.split(' (')[0] || imgModel}…</span>
                       </>
                     ) : (
                       <>
