@@ -42,7 +42,12 @@ const OPEN_KEY = 'fedda.chat.switcher.open';
  * offers, while a missing node needs the pack installed, so it is the bigger
  * blocker of the two.
  */
-const whyNot = (e: { missing: number; missingNodes: string[] }) => {
+const whyNot = (e: { known: boolean; missing: number; missingNodes: string[] }) => {
+  // A registry entry can name a workflow that was never shipped - FLUX KLEIN
+  // UNCENSORED points at one that exists in no config and no file. Nothing is
+  // missing there because there is nothing; saying "0 model files missing"
+  // reads as a bug, which is how this was found.
+  if (!e.known) return 'not in this build';
   if (e.missingNodes.length) {
     return e.missingNodes.length === 1
       ? `needs node ${e.missingNodes[0]}`
@@ -55,7 +60,9 @@ type Entry = {
   id: string;
   label: string;
   family: string;
-  /** Every model this workflow needs is already downloaded. */
+  /** The backend has a workflow by this id at all. */
+  known: boolean;
+  /** Everything it needs - models and nodes - is present. */
   ready: boolean;
   /** How many model files are missing, for the tooltip. */
   missing: number;
@@ -114,6 +121,7 @@ export const WorkflowSwitcher = () => {
           id,
           label: m.label,
           family: f.label,
+          known: readiness ? id in readiness : true,
           ready: readiness ? Boolean(readiness[id]?.ready) : true,
           missing: readiness?.[id]?.missing ?? 0,
           missingNodes: readiness?.[id]?.missing_nodes ?? [],
