@@ -23,9 +23,11 @@ interface Props {
   workflowId: string | null;
   onPick: (workflowId: string, label: string) => void;
   onClear: () => void;
+  openId?: string | null;
+  onSaved?: (id: string) => void;
 }
 
-export const StudioPane = ({ workflowId, onPick, onClear }: Props) => {
+export const StudioPane = ({ workflowId, onPick, onClear, openId = null, onSaved }: Props) => {
   const { availableModules } = useModules();
   const [openFamily, setOpenFamily] = useState<string | null>(null);
 
@@ -45,7 +47,7 @@ export const StudioPane = ({ workflowId, onPick, onClear }: Props) => {
           <ArrowLeft className="h-3 w-3" /> Choose another workflow
         </button>
         <div className="min-h-0 flex-1">
-          <ChatWorkflowPage workflowId={workflowId} />
+          <ChatWorkflowPage workflowId={workflowId} openId={openId} onSaved={onSaved} />
         </div>
       </div>
     );

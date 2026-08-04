@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChatSidebar, type ChatMode, type ChatSummary } from '../components/chat/ChatSidebar';
-import { ChatEditPage } from './qwen/ChatEditPage';
+import { ChatWorkflowPage } from './ChatWorkflowPage';
 import { StudioPane } from './StudioPane';
 
 /**
@@ -14,6 +14,9 @@ import { StudioPane } from './StudioPane';
  * Opening a saved chat routes by its `workflow_id`: absent means the Qwen
  * editor, which is exactly what every chat saved before Studio existed has.
  */
+/** Chat mode is this workflow; Studio lets you pick any other. */
+const QWEN_EDIT = 'qwen-rapid-edit-v23';
+
 export const AgentShell = () => {
   const [mode, setMode] = useState<ChatMode>('chat');
   const [openId, setOpenId] = useState<string | null>(null);
@@ -23,7 +26,8 @@ export const AgentShell = () => {
 
   const openChat = (chat: ChatSummary) => {
     setActiveId(chat.id);
-    if (chat.workflow_id) {
+    setOpenId(chat.id);
+    if (chat.workflow_id && chat.workflow_id !== QWEN_EDIT) {
       setMode('studio');
       setStudioWorkflow(chat.workflow_id);
     } else {
@@ -56,7 +60,9 @@ export const AgentShell = () => {
         refreshKey={sidebarKey}
       />
       {mode === 'chat' ? (
-        <ChatEditPage
+        // Chat mode is the same agent pinned to the image editor.
+        <ChatWorkflowPage
+          workflowId={QWEN_EDIT}
           openId={openId}
           onSaved={(id) => { setActiveId(id); setSidebarKey((k) => k + 1); }}
         />
@@ -65,6 +71,8 @@ export const AgentShell = () => {
           workflowId={studioWorkflow}
           onPick={(id) => setStudioWorkflow(id)}
           onClear={() => setStudioWorkflow(null)}
+          openId={openId}
+          onSaved={(id) => { setActiveId(id); setSidebarKey((k) => k + 1); }}
         />
       )}
     </div>

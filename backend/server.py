@@ -2548,6 +2548,10 @@ class ChatSessionBody(BaseModel):
     id: Optional[str] = None
     title: Optional[str] = None
     messages: List[Dict[str, Any]] = []
+    # Every input the workflow was run with. Replaces the single `image`, which
+    # only ever fit the Qwen editor; image/history stay accepted so chats saved
+    # before the agents merged still load.
+    values: Dict[str, Any] = {}
     image: Optional[str] = None
     history: List[str] = []
     folder: Optional[str] = None
@@ -2606,6 +2610,9 @@ async def chat_session_save(body: ChatSessionBody):
         "title": title[:60],
         "updated": time.strftime("%Y-%m-%dT%H:%M:%S"),
         "messages": body.messages,
+        # A chat saved by the old Qwen page kept its image in `image`; carry it
+        # into values so reopening it still has something to edit.
+        "values": body.values or ({"image": body.image} if body.image else {}),
         "image": body.image,
         "history": body.history,
         # Keep the existing folder when a save does not mention one, so
