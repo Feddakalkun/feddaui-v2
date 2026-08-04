@@ -75,8 +75,10 @@ type Entry = {
 
 export const WorkflowSwitcher = () => {
   const { workflowId, pick } = useAgentWorkflow();
+  // Closed until asked for. Switching workflow is something you do now and
+  // then; a wall of cards is not worth the room it takes the rest of the time.
   const [open, setOpen] = useState(() => {
-    try { return localStorage.getItem(OPEN_KEY) !== '0'; } catch { return true; }
+    try { return localStorage.getItem(OPEN_KEY) === '1'; } catch { return false; }
   });
   const [query, setQuery] = useState('');
   const [peek, setPeek] = useState<{ entry: Entry; x: number; y: number } | null>(null);
