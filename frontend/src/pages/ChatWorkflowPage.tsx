@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ChevronDown, ChevronRight, ImagePlus, Loader2, Play, RotateCcw, Undo2, Upload,
+  ChevronDown, ChevronRight, ImagePlus, Loader2, Play, RotateCcw, Send, Undo2, Upload,
 } from 'lucide-react';
 import { BACKEND_API } from '../config/api';
 import { ChatImage } from '../components/chat/ChatImage';
@@ -569,6 +569,17 @@ export const ChatWorkflowPage = ({ workflowId, openId = null, onSaved }: Props) 
                 {showSettings ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                 Settings
               </button>
+              {messages.some((m) => m.image) && (
+                <button
+                  type="button"
+                  onClick={() => { void run(); }}
+                  disabled={Boolean(missing.length) || running}
+                  title="Run again with the current settings"
+                  className="ml-1 inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/25 transition hover:text-white/60 disabled:opacity-25"
+                >
+                  <Play className="h-3 w-3" /> Run again
+                </button>
+              )}
               {showSettings && (
                 <div className="mt-2 flex flex-wrap items-center gap-2">{settingFields.map(control)}</div>
               )}
@@ -590,19 +601,10 @@ export const ChatWorkflowPage = ({ workflowId, openId = null, onSaved }: Props) 
               type="button"
               onClick={() => { void send(); }}
               disabled={busy || running || !input.trim()}
-              className="shrink-0 rounded-xl px-3 py-2 text-[12px] text-white/55 transition hover:bg-white/[0.07] hover:text-white disabled:opacity-25"
-            >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Send'}
-            </button>
-            <button
-              type="button"
-              onClick={() => { void run(); }}
-              disabled={Boolean(missing.length) || running}
-              title={missing.length ? `Still needs: ${missing.map((f) => f.label).join(', ')}` : 'Run again'}
+              title="Send"
               className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-cyan-500/90 px-3.5 py-2 text-[12px] font-semibold text-white transition hover:bg-cyan-400 disabled:opacity-25"
             >
-              {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-              Run
+              {busy || running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </button>
           </div>
         </div>
