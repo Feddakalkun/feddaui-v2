@@ -14,7 +14,8 @@ import sqlite3
 import shutil
 import uuid
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
+import math
 import asyncio
 import re
 import time
@@ -2483,6 +2484,12 @@ async def chat_workflow_turn(req: ChatWorkflowRequest):
         if target and _looks_like_a_request(req.message or ""):
             updates = {target: req.message.strip()}
 
+    # An aspect the user named is set here rather than left to the model, which
+    # treats width and height as two unrelated numbers and routinely sets one.
+    ratio = _aspect_from(req.message or "")
+    if ratio and any(f["key"] == "width" for f in fields):
+        updates = {**updates, **_sized_for(ratio, fields)}
+
     # The model's own "ready" is advisory; required fields are the authority.
     still_missing = [f["key"] for f in fields
                      if f.get("required")
@@ -2544,6 +2551,48 @@ def _chat_edit_remember(fact: str) -> None:
             json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
     except OSError as exc:
         print(f"[CHAT-EDIT] could not persist memory: {exc}")
+
+
+ASPECT_WORDS = {
+    "portrait": (9, 16), "vertical": (9, 16), "stående": (9, 16),
+    "landscape": (16, 9), "horizontal": (16, 9), "liggende": (16, 9),
+    "square": (1, 1), "kvadratisk": (1, 1),
+}
+
+
+def _aspect_from(message: str) -> Optional[Tuple[int, int]]:
+    """An aspect ratio the user named, as (w, h), or None.
+
+    Ratios written as "9:16" win over words, since someone who types the
+    numbers means exactly those. Anything wilder than 4:1 either way is read as
+    something else entirely - a time, a score, a seed - and ignored.
+    """
+    match = re.search(r"\b(\d{1,2})\s*[:x/]\s*(\d{1,2})\b", message or "")
+    if match:
+        w, h = int(match.group(1)), int(match.group(2))
+        if w and h and 0.25 <= w / h <= 4:
+            return w, h
+    lowered = (message or "").lower()
+    return next((v for k, v in ASPECT_WORDS.items() if k in lowered), None)
+
+
+def _sized_for(ratio: Tuple[int, int], fields: List[Dict[str, Any]]) -> Dict[str, int]:
+    """Width and height at that ratio, keeping the workflow's own pixel count.
+
+    The graph author picked their resolution for speed and VRAM on their model;
+    re-deriving it from a ratio alone would quietly change both. So the area is
+    held and only the shape moves, snapped to 16 because the sampler works in
+    latent blocks.
+    """
+    defaults = {f["key"]: f.get("default") for f in fields}
+    base_w, base_h = defaults.get("width"), defaults.get("height")
+    if not isinstance(base_w, (int, float)) or not isinstance(base_h, (int, float)):
+        return {}
+    budget = float(base_w) * float(base_h)
+    rw, rh = ratio
+    scale = math.sqrt(budget / (rw * rh))
+    snap = lambda v: max(256, int(round(v / 16)) * 16)  # noqa: E731
+    return {"width": snap(rw * scale), "height": snap(rh * scale)}
 
 
 def _looks_like_a_request(message: str) -> bool:
