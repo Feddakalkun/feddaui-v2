@@ -58,16 +58,9 @@ export const WorkflowSwitcher = ({ workflowId, fallbackName, onPick }: Props) =>
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const hits = q
+    return q
       ? entries.filter((e) => `${e.label} ${e.family}`.toLowerCase().includes(q))
       : entries;
-    const groups = new Map<string, typeof hits>();
-    for (const e of hits) {
-      const list = groups.get(e.family);
-      if (list) list.push(e);
-      else groups.set(e.family, [e]);
-    }
-    return [...groups.entries()];
   }, [entries, query]);
 
   useEffect(() => {
@@ -97,7 +90,7 @@ export const WorkflowSwitcher = ({ workflowId, fallbackName, onPick }: Props) =>
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-40 mt-1 w-[min(46rem,calc(100vw-6rem))] overflow-hidden rounded-2xl bg-[#0d0d13] shadow-2xl shadow-black/70 ring-1 ring-white/10">
+        <div className="absolute left-0 top-full z-40 mt-1 w-[min(64rem,calc(100vw-4rem))] overflow-hidden rounded-2xl bg-[#0d0d13] shadow-2xl shadow-black/70 ring-1 ring-white/10">
           <div className="relative p-2.5">
             <Search className="pointer-events-none absolute left-5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/25" />
             <input
@@ -109,50 +102,48 @@ export const WorkflowSwitcher = ({ workflowId, fallbackName, onPick }: Props) =>
             />
           </div>
 
-          <div className="custom-scrollbar max-h-[62vh] overflow-y-auto px-2.5 pb-3">
-            {shown.length === 0 && (
-              <p className="px-1 py-6 text-center text-[12px] text-white/30">Nothing matches that.</p>
-            )}
-            {shown.map(([family, items]) => (
-              <div key={family} className="mb-3">
-                <p className="px-1 pb-1.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/25">
-                  {family}
-                </p>
-                <div className="grid grid-cols-3 gap-2">
-                  {items.map((e) => (
-                    <button
-                      key={e.id}
-                      type="button"
-                      onClick={() => { onPick(e.id); setOpen(false); }}
-                      title={e.label}
-                      className={cn(
-                        'group relative aspect-[1168/784] overflow-hidden rounded-xl bg-[#141420] text-left ring-1 transition',
-                        e.id === workflowId
-                          ? 'ring-cyan-400/70'
-                          : 'ring-white/5 hover:ring-white/25',
-                      )}
-                    >
-                      {e.poster && (
-                        <img
-                          src={e.poster}
-                          alt=""
-                          loading="lazy"
-                          className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
-                        />
-                      )}
-                      {/* Only the strip behind the label is darkened - the cards
-                          carry their own titles and a full scrim buries them. */}
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent px-2 pb-1.5 pt-5">
-                        <span className="block truncate text-[11px] font-semibold text-zinc-50">
-                          {e.label}
-                        </span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+          {shown.length === 0 ? (
+            <p className="px-3 py-8 text-center text-[12px] text-white/30">Nothing matches that.</p>
+          ) : (
+            /* One row, everything at once.
+               A scrolling strip clips whatever leaves its box, so the space a
+               hovered card grows into has to be reserved up front. It grows
+               upward from its own bottom edge, which keeps the row itself
+               anchored and needs the room in one direction instead of two. */
+            <div className="custom-scrollbar flex items-end gap-2 overflow-x-auto overflow-y-hidden px-16 pb-4 pt-24">
+              {shown.map((e) => (
+                <button
+                  key={e.id}
+                  type="button"
+                  onClick={() => { onPick(e.id); setOpen(false); }}
+                  title={`${e.label} — ${e.family}`}
+                  className={cn(
+                    'group relative aspect-[1168/784] w-24 shrink-0 overflow-visible rounded-lg text-left',
+                    'origin-bottom transition-transform duration-200 hover:z-20 hover:scale-[2.4]',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'absolute inset-0 overflow-hidden rounded-lg bg-[#141420] ring-1 transition',
+                      e.id === workflowId ? 'ring-cyan-400/80' : 'ring-white/10 group-hover:ring-white/30',
+                    )}
+                  >
+                    {e.poster && (
+                      <img src={e.poster} alt="" loading="lazy"
+                        className="h-full w-full object-cover" />
+                    )}
+                    {/* The names only appear once a card is big enough to read
+                        them; at rest they would be an illegible smear. */}
+                    <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent px-1.5 pb-1 pt-4 opacity-0 transition group-hover:opacity-100">
+                      <span className="block truncate text-[5px] font-semibold text-zinc-50">
+                        {e.label}
+                      </span>
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
