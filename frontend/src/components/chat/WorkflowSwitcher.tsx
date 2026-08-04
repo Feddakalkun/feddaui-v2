@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { BACKEND_API } from '../../config/api';
 import { ChevronDown, ChevronUp, Layers, Lock, Search } from 'lucide-react';
-import { useModules } from '../../contexts/ModuleContext';
-import { isUiModuleAvailable } from '../../modules/moduleSelectors';
 import { useAgentWorkflow } from '../../contexts/AgentWorkflowContext';
 import { FEDDA_MODULES } from '../../modules/registry';
 import { groupIntoFamilies } from '../../modules/workflowFamilies';
@@ -21,9 +20,13 @@ import { cn } from '../../lib/styles';
  *
  * Everything is listed, including the entries the menus keep hidden - the point
  * of the bar is seeing what the app can do, and hiding the rest makes the
- * library look smaller than it is. Only one thing decides whether a card can be
- * picked: whether its pack is installed. A hidden module whose pack is there
- * still runs, and greying it out would take away something that works.
+ * library look smaller than it is.
+ *
+ * What decides whether a card can be picked is whether its models are on disk.
+ * The pack being installed is not the same question and answering it that way
+ * was wrong: 33 of 34 looked ready when only 16 would actually run. Until the
+ * readiness answer arrives nothing is dimmed, because guessing wrong in that
+ * direction locks the user out of workflows that work.
  *
  * Cards are filmstrip size, too small to read, which is what the hover preview
  * is for. That preview is positioned against the viewport, because a scrolling
@@ -36,20 +39,35 @@ type Entry = {
   id: string;
   label: string;
   family: string;
-  /** Its pack is installed. */
-  installed: boolean;
+  /** Every model this workflow needs is already downloaded. */
+  ready: boolean;
+  /** How many model files are missing, for the tooltip. */
+  missing: number;
   poster?: string;
   poster916?: string;
 };
 
 export const WorkflowSwitcher = () => {
-  const { enabledSourceIds } = useModules();
   const { workflowId, pick } = useAgentWorkflow();
   const [open, setOpen] = useState(() => {
     try { return localStorage.getItem(OPEN_KEY) !== '0'; } catch { return true; }
   });
   const [query, setQuery] = useState('');
   const [peek, setPeek] = useState<{ entry: Entry; x: number; y: number } | null>(null);
+  const [readiness, setReadiness] = useState<Record<string, { ready: boolean; missing: number }> | null>(null);
+
+  // One request for the whole library; the per-workflow endpoint would be 34.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${BACKEND_API.BASE_URL}/api/workflow/model-readiness`);
+        const data = await res.json();
+        if (!cancelled && data.success) setReadiness(data.workflows);
+      } catch { /* leave everything enabled rather than lock the bar */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // The whole registry, hidden entries included, marked up afterwards.
   const families = useMemo(
@@ -76,7 +94,8 @@ export const WorkflowSwitcher = () => {
           id,
           label: m.label,
           family: f.label,
-          installed: isUiModuleAvailable(m, enabledSourceIds),
+          ready: readiness ? Boolean(readiness[id]?.ready) : true,
+          missing: readiness?.[id]?.missing ?? 0,
           poster: m.card?.poster,
           // The strip has its own portrait art, published beside the landscape
           // set under a matching filename. Deriving the path keeps one source
@@ -85,19 +104,19 @@ export const WorkflowSwitcher = () => {
           poster916: m.card?.poster?.replace('/cards/bunny/', '/cards/bunny916/'),
         }];
       }));
-  }, [families, enabledSourceIds]);
+  }, [families, readiness]);
 
   const current = entries.find((e) => e.id === workflowId);
-  const installedCount = entries.filter((e) => e.installed).length;
+  const readyCount = entries.filter((e) => e.ready).length;
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     const hits = q
       ? entries.filter((e) => `${e.label} ${e.family}`.toLowerCase().includes(q))
       : entries;
-    // Installed first: the ones you can actually use should not be buried
+    // Runnable first: the ones you can actually use should not be buried
     // among the ones you cannot.
-    return [...hits].sort((a, b) => Number(b.installed) - Number(a.installed));
+    return [...hits].sort((a, b) => Number(b.ready) - Number(a.ready));
   }, [entries, query]);
 
   const toggle = () => {
@@ -131,7 +150,7 @@ export const WorkflowSwitcher = () => {
           <span className="font-mono normal-case tracking-normal text-white/50">
             {current?.label || workflowId}
           </span>
-          <span className="font-mono text-white/25">{installedCount}/{entries.length}</span>
+          <span className="font-mono text-white/25">{readyCount}/{entries.length}</span>
           {open ? <ChevronUp className="h-3.5 w-3.5 text-white/25" />
                 : <ChevronDown className="h-3.5 w-3.5 text-white/25" />}
         </button>
@@ -158,18 +177,19 @@ export const WorkflowSwitcher = () => {
             <button
               key={e.id}
               type="button"
-              disabled={!e.installed}
+              disabled={!e.ready}
               onClick={() => pick(e.id)}
               onMouseEnter={(ev) => {
                 const r = ev.currentTarget.getBoundingClientRect();
                 setPeek({ entry: e, x: r.left + r.width / 2, y: r.bottom });
               }}
               onMouseLeave={() => setPeek(null)}
-              title={e.installed ? `${e.label} — ${e.family}`
-                                 : `${e.label} — not installed`}
+              title={e.ready
+                ? `${e.label} — ${e.family}`
+                : `${e.label} — ${e.missing} model file${e.missing === 1 ? '' : 's'} missing`}
               className={cn(
                 'relative h-16 w-9 shrink-0 overflow-hidden rounded-md bg-[#141420] ring-1 transition',
-                !e.installed ? 'cursor-not-allowed opacity-30 ring-white/5 grayscale'
+                !e.ready ? 'cursor-not-allowed opacity-30 ring-white/5 grayscale'
                   : e.id === workflowId ? 'ring-cyan-400/80'
                   : 'ring-white/10 hover:ring-white/40',
               )}
@@ -192,7 +212,7 @@ export const WorkflowSwitcher = () => {
                   className="h-full w-full object-cover"
                 />
               )}
-              {!e.installed && (
+              {!e.ready && (
                 <Lock className="absolute inset-0 m-auto h-3 w-3 text-white/70" />
               )}
             </button>
@@ -207,14 +227,14 @@ export const WorkflowSwitcher = () => {
           className={cn(
             'pointer-events-none fixed z-50 w-40 -translate-x-1/2 overflow-hidden rounded-xl',
             'shadow-2xl shadow-black/80 ring-1 ring-white/20',
-            !peek.entry.installed && 'grayscale',
+            !peek.entry.ready && 'grayscale',
           )}
           style={{ left: peek.x, top: peek.y + 8 }}
         >
           <img src={src(peek.entry)} alt="" className="w-full" />
-          {!peek.entry.installed && (
+          {!peek.entry.ready && (
             <span className="absolute inset-x-0 bottom-0 bg-black/80 py-1 text-center text-[10px] font-semibold text-white/70">
-              Not installed
+              {peek.entry.missing} model{peek.entry.missing === 1 ? '' : 's'} missing
             </span>
           )}
         </div>

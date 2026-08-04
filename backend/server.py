@@ -4686,6 +4686,52 @@ async def get_all_workflow_model_overview():
     return {"success": True, "workflows": rows}
 
 
+@app.get("/api/workflow/model-readiness")
+async def get_workflow_model_readiness():
+    """Which workflows have every model they need already on disk.
+
+    A summary for pickers, which need to know "can I run this" for the whole
+    library at once - asking the per-workflow endpoint 34 times to render one
+    bar is a lot of work for a yes/no.
+
+    Deliberately narrower than that endpoint: it reads the declared downloads
+    and the built-in model files, and checks whether they exist. No WAN or
+    FLUX preflight, because those can *start a download*, and a picker drawing
+    itself must never do that.
+    """
+    out: Dict[str, Dict[str, Any]] = {}
+    try:
+        mappings = workflow_service.load_mapping()
+    except Exception as exc:  # noqa: BLE001 - report, never take the UI down
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    for workflow_id, mapping in mappings.items():
+        path = workflow_service.get_workflow_path(mapping.get("filename", ""))
+        if not path:
+            out[workflow_id] = {"ready": False, "missing": 0, "total": 0,
+                                "reason": "workflow file not found"}
+            continue
+        try:
+            with open(path, "r", encoding="utf-8-sig") as f:
+                workflow = json.load(f)
+            files = _parse_workflow_download_links(workflow)
+            for node_id, node in workflow.items():
+                if isinstance(node, dict):
+                    files.extend(_workflow_builtin_model_download_files(str(node_id), node))
+        except Exception as exc:  # noqa: BLE001 - one bad graph is not fatal
+            out[workflow_id] = {"ready": False, "missing": 0, "total": 0,
+                                "reason": str(exc)[:120]}
+            continue
+
+        missing = [f for f in files if not f.get("exists")]
+        out[workflow_id] = {
+            "ready": not missing,
+            "missing": len(missing),
+            "total": len(files),
+        }
+    return {"success": True, "workflows": out}
+
+
 @app.get("/api/workflow/model-status/{workflow_id}")
 async def get_workflow_model_status(workflow_id: str):
     """Expose model downloader requirements embedded in a Comfy workflow."""
