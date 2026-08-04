@@ -126,10 +126,18 @@ export const ChatWorkflowPage = ({ workflowId }: { workflowId: string }) => {
       });
       if (!res.ok) throw new Error((await res.json()).detail || 'Agent unavailable — is Ollama running?');
       const data = await res.json();
-      if (data.set && Object.keys(data.set).length) {
-        setValues((v) => ({ ...v, ...data.set }));
-      }
+      const merged = { ...values, ...(data.set || {}) };
+      if (data.set && Object.keys(data.set).length) setValues(merged);
       setMessages((m) => [...m, { role: 'agent', text: data.reply }]);
+
+      // The whole point of this page: describing what you want runs it. The
+      // agent already decides when everything required is filled, and the
+      // backend re-checks that, so leaving the user to press Run afterwards
+      // made this a form with a chatbot attached rather than an agent.
+      const stillMissing = fields.filter((f) => f.required && !merged[f.key]);
+      if (data.ready && !stillMissing.length) {
+        await run(merged);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -137,8 +145,10 @@ export const ChatWorkflowPage = ({ workflowId }: { workflowId: string }) => {
     }
   };
 
-  const run = async () => {
-    if (missing.length || running) return;
+  const run = async (override?: Record<string, string | number>) => {
+    const params = override ?? values;
+    const stillMissing = fields.filter((f) => f.required && !params[f.key]);
+    if (stillMissing.length || running) return;
     setRunning(true);
     setError(null);
     setMessages((m) => [...m, { role: 'agent', text: 'Running…' }]);
@@ -152,7 +162,7 @@ export const ChatWorkflowPage = ({ workflowId }: { workflowId: string }) => {
       const res = await fetch(`${BACKEND_API.BASE_URL}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workflow_id: workflowId, params: values }),
+        body: JSON.stringify({ workflow_id: workflowId, params }),
       });
       const queued = await res.json().catch(() => ({}));
       if (!res.ok || !queued.prompt_id) {
