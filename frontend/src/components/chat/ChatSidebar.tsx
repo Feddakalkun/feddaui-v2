@@ -1,13 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Brain, Check, ChevronDown, ChevronRight, FolderPlus, MessageSquare,
-  PanelLeftClose, PanelLeftOpen, Pencil, Plus, Search, Sparkles, Trash2, X,
+  PanelLeftClose, PanelLeftOpen, Pencil, Plus, Search, Trash2, X,
 } from 'lucide-react';
 import { BACKEND_API } from '../../config/api';
 import { cn } from '../../lib/styles';
 
 /**
- * Collapsible chat rail: modes, search, folders, history and the memory log.
+ * Collapsible chat rail: search, folders, history and the memory log.
+ *
+ * It used to carry a Chat/Studio switcher too. That went when the workflow
+ * picker moved into the chat header - there is one agent and one list of
+ * conversations, and a mode switch above them only implied otherwise.
  *
  * Collapsed state is remembered, because this is a panel people keep open for a
  * whole session and re-collapsing it on every visit is exactly the kind of
@@ -16,8 +20,6 @@ import { cn } from '../../lib/styles';
 
 const COLLAPSED_KEY = 'fedda.chat.sidebar.collapsed';
 const UNFILED = '__unfiled__';
-
-export type ChatMode = 'chat' | 'studio';
 
 export type ChatSummary = {
   id: string;
@@ -29,8 +31,6 @@ export type ChatSummary = {
 };
 
 interface Props {
-  mode: ChatMode;
-  onMode: (mode: ChatMode) => void;
   activeId: string | null;
   onOpen: (chat: ChatSummary) => void;
   onNew: () => void;
@@ -38,7 +38,7 @@ interface Props {
   refreshKey: number;
 }
 
-export const ChatSidebar = ({ mode, onMode, activeId, onOpen, onNew, refreshKey }: Props) => {
+export const ChatSidebar = ({ activeId, onOpen, onNew, refreshKey }: Props) => {
   const [chats, setChats] = useState<ChatSummary[]>([]);
   const [query, setQuery] = useState('');
   const [collapsed, setCollapsed] = useState(() => {
@@ -159,26 +159,12 @@ export const ChatSidebar = ({ mode, onMode, activeId, onOpen, onNew, refreshKey 
     );
   }
 
-  const modeButton = (id: ChatMode, label: string, Icon: typeof MessageSquare) => (
-    <button
-      type="button"
-      onClick={() => onMode(id)}
-      className={cn(
-        'flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-semibold transition',
-        mode === id ? 'bg-cyan-500/15 text-cyan-100' : 'text-white/40 hover:text-white',
-      )}
-    >
-      <Icon className="h-3.5 w-3.5" /> {label}
-    </button>
-  );
-
   return (
     <div className="flex w-60 shrink-0 flex-col bg-[#0b0b10]">
       <div className="flex items-center gap-1 px-3 pt-3">
-        <div className="flex flex-1 gap-1 rounded-xl bg-white/[0.04] p-0.5">
-          {modeButton('chat', 'Chat', MessageSquare)}
-          {modeButton('studio', 'Studio', Sparkles)}
-        </div>
+        <p className="flex-1 px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/30">
+          Chats
+        </p>
         <button type="button" onClick={toggle} title="Hide chats"
           className="rounded-lg p-1.5 text-white/30 transition hover:text-white">
           <PanelLeftClose className="h-4 w-4" />
@@ -234,9 +220,7 @@ export const ChatSidebar = ({ mode, onMode, activeId, onOpen, onNew, refreshKey 
                   c.id === activeId ? 'bg-cyan-500/10 text-cyan-100' : 'text-white/50 hover:bg-white/[0.04]',
                 )}
               >
-                {c.workflow_id
-                  ? <Sparkles className="h-3 w-3 shrink-0 opacity-50" />
-                  : <MessageSquare className="h-3 w-3 shrink-0 opacity-50" />}
+                <MessageSquare className="h-3 w-3 shrink-0 opacity-50" />
 
                 {editing === c.id ? (
                   <>

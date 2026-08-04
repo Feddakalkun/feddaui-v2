@@ -2471,6 +2471,18 @@ async def chat_workflow_turn(req: ChatWorkflowRequest):
         if reply.lstrip().startswith("{"):
             reply = "Sorry - I garbled that. Say it again?"
 
+    # Small models answer "Got it." and set nothing, even though the system
+    # prompt calls that out as the most common mistake. Asking more firmly does
+    # not fix it, so the fallback is deterministic: if the model neither filled
+    # anything nor asked a question, the turn produced nothing, and using what
+    # the user actually wrote is strictly better than silently doing nothing.
+    if not updates and not reply.rstrip().endswith("?"):
+        target = next((f["key"] for f in fields
+                       if f["control"] == "text" and "prompt" in f["key"].lower()
+                       and "negative" not in f["key"].lower()), None)
+        if target and _looks_like_a_request(req.message or ""):
+            updates = {target: req.message.strip()}
+
     # The model's own "ready" is advisory; required fields are the authority.
     still_missing = [f["key"] for f in fields
                      if f.get("required")
@@ -2532,6 +2544,25 @@ def _chat_edit_remember(fact: str) -> None:
             json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
     except OSError as exc:
         print(f"[CHAT-EDIT] could not persist memory: {exc}")
+
+
+def _looks_like_a_request(message: str) -> bool:
+    """Is this the user describing something to make, rather than talking?
+
+    Guards the fallback that turns the user's own words into the prompt when the
+    model failed to. The cost of a wrong yes is generating something they did
+    not ask for, so anything phrased as a question is left alone, as is anything
+    too short to be a description - "hey", "yes", "nice" are conversation.
+    """
+    text = (message or "").strip()
+    if not text or text.endswith("?"):
+        return False
+    first = text.split()[0].lower().strip(",")
+    if first in {"what", "who", "when", "where", "why", "how", "can", "could",
+                 "does", "do", "is", "are", "should", "hva", "hvem", "hvordan",
+                 "kan", "skal", "er"}:
+        return False
+    return len(text.split()) >= 3
 
 
 def _loads_first_object(text: str) -> Optional[Dict[str, Any]]:

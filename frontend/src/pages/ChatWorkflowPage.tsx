@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { BACKEND_API } from '../config/api';
 import { ChatImage } from '../components/chat/ChatImage';
+import { WorkflowSwitcher } from '../components/chat/WorkflowSwitcher';
 import { useComfyExecution } from '../contexts/ComfyExecutionContext';
 import { cn } from '../lib/styles';
 
@@ -74,9 +75,11 @@ interface Props {
   openId?: string | null;
   /** Told when a chat is saved so the shell can refresh the sidebar. */
   onSaved?: (id: string) => void;
+  /** Given, the workflow name becomes a picker for every other workflow. */
+  onPickWorkflow?: (workflowId: string) => void;
 }
 
-export const ChatWorkflowPage = ({ workflowId, openId = null, onSaved }: Props) => {
+export const ChatWorkflowPage = ({ workflowId, openId = null, onSaved, onPickWorkflow }: Props) => {
   const [fields, setFields] = useState<Field[]>([]);
   const [name, setName] = useState('');
   const [values, setValues] = useState<Record<string, string | number>>({});
@@ -174,17 +177,26 @@ export const ChatWorkflowPage = ({ workflowId, openId = null, onSaved }: Props) 
     try { localStorage.setItem(MODEL_KEY, n); } catch { /* private mode */ }
   };
 
-  // Reopen a saved chat, or clear for a new one.
+  /**
+   * Clear for a new chat.
+   *
+   * Split from the load below and keyed on `openId` alone. Together they raced:
+   * loading depends on `loopField`, which changes when the workflow does, so
+   * switching workflow re-ran the clear *after* the schema had written its
+   * greeting - landing you in an empty chat with no sign of what happened.
+   */
+  useEffect(() => {
+    if (openId) return;
+    setSessionId(null);
+    setHistory([]);
+    setDims(null);
+    setError(null);
+  }, [openId]);
+
+  // Reopen a saved chat.
   useEffect(() => {
     let cancelled = false;
-    if (!openId) {
-      setSessionId(null);
-      setMessages([]);
-      setHistory([]);
-      setDims(null);
-      setError(null);
-      return;
-    }
+    if (!openId) return undefined;
     (async () => {
       try {
         const res = await fetch(
@@ -483,9 +495,13 @@ export const ChatWorkflowPage = ({ workflowId, openId = null, onSaved }: Props) 
   return (
     <div className="flex h-full min-w-0 flex-1 flex-col bg-[#050506]">
       <div className="flex items-center gap-2 px-4 py-2.5">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">
-          {name || workflowId}
-        </p>
+        {onPickWorkflow ? (
+          <WorkflowSwitcher workflowId={workflowId} fallbackName={name} onPick={onPickWorkflow} />
+        ) : (
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">
+            {name || workflowId}
+          </p>
+        )}
         <span className="text-[10px] text-white/25">
           {missing.length ? `${missing.length} still needed` : 'ready'}
         </span>
