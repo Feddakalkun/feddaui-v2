@@ -1,0 +1,132 @@
+{
+  "_comment": [
+    "Catalog for the prompt builder. Data, not code: adding an action is an edit",
+    "here and needs no release. Each action carries a beat sheet rather than a",
+    "sentence - LTX responds to a timeline, and 'they kiss' produces a still",
+    "image with a wobble where '0-2s ... 2-5s ...' produces motion.",
+    "'needs' declares what the action assumes about the picture, so the builder",
+    "can warn instead of generating something incoherent."
+  ],
+  "categories": [
+    {
+      "key": "motion",
+      "label": "Motion"
+    },
+    {
+      "key": "intimate",
+      "label": "Intimate"
+    },
+    {
+      "key": "camera",
+      "label": "Camera"
+    }
+  ],
+  "actions": [
+    {
+      "key": "kiss",
+      "label": "Kissing",
+      "category": "intimate",
+      "nsfw": false,
+      "needs": {
+        "people": 2
+      },
+      "beats": [
+        "they turn toward each other, eyes meeting",
+        "they lean in slowly, hands finding waist and jaw",
+        "they kiss, unhurried, then part just enough to breathe"
+      ]
+    },
+    {
+      "key": "undress",
+      "label": "Undressing",
+      "category": "intimate",
+      "nsfw": true,
+      "needs": {
+        "people": 1
+      },
+      "beats": [
+        "she holds the camera's eye, one hand at a strap",
+        "the strap slides from her shoulder, fabric giving way",
+        "the garment falls, she settles into stillness"
+      ]
+    },
+    {
+      "key": "embrace",
+      "label": "Embrace",
+      "category": "intimate",
+      "nsfw": false,
+      "needs": {
+        "people": 2
+      },
+      "beats": [
+        "one steps in close",
+        "arms fold around, heads resting together",
+        "they hold, breathing together, small settling movements"
+      ]
+    },
+    {
+      "key": "walk_toward",
+      "label": "Walks toward camera",
+      "category": "motion",
+      "nsfw": false,
+      "needs": {
+        "people": 1
+      },
+      "beats": [
+        "she takes the first step, weight shifting",
+        "she walks toward the lens, hair and clothing moving with her",
+        "she stops close to the camera, holding the look"
+      ]
+    },
+    {
+      "key": "turn_around",
+      "label": "Turns around",
+      "category": "motion",
+      "nsfw": false,
+      "needs": {
+        "people": 1
+      },
+      "beats": [
+        "she begins to turn, shoulders leading",
+        "she rotates away, revealing her back",
+        "she glances back over her shoulder"
+      ]
+    },
+    {
+      "key": "hair_wind",
+      "label": "Hair and fabric in wind",
+      "category": "motion",
+      "nsfw": false,
+      "needs": {},
+      "beats": [
+        "a first gust lifts loose strands",
+        "hair and fabric stream sideways, catching the light",
+        "the wind eases and everything settles"
+      ]
+    },
+    {
+      "key": "dolly_in",
+      "label": "Camera pushes in",
+      "category": "camera",
+      "nsfw": false,
+      "needs": {},
+      "beats": [
+        "the camera begins a slow push forward",
+        "the frame tightens steadily, background compressing",
+        "it settles into a close hold"
+      ]
+    },
+    {
+      "key": "orbit",
+      "label": "Camera orbits",
+      "category": "camera",
+      "nsfw": false,
+      "needs": {},
+      "beats": [
+        "the camera starts to arc around her",
+        "it travels, parallax opening up the background",
+        "it comes to rest on the far side"
+      ]
+    }
+  ]
+}

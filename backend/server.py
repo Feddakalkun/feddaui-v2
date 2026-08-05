@@ -3292,6 +3292,140 @@ async def describe_for_sheet(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"Describe failed: {exc}")
 
 
+# ─── Prompt builder ────────────────────────────────────────────────────────
+PROMPT_ACTIONS_FILE = CONFIG_DIR / "prompt_actions.json"
+
+
+def _load_prompt_actions() -> Dict[str, Any]:
+    try:
+        return json.loads(PROMPT_ACTIONS_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {"categories": [], "actions": []}
+
+
+@app.get("/api/prompt-builder/actions")
+async def prompt_builder_actions():
+    """The action catalogue the builder offers.
+
+    Read from disk on every call rather than cached: it is a data file people
+    are meant to edit, and a restart to see a new action would stop anyone
+    bothering.
+    """
+    data = _load_prompt_actions()
+    return {"success": True,
+            "categories": data.get("categories", []),
+            "actions": data.get("actions", [])}
+
+
+@app.get("/api/prompt-builder/loras")
+async def prompt_builder_loras(prefix: str = ""):
+    """Installed LoRAs with whatever trigger words we captured at import.
+
+    The sidecar is the only source. A hardcoded map would describe the machine
+    it was written on, and the point is that this works for LoRAs nobody here
+    has ever seen.
+    """
+    installed = lora_service.get_installed()
+    out = []
+    for rel, info in installed.items():
+        if prefix and not rel.lower().startswith(prefix.lower()):
+            continue
+        # get_installed reports a path relative to the loras dir, not an absolute
+        # one, and the sidecar sits beside the weights.
+        meta_path = lora_service.lora_dir / (str(info.get("path") or "") + ".fedda.json")
+        triggers, source = [], ""
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            triggers = meta.get("trigger_words") or []
+            source = meta.get("source") or ""
+        except (OSError, ValueError):
+            pass
+        out.append({"path": info.get("path"), "name": Path(rel).name,
+                    "trigger_words": triggers, "source": source})
+    out.sort(key=lambda x: str(x["name"]).lower())
+    return {"success": True, "loras": out}
+
+
+class ComposePromptRequest(BaseModel):
+    actions: List[str] = []
+    loras: List[str] = []
+    image: Optional[str] = None      # ComfyUI input filename, optional
+    extra: str = ""                  # free text the user adds
+    seconds: int = 5
+
+
+@app.post("/api/prompt-builder/compose")
+async def prompt_builder_compose(req: ComposePromptRequest):
+    """Build a video prompt from a picture, some chosen actions and some LoRAs.
+
+    Three sources, in this order of authority: what the picture actually shows,
+    what the user asked for, and what the LoRAs need to fire. The vision pass is
+    what makes the result specific - "two women kiss" is a worse prompt than the
+    same beat sheet naming their hair, their clothes and the room they are in.
+
+    Timed beats rather than a sentence, because LTX reads a timeline. Asking for
+    "they kiss" tends to return a still frame with a wobble in it.
+    """
+    catalogue = {a["key"]: a for a in _load_prompt_actions().get("actions", [])}
+    chosen = [catalogue[k] for k in req.actions if k in catalogue]
+    if not chosen and not req.extra.strip():
+        raise HTTPException(status_code=400, detail="Pick an action or write something.")
+
+    scene = ""
+    if req.image:
+        model = _get_ollama_vision_model()
+        if model:
+            try:
+                path = _resolve_under(_comfy_input_dir(), req.image)
+                img_b64 = base64.b64encode(Path(path).read_bytes()).decode()
+                r = requests.post(f"{OLLAMA_URL}/api/generate", json={
+                    "model": model, "images": [img_b64], "stream": False, "keep_alive": 0,
+                    "prompt": ("Describe this photograph for a video prompt. Say how many "
+                               "people there are and where they are placed, what each looks "
+                               "like, what they are wearing, and the room and lighting. "
+                               "Plain description only - no opinion, no camera advice. "
+                               "60-100 words."),
+                    "options": {"temperature": 0.2, "num_predict": 300},
+                }, timeout=180)
+                r.raise_for_status()
+                scene = _clean_caption_text(r.json().get("response", ""))
+            except Exception as exc:  # noqa: BLE001 - a caption is a bonus, not a gate
+                print(f"[PROMPT-BUILDER] vision pass failed: {exc}")
+
+    # Beats are spread across the clip so the model gets a timeline rather than
+    # one instruction it can satisfy by holding still.
+    beats: List[str] = []
+    for a in chosen:
+        beats.extend(a.get("beats", []))
+    span = max(1, req.seconds // max(1, len(beats))) if beats else req.seconds
+    timeline = "; ".join(
+        f"{i * span}-{min((i + 1) * span, req.seconds)}s: {b}" for i, b in enumerate(beats))
+
+    triggers: List[str] = []
+    for rel in req.loras:
+        try:
+            info = lora_service.get_installed().get(_normalize_lora_path(rel), {})
+            meta_path = lora_service.lora_dir / (str(info.get("path") or rel) + ".fedda.json")
+            for w in json.loads(meta_path.read_text(encoding="utf-8")).get("trigger_words") or []:
+                if w not in triggers:
+                    triggers.append(w)
+        except Exception:  # noqa: BLE001 - a missing sidecar just means no trigger
+            pass
+
+    parts = [f"{req.seconds}-second video."]
+    if scene:
+        parts.append(scene)
+    if timeline:
+        parts.append(timeline + ".")
+    if req.extra.strip():
+        parts.append(req.extra.strip())
+    if triggers:
+        parts.append(", ".join(triggers))
+    return {"success": True, "prompt": " ".join(parts),
+            "scene": scene, "triggers": triggers,
+            "used_actions": [a["key"] for a in chosen]}
+
+
 class StoryboardRequest(BaseModel):
     images: List[str]           # ComfyUI input filenames, in play order
     style: str = ""             # optional user steer ("moody night vibe", "energetic dance"...)
