@@ -90,3 +90,8 @@ frontend/public/cards/v4/
 # conversations - neither belongs in a repo that gets shared.
 config/chat_edit_agent.json
 config/chat_edit_sessions.json
+
+# Personal working data - names real people, and nothing in the app reads
+# either of these. Kept on disk, never shipped.
+config/personas.json
+config/prompt_library.json

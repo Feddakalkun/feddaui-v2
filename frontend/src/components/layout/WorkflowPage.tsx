@@ -7,6 +7,7 @@ import { useComfyExecution } from '../../contexts/ComfyExecutionContext';
 import { consumeHandoff } from '../../utils/workflowHandoff';
 import { uploadToComfy } from '../../utils/comfyUpload';
 import { WorkflowShell, WorkflowSection } from './WorkflowShell';
+import { PromptBuilder } from '../workflows/PromptBuilder';
 import { WorkflowVideoPreviewStrip } from './WorkflowVideoPreviewStrip';
 import { LiveSamplingPreview } from '../workflows/LiveSamplingPreview';
 import { PromptAssistant } from '../ui/PromptAssistant';
@@ -132,6 +133,9 @@ export interface WorkflowPageProps {
   ) => Record<string, unknown>;
   /** Buttons above the prompt box, e.g. "write prompt from frames". */
   promptActions?: ReactNode;
+  /** Show the prompt builder beside the prompt box. Value is the LoRA path
+      prefix it should offer, e.g. "ltx"; omit to leave the builder out. */
+  promptBuilder?: { loraPrefix?: string; imageKey?: string };
   /** Anything genuinely bespoke, rendered between Settings and Generate. */
   extraSections?: ReactNode;
   /**
@@ -173,6 +177,7 @@ export const WorkflowPage = ({
   readyMessage = 'Generation ready',
   extraParams,
   promptActions,
+  promptBuilder,
   extraSections,
   loras = [],
 }: WorkflowPageProps) => {
@@ -591,6 +596,11 @@ export const WorkflowPage = ({
         {prompt && (
           <WorkflowSection title="Prompt">
             {promptActions ? <div className="mb-2">{promptActions}</div> : null}
+            {/* Two boxes side by side: writing on the left, the builder that
+                fills it on the right. Stacked below lg, where two columns would
+                leave both too narrow to use. */}
+            <div className={promptBuilder ? 'grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]' : undefined}>
+            <div className="min-w-0">
             {prompt.context ? (
               <PromptAssistant
                 context={prompt.context}
@@ -629,6 +639,16 @@ export const WorkflowPage = ({
                 )}
               </div>
             )}
+            </div>
+            {promptBuilder && (
+              <PromptBuilder
+                image={promptBuilder.imageKey ? String(values[promptBuilder.imageKey] ?? '') : null}
+                loraPrefix={promptBuilder.loraPrefix}
+                seconds={Number(values.length_seconds ?? 5)}
+                onPrompt={setPromptText}
+              />
+            )}
+            </div>
           </WorkflowSection>
         )}
 

@@ -422,7 +422,7 @@
   },
   "118": {
     "inputs": {
-      "text": "Helene, platinum blonde, natural skin tone, hyperrealistic face"
+      "text": "the first woman, platinum blonde, natural skin tone, hyperrealistic face"
     },
     "class_type": "Text Multiline",
     "_meta": {
@@ -431,7 +431,7 @@
   },
   "119": {
     "inputs": {
-      "text": "Iris, redhead, blue latex, natural face, energetic look"
+      "text": "the second woman, redhead, blue latex, natural face, energetic look"
     },
     "class_type": "Text Multiline",
     "_meta": {
@@ -458,7 +458,7 @@
   },
   "121": {
     "inputs": {
-      "text_0": "High energy fashion. Electric blue background elements. LEFT: Helene. NATURAL SKIN. Wearing WHITE LATEX. RIGHT: Iris. NATURAL SKIN. Wearing ELECTRIC BLUE LATEX. Shocking colors but REALISTIC SKIN. Hair blowing slightly. Intense eyes., Helene, platinum blonde, natural skin tone, hyperrealistic face",
+      "text_0": "High energy fashion. Electric blue background elements. LEFT: the first woman. NATURAL SKIN. Wearing WHITE LATEX. RIGHT: the second woman. NATURAL SKIN. Wearing ELECTRIC BLUE LATEX. Shocking colors but REALISTIC SKIN. Hair blowing slightly. Intense eyes., the first woman, platinum blonde, natural skin tone, hyperrealistic face",
       "text": [
         "114",
         0
@@ -471,7 +471,7 @@
   },
   "122": {
     "inputs": {
-      "text_0": "High energy fashion. Electric blue background elements. LEFT: Helene. NATURAL SKIN. Wearing WHITE LATEX. RIGHT: Iris. NATURAL SKIN. Wearing ELECTRIC BLUE LATEX. Shocking colors but REALISTIC SKIN. Hair blowing slightly. Intense eyes., Iris, redhead, blue latex, natural face, energetic look",
+      "text_0": "High energy fashion. Electric blue background elements. LEFT: the first woman. NATURAL SKIN. Wearing WHITE LATEX. RIGHT: the second woman. NATURAL SKIN. Wearing ELECTRIC BLUE LATEX. Shocking colors but REALISTIC SKIN. Hair blowing slightly. Intense eyes., the second woman, redhead, blue latex, natural face, energetic look",
       "text": [
         "120",
         0
@@ -632,8 +632,8 @@
   },
   "146": {
     "inputs": {
-      "wildcard_text": "High energy fashion. Electric blue background elements. LEFT: Helene. NATURAL SKIN. Wearing WHITE LATEX. RIGHT: Iris. NATURAL SKIN. Wearing ELECTRIC BLUE LATEX. Shocking colors but REALISTIC SKIN. Hair blowing slightly. Intense eyes.",
-      "populated_text": "High energy fashion. Electric blue background elements. LEFT: Helene. NATURAL SKIN. Wearing WHITE LATEX. RIGHT: Iris. NATURAL SKIN. Wearing ELECTRIC BLUE LATEX. Shocking colors but REALISTIC SKIN. Hair blowing slightly. Intense eyes.",
+      "wildcard_text": "High energy fashion. Electric blue background elements. LEFT: the first woman. NATURAL SKIN. Wearing WHITE LATEX. RIGHT: the second woman. NATURAL SKIN. Wearing ELECTRIC BLUE LATEX. Shocking colors but REALISTIC SKIN. Hair blowing slightly. Intense eyes.",
+      "populated_text": "High energy fashion. Electric blue background elements. LEFT: the first woman. NATURAL SKIN. Wearing WHITE LATEX. RIGHT: the second woman. NATURAL SKIN. Wearing ELECTRIC BLUE LATEX. Shocking colors but REALISTIC SKIN. Hair blowing slightly. Intense eyes.",
       "mode": "populate",
       "seed": 73567697473774,
       "Select to add Wildcard": "Select the Wildcard to add to the text"

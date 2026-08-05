@@ -70,14 +70,14 @@ def main():
     require(sara_plan["params"]["cfg"] == 1, "Z-Image should use CFG 1")
     require(sara_plan["params"]["loras"][0]["name"].startswith("zimage_turbo/"), "Sara LoRA must be Z-Image")
 
-    aurora = service.plan("make Aurora with flux klein, fashion photo, red dress")
-    aurora_plan = aurora["plan"]
-    require(aurora_plan["workflow_id"] == "flux2klein-txt2img", "Aurora prompt should route to FLUX2-KLEIN")
+    testchar = service.plan("make testchar with flux klein, fashion photo, red dress")
+    aurora_plan = testchar["plan"]
+    require(aurora_plan["workflow_id"] == "flux2klein-txt2img", "testchar prompt should route to FLUX2-KLEIN")
     require(aurora_plan["params"]["width"] == 1024, "FLUX2-KLEIN should keep width in editable plan params")
     require(aurora_plan["params"]["height"] == 1024, "FLUX2-KLEIN should keep height in editable plan params")
     require(aurora_plan["params"]["steps"] == 8, "FLUX2-KLEIN should use 8 steps")
     require(aurora_plan["params"]["cfg"] == 1.2, "FLUX2-KLEIN should use CFG 1.2")
-    require(aurora_plan["params"]["loras"][0]["name"].startswith("flux2klein/"), "Aurora LoRA must be FLUX2-KLEIN")
+    require(aurora_plan["params"]["loras"][0]["name"].startswith("flux2klein/"), "testchar LoRA must be FLUX2-KLEIN")
     require("qwen-edit-2512" not in ids, "parked Qwen Txt2Img must not be exposed")
 
     prepared = service.prepare(aurora_plan)

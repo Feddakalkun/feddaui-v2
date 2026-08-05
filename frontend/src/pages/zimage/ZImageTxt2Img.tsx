@@ -104,7 +104,7 @@ const normLora = (value: string) => value.replace(/\\/g, '/').toLowerCase().trim
 const loraFileName = (path: string) => path.replace(/\\/g, '/').split('/').pop()?.toLowerCase() ?? '';
 
 // Token can appear anywhere in the path (folder or filename), so LoRAs organized
-// in subfolders like app/character_c/character_c-zimage.safetensors are picked up too.
+// in subfolders like app/<character>/<character>-zimage.safetensors are picked up too.
 const matchesLoraFilter = (path: string, prefixes: string[]) => {
   const normalized = normLora(path);
   return prefixes.some((prefix) => normalized.includes(normLora(prefix).replace(/\/+$/, '')));

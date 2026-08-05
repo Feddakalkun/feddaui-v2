@@ -30,7 +30,7 @@
   },
   "15": {
     "inputs": {
-      "lora_name": "app\\Aurora\\character_c_krea2_000002800.safetensors",
+      "lora_name": "placeholder.safetensors",
       "strength_model": 1.0,
       "model": [
         "10",

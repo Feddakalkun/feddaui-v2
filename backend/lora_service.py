@@ -443,7 +443,7 @@ class LoRAService:
         """Group installed LoRAs into characters.
 
         A character is a folder of LoRAs that belong to one person, usually across
-        several model families (Aurora = a krea2 LoRA + a z-image one) sharing a
+        several model families (one character = a krea2 LoRA + a z-image one) sharing a
         single .md sheet.
 
         Detection is a union of two rules, because neither covers everything:
@@ -478,7 +478,7 @@ class LoRAService:
             except OSError:
                 mds = []
 
-            # Direct child of app/ only: `app/character_o/New folder` holds 10 loose LoRAs
+            # Direct child of app/ only: `app/<character>/New folder` holds 10 loose LoRAs
             # and is not a person — a bare startswith would name a character
             # "New folder".
             parts = folder.split("/")

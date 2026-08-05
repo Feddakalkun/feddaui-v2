@@ -197,7 +197,7 @@ export const ZImageDualLoraPage = () => {
     comfyService.getLoras().then((all) => {
       const filtered = all.filter((name) => {
         const normalized = name.replace(/\\/g, '/').toLowerCase();
-        // Match anywhere in the path so subfolder-organized LoRAs (app/character_c/...-zimage) show up
+        // Match anywhere in the path so subfolder-organized LoRAs (app/character/...-zimage) show up
         return normalized.includes('zimage') || normalized.includes('z-image');
       });
       setAvailableLoras(filtered);

@@ -3162,8 +3162,8 @@ def _resolve_lora_file(rel: str) -> Optional[Path]:
 def _sheet_path_for_lora(lora_path: Path) -> Path:
     """Sheet = <stem>.md next to the LoRA; falls back to a single .md in the folder (user convention).
 
-    The shared-sheet fallback is what makes app/character_c/Aurora.md serve both of
-    Aurora's LoRAs. It is deliberately NOT applied at the loras root: the root
+    The shared-sheet fallback is what makes app/<character>/<character>.md serve both of
+    that character's LoRAs. It is deliberately NOT applied at the loras root: the root
     holds 57 LoRAs and per-LoRA sheets (Beautify-Supermodel-ZImageTurbo.md,
     nicegirls_Zimage.md), so deleting one of those would leave a single .md and
     silently adopt it as the sheet for all 57.

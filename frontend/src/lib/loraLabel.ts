@@ -25,7 +25,7 @@ export function toLabel(path: string): string {
  * Does a LoRA path match a family filter?
  *
  * Substring, not prefix, and deliberately so: character LoRAs live under
- * `app/<Name>/` rather than `qwen/`, so `app/character_c/character_c_krea2_x.safetensors`
+ * `app/<Name>/` rather than `qwen/`, so `app/<character>/<character>_krea2_x.safetensors`
  * must still match the krea2 filter. Mirrors matchesLoraFilter in ZImageTxt2Img.
  */
 export function matchesFamily(path: string, prefixes: string[]): boolean {
