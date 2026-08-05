@@ -22,7 +22,7 @@ import { comfyService } from '../../services/comfyService';
  * Before this existed, 21 pages each hand-arranged WorkflowShell and drifted:
  * three output components, thirty section titles for four concepts, and upload
  * plumbing copy-pasted per page. A page now declares what it needs and this
- * component owns the arrangement — see docs/v20/UI-CONSISTENCY-AUDIT.md.
+ * component owns the arrangement.
  *
  * Input and setting values live in two grouped persistent objects rather than a
  * hook per field, so a page's control list can change without shifting hook

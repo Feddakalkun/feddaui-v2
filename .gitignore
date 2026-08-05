@@ -95,3 +95,6 @@ config/chat_edit_sessions.json
 # either of these. Kept on disk, never shipped.
 config/personas.json
 config/prompt_library.json
+
+# Internal notes and plans live outside the repo, in H:\Fedda-Hubrain
+docs/
