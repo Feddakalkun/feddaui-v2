@@ -226,7 +226,17 @@ class LoRAService:
             return token
         return str(self._load_runtime_settings().get("hf_token") or "").strip()
 
-    def _hf_headers(self, hf_token: Optional[str] = None) -> Dict[str, str]:
+    def _hf_headers(self, hf_token: Optional[str] = None, url: str = "") -> Dict[str, str]:
+        """Auth headers for a download, empty for anywhere that is not HuggingFace.
+
+        Sending the HF bearer token to Civitai made it reject the request with
+        401 even though the correct `?token=` was already on the URL - it sees a
+        bearer token it does not recognise and refuses. Public files still came
+        down, since those are never checked, which is why only the gated LoRAs
+        appeared to fail.
+        """
+        if url and "huggingface.co" not in urlparse(url).netloc.lower():
+            return {}
         token = self._hf_token(hf_token)
         return {"Authorization": f"Bearer {token}"} if token else {}
 
@@ -708,7 +718,7 @@ class LoRAService:
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 direct = url.replace("/blob/", "/resolve/") if "/blob/" in url else url
                 direct = self._resolve_download_url(direct, hf_token=hf_token, civitai_token=civitai_token)
-                headers = self._hf_headers(hf_token)
+                headers = self._hf_headers(hf_token, direct)
 
                 resp  = requests.get(direct, stream=True, timeout=60, headers=headers)
                 resp.raise_for_status()
