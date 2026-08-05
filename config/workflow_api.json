@@ -1961,6 +1961,18 @@
         "node_id": "205:522",
         "type": "loras",
         "label": "LoRAs"
+      },
+      "aspect_ratio": {
+        "node_id": "199",
+        "input_key": "aspect_ratio",
+        "type": "string",
+        "label": "Aspect Ratio"
+      },
+      "direction": {
+        "node_id": "199",
+        "input_key": "direction",
+        "type": "string",
+        "label": "Orientation"
       }
     }
   },
