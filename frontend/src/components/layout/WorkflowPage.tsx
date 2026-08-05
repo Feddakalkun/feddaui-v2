@@ -438,8 +438,15 @@ export const WorkflowPage = ({
         </div>
       );
     }
+    // Width follows the content. Every chip group used to take a whole row, so
+    // "S M L" got the same 1200px that eight aspect ratios did, and three short
+    // groups stacked into three rows of mostly empty space. Measured in label
+    // characters rather than option count: two long words need more room than
+    // four short ones.
+    const chipWidth = s.options.reduce((n, o) => n + String(o.label).length, 0);
+    const span = chipWidth <= 20 ? 'lg:col-span-1' : chipWidth <= 32 ? 'lg:col-span-2' : 'lg:col-span-4';
     return (
-      <div key={s.key} className="col-span-full">
+      <div key={s.key} className={cn('col-span-full', span)}>
         <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
           {s.label}
         </div>
