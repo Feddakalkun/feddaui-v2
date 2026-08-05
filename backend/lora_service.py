@@ -13,6 +13,9 @@ import time
 import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+import re
+import json
+from urllib.request import Request, urlopen
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 import requests
@@ -690,6 +693,35 @@ class LoRAService:
 
     # ─── URL import ─────────────────────────────────────────────────────────
 
+    _CIVITAI_DOWNLOAD = re.compile(r"/api/download/models/(\d+)")
+
+    def _civitai_filename(self, url: str) -> Optional[str]:
+        """The real filename behind a Civitai download URL, or None.
+
+        A Civitai download link ends in the *version id*, so naming the file
+        after the last path segment produced "2772932.safetensors" - which is
+        what the LoRA picker then shows the user. The version API knows what the
+        file is actually called, and one lookup is cheap next to the download.
+
+        Any failure returns None so the caller keeps its old behaviour: a poor
+        filename is much better than a failed import.
+        """
+        m = self._CIVITAI_DOWNLOAD.search(urlparse(url).path)
+        if not m:
+            return None
+        try:
+            req = Request(f"https://civitai.com/api/v1/model-versions/{m.group(1)}",
+                          headers={"User-Agent": "FEDDA"})
+            with urlopen(req, timeout=20) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+        except Exception:
+            return None
+        for f in data.get("files") or []:
+            name = str(f.get("name") or "")
+            if name.endswith(".safetensors"):
+                return name
+        return None
+
     def import_from_url(
         self,
         url: str,
@@ -697,7 +729,7 @@ class LoRAService:
         civitai_token: Optional[str] = None,
         dest_subfolder: str = "imported",
     ) -> Dict[str, Any]:
-        raw_name = url.split("?")[0].split("/")[-1]
+        raw_name = self._civitai_filename(url) or url.split("?")[0].split("/")[-1]
         filename = raw_name if raw_name.endswith(".safetensors") else raw_name + ".safetensors"
         job_id   = str(uuid.uuid4())[:8]
         subfolder = _normalize_lora_path(dest_subfolder) or "imported"
