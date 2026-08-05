@@ -34,6 +34,8 @@ export const LtxAi2vPage = () => {
         negative: { placeholder: DEFAULT_NEGATIVE },
         rows: 4,
       }}
+      // LoRAs under ltx/ only, and the first frame is what gets read.
+      promptBuilder={{ loraPrefix: 'ltx', imageKey: 'image' }}
       settings={[
         { kind: 'slider', key: 'width', label: 'Width', min: 512, max: 1280, step: 32, defaultValue: 768, asString: true },
         { kind: 'slider', key: 'steps', label: 'Steps', min: 4, max: 40, defaultValue: 20 },
