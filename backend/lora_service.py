@@ -722,6 +722,51 @@ class LoRAService:
                 return name
         return None
 
+    def _write_lora_meta(self, dest: Path, url: str) -> None:
+        """Record what we know about an imported LoRA beside the file.
+
+        Trigger words are the reason this exists. A prompt builder cannot insert
+        them from a hardcoded table: the table would only ever describe the
+        LoRAs on the machine it was written on, and every user has different
+        ones. Captured at import, it works for LoRAs we have never seen.
+
+        Civitai publishes `trainedWords` on the version record. HuggingFace has
+        no equivalent field, so those get the repo recorded and no triggers -
+        an honest empty list, rather than a guess. Failure is silent by design:
+        losing the metadata is a worse outcome than losing the download.
+        """
+        meta: Dict[str, Any] = {"source_url": url, "trigger_words": []}
+        # Enrichment is best-effort and the write is not: a lookup that fails
+        # must still leave the source URL on disk, or nothing can ever fill the
+        # rest in later. An earlier version wrapped both together and a single
+        # timeout lost the file entirely.
+        try:
+            host = urlparse(url).netloc.lower()
+            if "huggingface.co" in host:
+                parts = urlparse(url).path.strip("/").split("/")
+                if len(parts) >= 2:
+                    meta["source"] = "huggingface"
+                    meta["repo"] = f"{parts[0]}/{parts[1]}"
+            else:
+                m = self._CIVITAI_DOWNLOAD.search(urlparse(url).path)
+                if m:
+                    req = Request(f"https://civitai.com/api/v1/model-versions/{m.group(1)}",
+                                  headers={"User-Agent": "FEDDA"})
+                    with urlopen(req, timeout=20) as resp:
+                        d = json.loads(resp.read().decode("utf-8"))
+                    meta["source"] = "civitai"
+                    meta["model_name"] = (d.get("model") or {}).get("name")
+                    meta["version_name"] = d.get("name")
+                    meta["base_model"] = d.get("baseModel")
+                    meta["trigger_words"] = [w for w in (d.get("trainedWords") or []) if w]
+        except Exception as exc:
+            meta["lookup_error"] = str(exc)[:120]
+        try:
+            dest.with_suffix(dest.suffix + ".fedda.json").write_text(
+                json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
+        except OSError:
+            pass
+
     def import_from_url(
         self,
         url: str,
@@ -772,6 +817,8 @@ class LoRAService:
                 if dest.exists():
                     dest.unlink()
                 tmp.rename(dest)
+
+                self._write_lora_meta(dest, url)
 
                 with self._lock:
                     self._import_jobs[job_id] = {
