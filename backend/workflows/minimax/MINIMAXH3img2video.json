@@ -64,7 +64,7 @@
       "steps": 20,
       "denoise": 1,
       "model": [
-        "127",
+        "9001",
         0
       ]
     },
@@ -104,7 +104,7 @@
   "126": {
     "inputs": {
       "model": [
-        "127",
+        "9001",
         0
       ],
       "conditioning": [
@@ -264,6 +264,18 @@
     "class_type": "VHS_VideoCombine",
     "_meta": {
       "title": "Video Combine 🎥🅥🅗🅢"
+    }
+  },
+  "9001": {
+    "class_type": "MiniMaxH3MemoryEfficientSageAttentionPatch",
+    "inputs": {
+      "model": [
+        "127",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Memory efficient attention (FEDDA)"
     }
   }
 }
