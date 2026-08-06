@@ -427,7 +427,10 @@
       "workflows": [
         "minimax-h3-txt2vid",
         "minimax-h3-img2vid",
-        "minimax-h3-videdit"
+        "minimax-h3-videdit",
+        "minimax-h3-txt2vid-gguf",
+        "minimax-h3-img2vid-gguf",
+        "minimax-h3-videdit-gguf"
       ]
     }
   ]

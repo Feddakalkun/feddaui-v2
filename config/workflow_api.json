@@ -4116,5 +4116,158 @@
         "label": "FPS"
       }
     }
+  },
+  "minimax-h3-txt2vid-gguf": {
+    "name": "MiniMax H3 Text to Video (GGUF)",
+    "filename": "minimax/MINIMAXH3txt2video-gguf.json",
+    "description": "Quantised MiniMax H3 - Q3 model, Q2 text encoder. Fits a 24 GB card, which the fp8 build does not.",
+    "inputs": {
+      "prompt": {
+        "node_id": "153",
+        "input_key": "prompt",
+        "type": "string",
+        "label": "Prompt"
+      },
+      "width": {
+        "node_id": "153",
+        "input_key": "width",
+        "type": "number",
+        "label": "Width"
+      },
+      "height": {
+        "node_id": "153",
+        "input_key": "height",
+        "type": "number",
+        "label": "Height"
+      },
+      "length": {
+        "node_id": "153",
+        "input_key": "length",
+        "type": "number",
+        "label": "Frames"
+      },
+      "seed": {
+        "node_id": "143",
+        "input_key": "noise_seed",
+        "type": "number",
+        "label": "Seed"
+      },
+      "steps": {
+        "node_id": "148",
+        "input_key": "steps",
+        "type": "number",
+        "label": "Steps"
+      },
+      "frame_rate": {
+        "node_id": "150",
+        "input_key": "frame_rate",
+        "type": "number",
+        "label": "FPS"
+      }
+    }
+  },
+  "minimax-h3-img2vid-gguf": {
+    "name": "MiniMax H3 Image to Video (GGUF)",
+    "filename": "minimax/MINIMAXH3img2video-gguf.json",
+    "description": "Quantised MiniMax H3 - Q3 model, Q2 text encoder. Fits a 24 GB card, which the fp8 build does not.",
+    "inputs": {
+      "prompt": {
+        "node_id": "138",
+        "input_key": "value",
+        "type": "string",
+        "label": "Prompt"
+      },
+      "image": {
+        "node_id": "137",
+        "input_key": "image",
+        "type": "string",
+        "label": "Reference Image"
+      },
+      "image2": {
+        "node_id": "139",
+        "input_key": "image",
+        "type": "string",
+        "label": "Second Reference"
+      },
+      "width": {
+        "node_id": "136",
+        "input_key": "width",
+        "type": "number",
+        "label": "Width"
+      },
+      "height": {
+        "node_id": "136",
+        "input_key": "height",
+        "type": "number",
+        "label": "Height"
+      },
+      "length": {
+        "node_id": "136",
+        "input_key": "length",
+        "type": "number",
+        "label": "Frames"
+      },
+      "seed": {
+        "node_id": "129",
+        "input_key": "noise_seed",
+        "type": "number",
+        "label": "Seed"
+      },
+      "steps": {
+        "node_id": "124",
+        "input_key": "steps",
+        "type": "number",
+        "label": "Steps"
+      },
+      "frame_rate": {
+        "node_id": "159",
+        "input_key": "frame_rate",
+        "type": "number",
+        "label": "FPS"
+      }
+    }
+  },
+  "minimax-h3-videdit-gguf": {
+    "name": "MiniMax H3 Video Edit (GGUF)",
+    "filename": "minimax/MINIMAXH3videoedit-gguf.json",
+    "description": "Quantised MiniMax H3 - Q3 model, Q2 text encoder. Fits a 24 GB card, which the fp8 build does not.",
+    "inputs": {
+      "prompt": {
+        "node_id": "196",
+        "input_key": "prompt",
+        "type": "string",
+        "label": "Prompt"
+      },
+      "video": {
+        "node_id": "195",
+        "input_key": "video",
+        "type": "string",
+        "label": "Source Video"
+      },
+      "width": {
+        "node_id": "196",
+        "input_key": "width",
+        "type": "number",
+        "label": "Width"
+      },
+      "seed": {
+        "node_id": "190",
+        "input_key": "noise_seed",
+        "type": "number",
+        "label": "Seed"
+      },
+      "steps": {
+        "node_id": "192",
+        "input_key": "steps",
+        "type": "number",
+        "label": "Steps"
+      },
+      "frame_rate": {
+        "node_id": "193",
+        "input_key": "frame_rate",
+        "type": "number",
+        "label": "FPS"
+      }
+    }
   }
 }

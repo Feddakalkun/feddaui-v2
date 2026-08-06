@@ -1,4 +1,5 @@
 import { Film } from 'lucide-react';
+import { usePersistentState } from '../../hooks/usePersistentState';
 import { WorkflowPage } from '../../components/layout/WorkflowPage';
 
 /**
@@ -51,10 +52,13 @@ const MODES = {
 
 export const MiniMaxH3Page = ({ mode }: { mode: Mode }) => {
   const config = MODES[mode];
+  // Quantised by default: the fp8 pair is 35 GB of weights and does not run on
+  // a 24 GB card at all, so offering it first would hand most people an OOM.
+  const [quant, setQuant] = usePersistentState<'gguf' | 'fp8'>('minimax_quant', 'gguf');
 
   return (
     <WorkflowPage
-      workflowId={config.workflowId}
+      workflowId={quant === 'gguf' ? `${config.workflowId}-gguf` : config.workflowId}
       storageKey={`minimax-h3-${mode}`}
       family="MiniMax H3"
       capability={config.capability}
@@ -82,6 +86,30 @@ export const MiniMaxH3Page = ({ mode }: { mode: Mode }) => {
         { kind: 'slider', key: 'steps', label: 'Steps', min: 4, max: 50, defaultValue: 20, advanced: true },
         { kind: 'seed', key: 'seed' },
       ]}
+      // Owned by the page, not a setting: it picks which graph runs.
+      extraSections={(
+        <div className="workflow-section">
+          <div className="workflow-section-header">
+            <div className="workflow-section-title">Model size</div>
+          </div>
+          <div className="flex gap-1.5">
+            {([['gguf', 'Quantised — fits 24 GB'], ['fp8', 'Full — needs 32 GB+']] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setQuant(value)}
+                className={`rounded-md border px-3 py-1.5 text-[11px] font-semibold transition ${
+                  quant === value
+                    ? 'border-white/30 bg-white/10 text-white'
+                    : 'border-white/10 text-white/45 hover:text-white/80'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       generateLabel="Generate Video"
       generatingLabel="Generating video…"
       readyMessage="Video ready"
