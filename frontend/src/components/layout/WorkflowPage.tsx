@@ -7,7 +7,7 @@ import { useComfyExecution } from '../../contexts/ComfyExecutionContext';
 import { consumeHandoff } from '../../utils/workflowHandoff';
 import { uploadToComfy } from '../../utils/comfyUpload';
 import { WorkflowShell, WorkflowSection } from './WorkflowShell';
-import { PromptBuilder } from '../workflows/PromptBuilder';
+import { PromptAgentBox } from '../workflows/PromptAgentBox';
 import { WorkflowVideoPreviewStrip } from './WorkflowVideoPreviewStrip';
 import { LiveSamplingPreview } from '../workflows/LiveSamplingPreview';
 import { PromptAssistant } from '../ui/PromptAssistant';
@@ -640,9 +640,11 @@ export const WorkflowPage = ({
             )}
             </div>
             {promptBuilder && (
-              <PromptBuilder
-                image={promptBuilder.imageKey ? String(values[promptBuilder.imageKey] ?? '') : null}
-                loraPrefix={promptBuilder.loraPrefix}
+              <PromptAgentBox
+                workflowId={workflowId}
+                // Frames live in `files`, not `values` - the builder read the
+                // wrong map and so never saw an image at all.
+                image={promptBuilder.imageKey ? files[promptBuilder.imageKey] ?? null : null}
                 seconds={Number(values.length_seconds ?? 5)}
                 onPrompt={setPromptText}
               />

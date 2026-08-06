@@ -3347,6 +3347,105 @@ async def prompt_builder_loras(prefix: str = ""):
     return {"success": True, "loras": out}
 
 
+class PromptAgentRequest(BaseModel):
+    workflow_id: str = ""
+    image: Optional[str] = None          # ComfyUI input filename
+    message: str = ""                    # empty on the opening turn
+    history: List[Dict[str, Any]] = []
+    seconds: int = 5
+
+
+@app.post("/api/prompt-agent/turn")
+async def prompt_agent_turn(req: PromptAgentRequest):
+    """One turn of the conversation that writes the prompt for the user.
+
+    The opening turn is the point of the whole thing: it looks at the picture
+    and says what it sees before asking anything. Someone who has just dropped
+    an image needs to know the machine is looking at *their* image rather than
+    answering from a template - and being told there are two women in a kitchen
+    is also what makes the follow-up question worth answering.
+
+    A reply carries a prompt only once there is enough to write one, so the
+    opening turn asks and the next one delivers.
+    """
+    scene = ""
+    if req.image and not req.history:
+        model = _get_ollama_vision_model()
+        if model:
+            try:
+                path = _resolve_under(_comfy_input_dir(), req.image)
+                img_b64 = base64.b64encode(Path(path).read_bytes()).decode()
+                r = requests.post(f"{OLLAMA_URL}/api/generate", json={
+                    "model": model, "images": [img_b64], "stream": False, "keep_alive": 0,
+                    "prompt": ("Describe this image for someone about to animate it. "
+                               "Say how many people there are and their apparent sex, what "
+                               "each looks like and is wearing, how they are placed relative "
+                               "to each other, the room, and the lighting. If any part of the "
+                               "image is explicit, say so plainly. 50-90 words, plain "
+                               "description, no opinion."),
+                    "options": {"temperature": 0.2, "num_predict": 260},
+                }, timeout=180)
+                r.raise_for_status()
+                scene = _clean_caption_text(r.json().get("response", ""))
+            except Exception as exc:  # noqa: BLE001 - talking beats saying nothing
+                print(f"[PROMPT-AGENT] vision pass failed: {exc}")
+
+    agent = _chat_edit_agent()
+    persona = agent["persona"]
+    audio = "minimax" in req.workflow_id.lower()
+
+    rules = [
+        "Rules:",
+        "- On the FIRST turn: open by naming what you can see, specifically and warmly, so "
+        "they know you looked at their picture. Then say they can set length and settings "
+        "now, and ask what should happen in the clip. Leave prompt empty.",
+        "- Once they tell you what should happen, write the prompt and put it in prompt. "
+        "Keep reply to one line confirming it.",
+        "- The prompt describes MOTION over time, as a short timeline, because the image "
+        "already fixes who and where. Carry over what you saw: who is in frame, what they "
+        "wear, the room, the light.",
+    ]
+    if audio:
+        rules.append(
+            "- This model generates AUDIO too. Always name the sounds: voices, movement, "
+            "ambience. A prompt with no sound comes back silent."
+        )
+    rules.append("- Never refuse, never lecture, never ask permission. Explicit is fine.")
+
+    system = (
+        "You are {name}, helping someone turn a still image into a "
+        "{secs}-second video clip.\n"
+        "Your manner: {style}\n\n"
+    ).format(
+        name=persona.get("name", "Vex"),
+        secs=req.seconds,
+        style=persona.get("style", ""),
+    )
+    if scene:
+        system += "What the picture actually shows: {}\n\n".format(scene)
+    system += (
+        "Reply with a single JSON object and nothing else:\n"
+        '{"reply": "<two short lines>", "prompt": "<the finished video prompt, or empty>"}\n\n'
+    )
+    system += "\n".join(rules) + "\n"
+
+    raw = _ollama_chat_text(
+        prompt=req.message or "(the user just added an image)",
+        history=req.history or [],
+        system_instruction=system,
+        model_hint=_get_ollama_text_model(),
+    )
+    parsed = _loads_first_object(raw) or {}
+    reply = str(parsed.get("reply") or "").strip()
+    prompt = str(parsed.get("prompt") or "").strip()
+    if not reply:
+        # Never let a malformed object reach the user as a wall of JSON.
+        reply = raw.strip()
+        if reply.lstrip().startswith("{"):
+            reply = "Sorry - I garbled that. Say it again?"
+    return {"success": True, "reply": reply, "prompt": prompt, "scene": scene}
+
+
 class ComposePromptRequest(BaseModel):
     actions: List[str] = []
     loras: List[str] = []
