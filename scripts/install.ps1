@@ -660,6 +660,35 @@ $NodeColor = "Green"
 if ($Failed -gt 0) { $NodeColor = "Yellow" }
 Write-Step "Nodes: $Installed installed, $Skipped already present, $Failed failed" $NodeColor
 
+# ComfyUI pins a handful of packages with == because its own code calls into
+# them by exact signature. comfy-kitchen is the one that bites: core called
+# rms_rope_split_half_(..., rot_dim=...) against an installed build with no
+# such parameter, and every MiniMax run died on a TypeError that named neither
+# ComfyUI nor pip.
+#
+# Only the == lines are synced. The >= and bare entries are left alone on
+# purpose - torch and transformers live there, and dragging those along turns a
+# version fix into a torch generation swap nobody asked for.
+$ComfyReq = Join-Path $RootPath "ComfyUIequirements.txt"
+if (Test-Path $ComfyReq) {
+    $Pinned = Get-Content $ComfyReq | Where-Object { $_ -match '^[A-Za-z0-9._-]+==' } | ForEach-Object { $_.Trim() }
+    $Stale = @()
+    foreach ($Pin in $Pinned) {
+        $Name, $Want = $Pin -split '==', 2
+        $Have = & $PyExe -c "import importlib.metadata as m; print(m.version('$Name'))" 2>$null
+        if ($LASTEXITCODE -ne 0 -or -not $Have) { $Stale += $Pin; continue }
+        if ($Have.Trim() -ne $Want.Trim()) { $Stale += $Pin }
+    }
+    if ($Stale.Count -gt 0) {
+        Write-Host "  Syncing $($Stale.Count) pinned ComfyUI dependencies..." -ForegroundColor White
+        foreach ($Pin in $Stale) { Write-Host "    $Pin" -ForegroundColor DarkGray }
+        & $PyExe -m pip install --no-input --no-warn-script-location @Stale 2>&1 | Out-Null
+        Write-Host "  ComfyUI pins synced OK" -ForegroundColor Green
+    } else {
+        Write-Host "  ComfyUI pinned dependencies OK" -ForegroundColor Green
+    }
+}
+
 $WanAnimatePatch = Join-Path $RootPath "scripts\patch_wan_animate_preprocess.ps1"
 if (Test-Path $WanAnimatePatch) {
     Write-Step "Applying WanAnimate preprocess compatibility patch..."

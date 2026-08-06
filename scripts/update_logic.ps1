@@ -408,6 +408,35 @@ if (Test-Path $HFRetryPatch) {
 # ============================================================================
 Write-Host "`n[1b/3] Patching Python dependencies..." -ForegroundColor Yellow
 
+# ComfyUI pins a handful of packages with == because its own code calls into
+# them by exact signature. comfy-kitchen is the one that bites: core called
+# rms_rope_split_half_(..., rot_dim=...) against an installed build that had no
+# such parameter, and every MiniMax run died on a TypeError that named neither
+# ComfyUI nor pip.
+#
+# Only the == lines are synced. The >= and bare entries are left alone on
+# purpose - torch and transformers live there, and dragging those along turns a
+# version fix into a torch generation swap nobody asked for.
+$ComfyReq = Join-Path $RootPath "ComfyUIequirements.txt"
+if (Test-Path $ComfyReq) {
+    $Pinned = Get-Content $ComfyReq | Where-Object { $_ -match '^[A-Za-z0-9._-]+==' } | ForEach-Object { $_.Trim() }
+    $Stale = @()
+    foreach ($Pin in $Pinned) {
+        $Name, $Want = $Pin -split '==', 2
+        $Have = & $PyExe -c "import importlib.metadata as m; print(m.version('$Name'))" 2>$null
+        if ($LASTEXITCODE -ne 0 -or -not $Have) { $Stale += $Pin; continue }
+        if ($Have.Trim() -ne $Want.Trim()) { $Stale += $Pin }
+    }
+    if ($Stale.Count -gt 0) {
+        Write-Host "  Syncing $($Stale.Count) pinned ComfyUI dependencies..." -ForegroundColor White
+        foreach ($Pin in $Stale) { Write-Host "    $Pin" -ForegroundColor DarkGray }
+        & $PyExe -m pip install --no-input --no-warn-script-location @Stale 2>&1 | Out-Null
+        Write-Host "  ComfyUI pins synced OK" -ForegroundColor Green
+    } else {
+        Write-Host "  ComfyUI pinned dependencies OK" -ForegroundColor Green
+    }
+}
+
 # Florence2 requires transformers >= 4.45 for is_flash_attn_greater_or_equal_2_10
 $TransformersVersion = & $PyExe -c "import transformers; print(transformers.__version__)" 2>$null
 $NeedsTransformersUpgrade = $true
