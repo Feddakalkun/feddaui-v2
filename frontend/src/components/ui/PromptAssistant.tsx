@@ -30,7 +30,8 @@ export type PromptContext =
   | 'firered'
   | 'ideogram'
   | 'sdxl-inpaint' | 'sdxl-outpaint' | 'sdxl-depth' | 'sdxl-openpose'
-  | 'steady-dancer';
+  | 'steady-dancer'
+  | 'minimax-h3';
 export type AccentColor   = 'emerald' | 'violet' | 'sky';
 
 interface PromptAssistantProps {

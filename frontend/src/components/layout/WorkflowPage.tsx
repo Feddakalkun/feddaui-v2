@@ -610,7 +610,6 @@ export const WorkflowPage = ({
                 minRows={prompt.rows ?? 3}
                 accent="violet"
                 label={prompt.label}
-                enableCaption={false}
                 mode={promptMode}
                 onModeChange={setPromptMode}
               />

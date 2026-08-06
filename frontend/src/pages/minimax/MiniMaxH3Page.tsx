@@ -63,12 +63,13 @@ export const MiniMaxH3Page = ({ mode }: { mode: Mode }) => {
       output="video"
       inputs={[...config.inputs]}
       prompt={{
-        context: 'ltx-img2vid',
+        context: 'minimax-h3',
         label: 'Prompt',
         placeholder: 'Describe the scene, the motion and the sound…',
         negative: { placeholder: DEFAULT_NEGATIVE },
         rows: 4,
       }}
+      promptBuilder={{ imageKey: mode === 'img2vid' ? 'image' : undefined }}
       settings={[
         { kind: 'slider', key: 'width', label: 'Width', min: 256, max: 1536, step: 32, defaultValue: 768 },
         ...(config.sized

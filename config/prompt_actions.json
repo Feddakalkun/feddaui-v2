@@ -19,6 +19,10 @@
     {
       "key": "camera",
       "label": "Camera"
+    },
+    {
+      "key": "sound",
+      "label": "Sound"
     }
   ],
   "actions": [
@@ -126,6 +130,64 @@
         "the camera starts to arc around her",
         "it travels, parallax opening up the background",
         "it comes to rest on the far side"
+      ]
+    },
+    {
+      "key": "speaks",
+      "label": "Speaking",
+      "category": "sound",
+      "nsfw": false,
+      "needs": {
+        "people": 1
+      },
+      "beats": [
+        "she starts to speak, close to the camera",
+        "she keeps talking, her voice clear and near, small head movements with the words",
+        "she finishes and holds the look"
+      ]
+    },
+    {
+      "key": "laughs",
+      "label": "Laughing",
+      "category": "sound",
+      "nsfw": false,
+      "needs": {
+        "people": 1
+      },
+      "beats": [
+        "something catches her, the first laugh escapes",
+        "she laughs properly, shoulders going with it, the sound bright and unforced",
+        "it tails off into a breath"
+      ]
+    },
+    {
+      "key": "ambience_rain",
+      "label": "Rain",
+      "category": "sound",
+      "nsfw": false,
+      "needs": {},
+      "beats": [
+        "rain drumming steadily, water running at the edges of frame"
+      ]
+    },
+    {
+      "key": "ambience_room",
+      "label": "Room tone",
+      "category": "sound",
+      "nsfw": false,
+      "needs": {},
+      "beats": [
+        "quiet room tone, the small sounds of a space with someone in it"
+      ]
+    },
+    {
+      "key": "ambience_street",
+      "label": "Street",
+      "category": "sound",
+      "nsfw": false,
+      "needs": {},
+      "beats": [
+        "distant traffic and voices carrying from further down the street"
       ]
     }
   ]
