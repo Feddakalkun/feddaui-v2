@@ -305,7 +305,7 @@
     "inputs": {
       "vae_name": "LTX23_audio_vae_bf16.safetensors",
       "device": "main_device",
-      "weight_dtype": "bf16"
+      "weight_dtype": "fp32"
     },
     "class_type": "VAELoaderKJ",
     "_meta": {
