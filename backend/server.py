@@ -3396,9 +3396,14 @@ async def prompt_agent_turn(req: PromptAgentRequest):
 
     rules = [
         "Rules:",
-        "- On the FIRST turn: open by naming what you can see, specifically and warmly, so "
-        "they know you looked at their picture. Then say they can set length and settings "
-        "now, and ask what should happen in the clip. Leave prompt empty.",
+        "- On the FIRST turn WITH a picture: open by naming what you can see, specifically "
+        "and warmly, so they know you looked at their picture. Then say they can set length "
+        "and settings now, and ask what should happen in the clip. Leave prompt empty.",
+        "- On the FIRST turn WITHOUT a picture: say in one line that you will write the "
+        "prompt, and ask what they want to see. Leave prompt empty.",
+        "- A video prompt is not an image prompt. Never describe a still - no 'sharp focus', "
+        "'centered composition', 'studio lighting' on their own. Something must happen, "
+        "written as a short timeline.",
         "- Once they tell you what should happen, write the prompt and put it in prompt. "
         "Keep reply to one line confirming it.",
         "- The prompt describes MOTION over time, as a short timeline, because the image "

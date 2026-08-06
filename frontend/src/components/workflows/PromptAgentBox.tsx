@@ -69,10 +69,14 @@ export const PromptAgentBox = ({ workflowId, image, seconds = 5, onPrompt }: Pro
     }
   };
 
-  // Opening turn, the moment an image appears.
+  // Opening turn: when an image appears, or straight away on a workflow that
+  // never has one. Text-to-video is exactly where nobody knows what to type,
+  // and waiting for a frame that cannot arrive left the box saying "add a
+  // frame" forever.
   useEffect(() => {
-    if (!image || openedFor.current === image) return;
-    openedFor.current = image;
+    const key = image ?? '__no-image__';
+    if (openedFor.current === key) return;
+    openedFor.current = key;
     setMessages([]);
     void turn('', []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -96,9 +100,7 @@ export const PromptAgentBox = ({ workflowId, image, seconds = 5, onPrompt }: Pro
       <div ref={scroller} className="custom-scrollbar min-h-[120px] flex-1 space-y-2 overflow-y-auto px-3 pb-2">
         {messages.length === 0 && !busy && (
           <p className="text-[11px] leading-relaxed text-white/30">
-            {image
-              ? 'Reading your image…'
-              : 'Add a frame and I will tell you what I see, then write the prompt with you.'}
+            {image ? 'Reading your image…' : 'Thinking…'}
           </p>
         )}
         {messages.map((m, i) => (
