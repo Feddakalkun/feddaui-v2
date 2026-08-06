@@ -691,6 +691,21 @@ export const FEDDA_MODULES: FeddaModule[] = [
     card: { poster: '/cards/bunny/wan22-vace.jpeg' },
   },
   {
+    id: 'ltx-txt2vid',
+    sourceModuleId: 'ltx-video',
+    label: 'LTX Text2Vid',
+    description: 'Video straight from a prompt - no source image needed.',
+    area: 'video',
+    pack: 'booster',
+
+    tabs: ['ltx-txt2vid'],
+    workflows: ['ltx-txt2vid'],
+    defaultTab: 'ltx-txt2vid',
+    Icon: Film,
+    // No baked card art yet - the label card holds the slot Chat LTX vacated.
+    card: {},
+  },
+  {
     id: 'ltx-img2vid',
     sourceModuleId: 'ltx-video',
     label: 'LTX Img2Vid',

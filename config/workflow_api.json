@@ -3867,5 +3867,101 @@
         "label": "LoRAs"
       }
     }
+  },
+  "ltx-txt2vid": {
+    "name": "LTX 2.3 Text to Video",
+    "filename": "ltx/LTX-23-txt2vid.json",
+    "description": "Text to video on the img2vid graph with i2v bypassed; the stand-in frame is generated, never loaded.",
+    "inputs": {
+      "prompt": {
+        "node_id": "2483",
+        "input_key": "text",
+        "type": "string",
+        "label": "Motion Prompt"
+      },
+      "negative": {
+        "node_id": "2612",
+        "input_key": "text",
+        "type": "string",
+        "label": "Negative Prompt"
+      },
+      "seed": {
+        "node_id": "4832",
+        "input_key": "noise_seed",
+        "type": "number",
+        "label": "Seed"
+      },
+      "width": {
+        "node_id": "4995",
+        "input_key": "width",
+        "type": "number",
+        "label": "Width"
+      },
+      "height": {
+        "node_id": "4995",
+        "input_key": "height",
+        "type": "number",
+        "label": "Height"
+      },
+      "length_seconds": {
+        "node_id": "4997",
+        "input_key": "value",
+        "type": "number",
+        "label": "Length (s)"
+      },
+      "loras": {
+        "node_id": "5584",
+        "type": "loras",
+        "label": "LoRAs"
+      }
+    }
+  },
+  "ltx-txt2vid-gguf": {
+    "name": "LTX 2.3 Text to Video (GGUF)",
+    "filename": "ltx/LTX-23-txt2vid-gguf.json",
+    "description": "Text to video on the img2vid graph with i2v bypassed; the stand-in frame is generated, never loaded.",
+    "inputs": {
+      "prompt": {
+        "node_id": "2483",
+        "input_key": "text",
+        "type": "string",
+        "label": "Motion Prompt"
+      },
+      "negative": {
+        "node_id": "2612",
+        "input_key": "text",
+        "type": "string",
+        "label": "Negative Prompt"
+      },
+      "seed": {
+        "node_id": "4832",
+        "input_key": "noise_seed",
+        "type": "number",
+        "label": "Seed"
+      },
+      "width": {
+        "node_id": "4995",
+        "input_key": "width",
+        "type": "number",
+        "label": "Width"
+      },
+      "height": {
+        "node_id": "4995",
+        "input_key": "height",
+        "type": "number",
+        "label": "Height"
+      },
+      "length_seconds": {
+        "node_id": "4997",
+        "input_key": "value",
+        "type": "number",
+        "label": "Length (s)"
+      },
+      "loras": {
+        "node_id": "5584",
+        "type": "loras",
+        "label": "LoRAs"
+      }
+    }
   }
 }

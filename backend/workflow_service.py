@@ -207,6 +207,16 @@ class WorkflowService:
 
                     if class_type == "Power Lora Loader (rgthree)":
                         active_loras = [l for l in param_value if l.get("name")]
+                        # Nothing picked leaves the node exactly as the graph
+                        # author saved it. Clearing on empty wiped LTX flf's
+                        # baked transition + distilled LoRAs - distilled is
+                        # what makes 8-step sampling coherent - so every run
+                        # without an explicit pick came back as fog. The list
+                        # is seeded to [] whenever the input is registered,
+                        # which is why this fired on plain runs.
+                        if not active_loras:
+                            logger.debug("No LoRAs picked - leaving rgthree node %s untouched", node_id)
+                            continue
                         inputs = placeholder.setdefault("inputs", {})
                         # Remove any pre-existing lora_N slots
                         for k in list(inputs.keys()):
