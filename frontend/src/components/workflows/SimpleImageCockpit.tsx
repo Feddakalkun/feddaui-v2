@@ -266,7 +266,11 @@ export function SimpleImageCockpit({
     if (!next) return;
     if (!current) return setPrompt(next);
     if (current.toLowerCase().includes(next.toLowerCase())) return;
-    setPrompt(`${current}\n\n${next}`);
+    // Clauses chain with commas, whole sentences get their own paragraph.
+    // Joining every preset with a blank line turned a stack of building blocks
+    // into a list of fragments rather than a prompt.
+    const isClause = !/[.!?]$/.test(next) && next.length < 90;
+    setPrompt(isClause ? `${current}, ${next}` : `${current}\n\n${next}`);
   };
 
 

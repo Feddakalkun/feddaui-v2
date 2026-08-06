@@ -215,7 +215,12 @@ export const PromptAssistant = ({
         throw new Error(err.detail || 'Caption failed');
       }
       const data = await resp.json();
-      onChange(data.caption ?? '');
+      const caption = String(data.caption ?? '').trim();
+      // Append rather than replace. Dropping a reference onto a prompt you are
+      // halfway through writing used to delete it, which made the feature
+      // something you learned once and then avoided.
+      const existing = prevPrompt.trim();
+      onChange(existing && caption ? `${existing}, ${caption}` : caption || existing);
       if (data.model) setCaptionModel(data.model);
     } catch (err: any) {
       onChange(prevPrompt);
@@ -428,10 +433,15 @@ export const PromptAssistant = ({
         />
 
         {/* Caption hint when a vision model is available & idle */}
-        {enableCaption && !isLoading && !value && (
+        {/* Shown whether or not there is text: hiding it once you started
+            typing meant nobody discovered it, since an empty box is exactly
+            when you have not thought about references yet. */}
+        {enableCaption && !isLoading && (
           <div className="absolute bottom-3 right-3 flex items-center gap-1 text-white/10 pointer-events-none">
             <ImageIcon className="w-3 h-3" />
-            <span className="text-[8px] font-bold uppercase tracking-widest">Drop or paste image</span>
+            <span className="text-[8px] font-bold uppercase tracking-widest">
+              {value ? 'Drop image to add' : 'Drop or paste image'}
+            </span>
           </div>
         )}
 

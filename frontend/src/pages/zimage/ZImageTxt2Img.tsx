@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { TXT2IMG_BUILDING_BLOCKS } from '../../config/promptBuildingBlocks';
 import { AlertCircle, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
 import { WorkflowShell } from '../../components/layout/WorkflowShell';
 import { SimpleImageCockpit, type SimpleImageLoraEntry, type SimpleImagePromptPreset } from '../../components/workflows/SimpleImageCockpit';
@@ -880,7 +881,12 @@ export const Txt2ImgPage = ({
         previewUrl={previewUrl}
         prompt={prompt}
         setPrompt={setPrompt}
-        promptPresets={promptPresets}
+        promptPresets={
+          // Text-to-image shipped with an empty Quick Adds panel, which is
+          // exactly the workflow where nobody knows what to type. A page that
+          // brings its own vocabulary still wins.
+          promptPresets.length ? promptPresets : TXT2IMG_BUILDING_BLOCKS
+        }
         promptMode={promptMode}
         onPromptModeChange={setPromptMode}
         characterPrompt={characterPrompt}
