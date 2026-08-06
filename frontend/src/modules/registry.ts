@@ -451,6 +451,9 @@ export const FEDDA_MODULES: FeddaModule[] = [
     // Proof that one conversational driver covers every workflow: this runs
     // ltx-flf purely from its workflow_api.json declaration, no bespoke code.
     id: 'chat-ltx-flf',
+    // Parked until the conversational driver is good enough to show; the plan
+    // is a plain LTX T2V card in this slot instead.
+    hidden: true,
     sourceModuleId: 'ltx-video',
     label: 'Chat · LTX First/Last',
     description: 'Run LTX First/Last by talking. The agent asks for each frame, then what should happen.',

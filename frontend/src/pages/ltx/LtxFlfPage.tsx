@@ -75,8 +75,6 @@ export const LtxFlfPage = () => {
           {writing ? 'Reading both frames…' : 'Write prompt from frames'}
         </button>
       )}
-      // LoRAs under ltx/ only, and the first frame is what gets read.
-      promptBuilder={{ loraPrefix: 'ltx', imageKey: 'image_first' }}
       settings={[
         {
           kind: 'chips',

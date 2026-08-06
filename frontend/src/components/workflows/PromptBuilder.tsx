@@ -15,6 +15,12 @@ import { cn } from '../../lib/styles';
  * file, the trigger words come from sidecars written when a LoRA was imported.
  * This component knows about neither, which is what lets it work for LoRAs and
  * actions that did not exist when it was written.
+ *
+ * It no longer offers LoRAs. Picking one here only pasted its trigger words
+ * into the text - nothing loaded the weights, the page's LoRA slot is a
+ * separate control - so the sampler chased words with no LoRA behind them and
+ * returned fog. Trigger insertion belongs wherever the LoRA is actually
+ * loaded, not here.
  */
 
 type Action = {
@@ -35,12 +41,10 @@ interface Props {
   onPrompt: (prompt: string) => void;
 }
 
-export const PromptBuilder = ({ image, loraPrefix = '', seconds = 5, onPrompt }: Props) => {
+export const PromptBuilder = ({ image, seconds = 5, onPrompt }: Props) => {
   const [actions, setActions] = useState<Action[]>([]);
   const [categories, setCategories] = useState<{ key: string; label: string }[]>([]);
-  const [loras, setLoras] = useState<{ path: string; name: string; trigger_words: string[] }[]>([]);
   const [picked, setPicked] = useState<Set<string>>(new Set());
-  const [pickedLoras, setPickedLoras] = useState<Set<string>>(new Set());
   const [extra, setExtra] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,17 +58,6 @@ export const PromptBuilder = ({ image, loraPrefix = '', seconds = 5, onPrompt }:
       } catch { /* the builder is optional; the prompt box still works */ }
     })();
   }, []);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(
-          `${BACKEND_API.BASE_URL}/api/prompt-builder/loras?prefix=${encodeURIComponent(loraPrefix)}`);
-        const data = await res.json();
-        if (data.success) setLoras(data.loras);
-      } catch { setLoras([]); }
-    })();
-  }, [loraPrefix]);
 
   const byCategory = useMemo(() => categories.map((c) => ({
     ...c, items: actions.filter((a) => a.category === c.key),
@@ -84,7 +77,7 @@ export const PromptBuilder = ({ image, loraPrefix = '', seconds = 5, onPrompt }:
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          actions: [...picked], loras: [...pickedLoras],
+          actions: [...picked], loras: [],
           image: image || null, extra, seconds,
         }),
       });
@@ -125,37 +118,6 @@ export const PromptBuilder = ({ image, loraPrefix = '', seconds = 5, onPrompt }:
           </div>
         </div>
       ))}
-
-      {loras.length > 0 && (
-        <div>
-          <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
-            LoRAs
-          </div>
-          <div className="custom-scrollbar max-h-28 space-y-0.5 overflow-y-auto pr-1">
-            {loras.map((l) => (
-              <button
-                key={l.path}
-                type="button"
-                onClick={() => toggle(pickedLoras, l.path, setPickedLoras)}
-                className={cn(
-                  'flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-[11px] transition',
-                  pickedLoras.has(l.path)
-                    ? 'bg-violet-500/15 text-violet-100' : 'text-white/45 hover:bg-white/[0.05]',
-                )}
-              >
-                <span className="min-w-0 flex-1 truncate">{l.name.replace(/\.safetensors$/, '')}</span>
-                {/* Only shown when there is one - most LoRAs have no trigger, and
-                    an empty badge would imply the lookup failed. */}
-                {l.trigger_words.length > 0 && (
-                  <span className="shrink-0 rounded bg-black/40 px-1.5 py-0.5 font-mono text-[9px] text-amber-300/80">
-                    {l.trigger_words[0]}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       <input
         value={extra}
