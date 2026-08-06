@@ -2,22 +2,34 @@ param(
     [string]$RootPath = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 )
 
-# KJNodes' VAELoaderKJ builds a generic core VAE for every file. That works for
-# the LTX *video* VAE (comfy/sd.py has a lightricks branch keyed on
-# "decoder.up_blocks.0.res_blocks.0.conv1.conv.weight") but NOT for the LTX-2.3
-# *audio* VAE: its keys are vocoder.vocoder.* / audio_vae.*, which match no
-# branch in sd.py at all (core only detects Ace Step and MMAudio audio VAEs).
-# Core then returns an empty VAE -> "WARNING: No VAE weights detected" ->
-# "RuntimeError: ERROR: VAE is invalid: None", and the whole LTX graph dies.
+# Removes the LTX audio VAE special case from KJNodes' VAELoaderKJ.
 #
-# HISTORY - do not regress this again: patch v2 assumed core had gained native
-# LTX-audio dispatch and deleted the special-case entirely. It had not. That
-# assumption is what made this bug reappear after every install/update, since
-# the installer re-applies these patches every time.
+# HISTORY, because this has flip-flopped and the reasoning matters more than
+# the code:
 #
-# v3 restores explicit dispatch: detect the LTX audio VAE by its vocoder keys
-# and load it with LTX's own AudioVAE class, which takes (sd, metadata) and
-# does no key-sniffing. Verified against LTX23_audio_vae_bf16.safetensors.
+#   v1/v2 - deleted the special case, assuming core handled LTX audio VAEs.
+#   v3    - restored it, because at the time core genuinely did not: the LTX-2.3
+#           audio VAE keys (vocoder.vocoder.* / audio_vae.*) matched no branch
+#           in comfy/sd.py, so core returned an empty VAE.
+#   v4    - deletes it again, and this time core really does handle it.
+#
+# What makes v4 different from v2 is that it is checked rather than assumed.
+# comfy/sd.py now carries the branch:
+#
+#     elif "vocoder.resblocks.0.convs1.0.weight" in sd
+#          or "vocoder.vocoder.resblocks.0.convs1.0.weight" in sd:   # LTX Audio
+#         sd = comfy.utils.state_dict_prefix_replace(sd, {"audio_vae.": "autoencoder."})
+#         self.first_stage_model = comfy.ldm.lightricks.vae.audio_vae.AudioVAE(metadata=metadata)
+#
+# - the same key test v3 used, plus a prefix remap v3 never did.
+#
+# The patch is now actively harmful, not merely redundant: AudioVAE's
+# constructor changed to take metadata alone, so v3's AudioVAE(sd, metadata)
+# raises "TypeError: takes 2 positional arguments but 3 were given" on every
+# audio run. Falling through to VAE() is both correct and less to carry.
+#
+# If LTX audio ever breaks again, check comfy/sd.py for that branch BEFORE
+# reintroducing a special case here. That check is the whole lesson.
 
 $NodeFile = Join-Path $RootPath "ComfyUI\custom_nodes\ComfyUI-KJNodes\nodes\nodes.py"
 if (-not (Test-Path $NodeFile)) {
@@ -27,53 +39,40 @@ if (-not (Test-Path $NodeFile)) {
 
 $Content = Get-Content -LiteralPath $NodeFile -Raw
 
-$New = @'
-        # FEDDA patch v3: v2 assumed core ComfyUI dispatches LTX audio VAEs
-        # natively. It does NOT - comfy/sd.py only detects Ace Step and MMAudio
-        # audio VAEs, and the LTX-2.3 audio VAE (keys: vocoder.vocoder.* /
-        # audio_vae.*) matches no branch at all, so core returns an empty VAE
-        # -> "No VAE weights detected" -> "VAE is invalid: None".
-        # Load it with LTX's own AudioVAE class instead, which takes (sd, metadata).
-        if "vocoder.resblocks.0.convs1.0.weight" in sd or "vocoder.vocoder.resblocks.0.convs1.0.weight" in sd:
-            from comfy.ldm.lightricks.vae.audio_vae import AudioVAE
-            return (AudioVAE(sd, metadata),)
+$Note = @'
+        # FEDDA v4: the LTX audio VAE special case that used to live here is
+        # gone. Core ComfyUI dispatches these natively now (comfy/sd.py keys on
+        # the vocoder weights and remaps audio_vae.* to autoencoder.*), and
+        # AudioVAE's constructor takes metadata alone, so the old
+        # AudioVAE(sd, metadata) call raised TypeError on every audio run.
         vae = VAE(sd=sd, device=device, dtype=dtype, metadata=metadata)
-        if hasattr(vae, "throw_exception_if_invalid"):
-            vae.throw_exception_if_invalid()
-'@
+'@ -replace "`r`n", "`n"
 
-if ($Content.Contains("FEDDA patch v3:")) {
-    Write-Host "  [KJNodes] LTX audio VAE compatibility patch (v3) already applied." -ForegroundColor Green
+# The v3 block: comment header through the explicit AudioVAE dispatch, up to
+# and including the VAE() line that followed it.
+#
+# \r?\n and a leading [ \t]* throughout: the vendored file ships CRLF, and an
+# LF-only pattern matched nothing while the script cheerfully reported an
+# "unrecognised patch state" - which looked like a new problem rather than a
+# broken regex.
+$V3Pattern = '(?s)[ \t]*# FEDDA patch v3:.*?\r?\n[ \t]*vae = VAE\(sd=sd, device=device, dtype=dtype, metadata=metadata\)\r?\n'
+
+if ($Content -match $V3Pattern) {
+    $Content = [regex]::Replace($Content, $V3Pattern, ($Note + "`n"), 1)
+    Set-Content -LiteralPath $NodeFile -Value $Content -NoNewline -Encoding UTF8
+    Write-Host "  [KJNodes] Removed the LTX audio VAE patch (v3 -> v4, core handles it)." -ForegroundColor Green
     exit 0
 }
 
-# Upgrade path: replace the broken v2 block (core-native dispatch) with v3.
-$V2Pattern = '(?s)        # FEDDA patch v2: core ComfyUI VAE\(\) detects LTX audio VAEs natively now\..*?vae\.throw_exception_if_invalid\(\)'
-if ([regex]::IsMatch($Content, $V2Pattern)) {
-    $Content = [regex]::Replace($Content, $V2Pattern, [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $New }, 1)
-    Set-Content -LiteralPath $NodeFile -Value $Content -Encoding UTF8
-    Write-Host "  [KJNodes] Upgraded LTX audio VAE patch v2 -> v3 (explicit AudioVAE dispatch)." -ForegroundColor Green
+if ($Content -match 'FEDDA v4') {
+    Write-Host "  [KJNodes] LTX audio VAE already on v4 (no patch)." -ForegroundColor Gray
     exit 0
 }
 
-# Upgrade path: replace the v1 FEDDA patch block if present.
-$V1Pattern = '(?s)        # FEDDA patch: core ComfyUI VAE\(\) detects LTX audio VAEs natively now\.\s*\n        vae = VAE\(sd=sd, device=device, dtype=dtype, metadata=metadata\)\s*\n        if hasattr\(vae, "throw_exception_if_invalid"\):\s*\n            vae\.throw_exception_if_invalid\(\)'
-if ([regex]::IsMatch($Content, $V1Pattern)) {
-    $Content = [regex]::Replace($Content, $V1Pattern, [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $New }, 1)
-    Set-Content -LiteralPath $NodeFile -Value $Content -Encoding UTF8
-    Write-Host "  [KJNodes] Upgraded LTX audio VAE patch v1 -> v3 (explicit AudioVAE dispatch)." -ForegroundColor Green
+# A stock file with no FEDDA patch of any kind is already what v4 wants.
+if ($Content -notmatch 'FEDDA') {
+    Write-Host "  [KJNodes] Stock nodes.py - nothing to remove." -ForegroundColor Gray
     exit 0
 }
 
-# Match from the is_audio_vae detection block through the invalid-check line,
-# covering both the upstream original and the old v22 FEDDA patch shape.
-$Pattern = '(?s)        is_audio_vae = \(.*?\)\s*\n        if is_audio_vae:.*?(?:vae\.throw_exception_if_invalid\(\)|            vae\.throw_exception_if_invalid\(\))'
-
-if (-not [regex]::IsMatch($Content, $Pattern)) {
-    Write-Host "  [KJNodes] Audio VAE special-case block not found (may already be fixed upstream), patch skipped." -ForegroundColor Yellow
-    exit 0
-}
-
-$Content = [regex]::Replace($Content, $Pattern, [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $New }, 1)
-Set-Content -LiteralPath $NodeFile -Value $Content -Encoding UTF8
-Write-Host "  [KJNodes] Applied LTX audio VAE compatibility patch v3 (explicit AudioVAE dispatch)." -ForegroundColor Green
+Write-Host "  [KJNodes] Unrecognised FEDDA patch state - left untouched." -ForegroundColor Yellow
