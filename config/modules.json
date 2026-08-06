@@ -417,6 +417,18 @@
         "Krea2 Turbo"
       ],
       "notes": "Krea2 Turbo text-to-image."
+    },
+    {
+      "pack": "booster",
+      "area": "video",
+      "enabled": true,
+      "id": "minimax-h3",
+      "name": "MiniMax H3",
+      "workflows": [
+        "minimax-h3-txt2vid",
+        "minimax-h3-img2vid",
+        "minimax-h3-videdit"
+      ]
     }
   ]
 }

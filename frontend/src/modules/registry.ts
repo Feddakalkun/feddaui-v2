@@ -13,6 +13,7 @@ export type SourceModuleId =
   | 'qwen-image'
   | 'wan-video'
   | 'ltx-video'
+  | 'minimax-h3'
   | 'flux-klein'
   | 'flux-klein-uncensored'
   | 'krea2-txt2img'
@@ -689,6 +690,48 @@ export const FEDDA_MODULES: FeddaModule[] = [
     defaultTab: 'wan22-vace',
     Icon: Film,
     card: { poster: '/cards/bunny/wan22-vace.jpeg' },
+  },
+  {
+    id: 'minimax-h3-txt2vid',
+    sourceModuleId: 'minimax-h3',
+    label: 'MiniMax Text2Vid',
+    description: 'MiniMax H3 - video and synchronised audio straight from a prompt.',
+    area: 'video',
+    pack: 'booster',
+
+    tabs: ['minimax-h3-txt2vid'],
+    workflows: ['minimax-h3-txt2vid'],
+    defaultTab: 'minimax-h3-txt2vid',
+    Icon: Film,
+    card: {},
+  },
+  {
+    id: 'minimax-h3-img2vid',
+    sourceModuleId: 'minimax-h3',
+    label: 'MiniMax Img2Vid',
+    description: 'MiniMax H3 driven by one or two reference images.',
+    area: 'video',
+    pack: 'booster',
+
+    tabs: ['minimax-h3-img2vid'],
+    workflows: ['minimax-h3-img2vid'],
+    defaultTab: 'minimax-h3-img2vid',
+    Icon: Film,
+    card: {},
+  },
+  {
+    id: 'minimax-h3-videdit',
+    sourceModuleId: 'minimax-h3',
+    label: 'MiniMax Video Edit',
+    description: 'Re-drive an existing clip; length and height follow the source.',
+    area: 'video',
+    pack: 'booster',
+
+    tabs: ['minimax-h3-videdit'],
+    workflows: ['minimax-h3-videdit'],
+    defaultTab: 'minimax-h3-videdit',
+    Icon: Film,
+    card: {},
   },
   {
     id: 'ltx-txt2vid',

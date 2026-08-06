@@ -1,0 +1,226 @@
+{
+  "142": {
+    "inputs": {
+      "vae_name": "minimax_h3_audio_vae_fp32.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "143": {
+    "inputs": {
+      "noise_seed": 403653304479094
+    },
+    "class_type": "RandomNoise",
+    "_meta": {
+      "title": "RandomNoise"
+    }
+  },
+  "144": {
+    "inputs": {
+      "clip_name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+      "type": "minimax",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "145": {
+    "inputs": {
+      "vae_name": "minimax_h3_video_vae_fp16.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "146": {
+    "inputs": {
+      "noise": [
+        "143",
+        0
+      ],
+      "guider": [
+        "151",
+        0
+      ],
+      "sampler": [
+        "147",
+        0
+      ],
+      "sigmas": [
+        "148",
+        0
+      ],
+      "latent_image": [
+        "153",
+        1
+      ]
+    },
+    "class_type": "SamplerCustomAdvanced",
+    "_meta": {
+      "title": "SamplerCustomAdvanced"
+    }
+  },
+  "147": {
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "KSamplerSelect"
+    }
+  },
+  "148": {
+    "inputs": {
+      "scheduler": "simple",
+      "steps": 20,
+      "denoise": 1,
+      "model": [
+        "154",
+        0
+      ]
+    },
+    "class_type": "BasicScheduler",
+    "_meta": {
+      "title": "BasicScheduler"
+    }
+  },
+  "150": {
+    "inputs": {
+      "frame_rate": 24,
+      "loop_count": 0,
+      "filename_prefix": "VIDEO/MINIMAXH3/0",
+      "format": "video/h264-mp4",
+      "pix_fmt": "yuv420p",
+      "crf": 19,
+      "save_metadata": true,
+      "trim_to_audio": false,
+      "pingpong": false,
+      "save_output": true,
+      "images": [
+        "155",
+        0
+      ],
+      "audio": [
+        "152",
+        0
+      ]
+    },
+    "class_type": "VHS_VideoCombine",
+    "_meta": {
+      "title": "Video Combine 🎥🅥🅗🅢"
+    }
+  },
+  "151": {
+    "inputs": {
+      "model": [
+        "154",
+        0
+      ],
+      "conditioning": [
+        "153",
+        0
+      ]
+    },
+    "class_type": "BasicGuider",
+    "_meta": {
+      "title": "BasicGuider"
+    }
+  },
+  "152": {
+    "inputs": {
+      "samples": [
+        "146",
+        0
+      ],
+      "vae": [
+        "142",
+        0
+      ]
+    },
+    "class_type": "VAEDecodeAudio",
+    "_meta": {
+      "title": "VAE Decode Audio"
+    }
+  },
+  "153": {
+    "inputs": {
+      "prompt": "Ultra-cinematic science fiction commercial, Hollywood quality, photorealistic, volumetric lighting, ray-traced reflections, dramatic atmosphere.\n\nThe camera travels through complete darkness until countless glowing blue particles begin assembling into an enormous futuristic neural network floating in space. Energy races through billions of connections as metallic letters slowly emerge from within the network.\n\nThe words **\"MINIMAX H3\"** ignite with brilliant electric blue light.\n\nThe camera accelerates through the letters into an infinite digital universe filled with floating AI-generated worlds: cyberpunk cities, fantasy kingdoms, realistic humans, cinematic creatures, futuristic robots, magical forests, and surreal dreamscapes. Every environment seamlessly morphs into the next without visible cuts.\n\nFinally, the camera bursts through the final world to reveal an elegant holographic workflow composed of glowing ComfyUI nodes connecting themselves automatically.\n\nThe workflow transforms into a polished chrome logo:\n\n**COMFYUI**\n\nBelow it appears:\n\n**CREATE ANYTHING**\n\nEpic cinematic soundtrack, deep bass impacts, futuristic synths, rising orchestral choir.\n\nPerfect typography. No subtitles. No watermark. No misspelled English. Stable camera motion. Premium blockbuster quality.\n",
+      "width": 768,
+      "height": 1344,
+      "length": 158,
+      "clip": [
+        "144",
+        0
+      ],
+      "vae": [
+        "145",
+        0
+      ]
+    },
+    "class_type": "MiniMaxH3ImageToVideo",
+    "_meta": {
+      "title": "MiniMax H3 Image to Video"
+    }
+  },
+  "154": {
+    "inputs": {
+      "unet_name": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model"
+    }
+  },
+  "155": {
+    "inputs": {
+      "samples": [
+        "146",
+        0
+      ],
+      "vae": [
+        "145",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "156": {
+    "inputs": {
+      "text": "=== DOWNLOAD REPORT ===\nTotal files: 4\nSuccessful downloads: 0\nAlready existed: 4\nInterrupted: 0\nFailed: 0\nMax concurrent: 3\nSpeed limit: Unlimited\nResume enabled: True\nValidation enabled: False\nAuto-organize: False\n\nDetails:\n✓ minimax_h3_video_vae_fp16.safetensors: Already exists (4.85 GB)\n✓ minimax_h3_audio_vae_fp32.safetensors: Already exists (577.22 MB)\n✓ minimax_h3_ref2va_pruned_int8_convrot.safetensors: Already exists (19.53 GB)\n✓ qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors: Already exists (14.61 GB)",
+      "anything": [
+        "158",
+        0
+      ]
+    },
+    "class_type": "easy showAnything",
+    "_meta": {
+      "title": "Show Any"
+    }
+  },
+  "158": {
+    "inputs": {
+      "download_links": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_video_vae_fp16.safetensors vae\nhttps://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_audio_vae_fp32.safetensors vae\nhttps://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors diffusion_models\nhttps://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors text_encoders",
+      "auto_download": true,
+      "max_concurrent_downloads": 3,
+      "max_download_speed_mbps": 0,
+      "enable_resume": true,
+      "validate_files": false,
+      "enable_notifications": true,
+      "auto_organize": false,
+      "hf_token": ""
+    },
+    "class_type": "HuggingFaceDownloader",
+    "_meta": {
+      "title": "🤗 HuggingFace Model Downloader Pro"
+    }
+  }
+}

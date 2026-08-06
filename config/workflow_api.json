@@ -3963,5 +3963,158 @@
         "label": "LoRAs"
       }
     }
+  },
+  "minimax-h3-txt2vid": {
+    "name": "MiniMax H3 Text to Video",
+    "filename": "minimax/MINIMAXH3txt2video.json",
+    "description": "MiniMax H3 text to video with synchronised audio.",
+    "inputs": {
+      "prompt": {
+        "node_id": "153",
+        "input_key": "prompt",
+        "type": "string",
+        "label": "Prompt"
+      },
+      "width": {
+        "node_id": "153",
+        "input_key": "width",
+        "type": "number",
+        "label": "Width"
+      },
+      "height": {
+        "node_id": "153",
+        "input_key": "height",
+        "type": "number",
+        "label": "Height"
+      },
+      "length": {
+        "node_id": "153",
+        "input_key": "length",
+        "type": "number",
+        "label": "Frames"
+      },
+      "seed": {
+        "node_id": "143",
+        "input_key": "noise_seed",
+        "type": "number",
+        "label": "Seed"
+      },
+      "steps": {
+        "node_id": "148",
+        "input_key": "steps",
+        "type": "number",
+        "label": "Steps"
+      },
+      "frame_rate": {
+        "node_id": "150",
+        "input_key": "frame_rate",
+        "type": "number",
+        "label": "FPS"
+      }
+    }
+  },
+  "minimax-h3-img2vid": {
+    "name": "MiniMax H3 Image to Video",
+    "filename": "minimax/MINIMAXH3img2video.json",
+    "description": "MiniMax H3 driven by up to two reference images.",
+    "inputs": {
+      "prompt": {
+        "node_id": "138",
+        "input_key": "value",
+        "type": "string",
+        "label": "Prompt"
+      },
+      "image": {
+        "node_id": "137",
+        "input_key": "image",
+        "type": "string",
+        "label": "Reference Image"
+      },
+      "image2": {
+        "node_id": "139",
+        "input_key": "image",
+        "type": "string",
+        "label": "Second Reference"
+      },
+      "width": {
+        "node_id": "136",
+        "input_key": "width",
+        "type": "number",
+        "label": "Width"
+      },
+      "height": {
+        "node_id": "136",
+        "input_key": "height",
+        "type": "number",
+        "label": "Height"
+      },
+      "length": {
+        "node_id": "136",
+        "input_key": "length",
+        "type": "number",
+        "label": "Frames"
+      },
+      "seed": {
+        "node_id": "129",
+        "input_key": "noise_seed",
+        "type": "number",
+        "label": "Seed"
+      },
+      "steps": {
+        "node_id": "124",
+        "input_key": "steps",
+        "type": "number",
+        "label": "Steps"
+      },
+      "frame_rate": {
+        "node_id": "159",
+        "input_key": "frame_rate",
+        "type": "number",
+        "label": "FPS"
+      }
+    }
+  },
+  "minimax-h3-videdit": {
+    "name": "MiniMax H3 Video Edit",
+    "filename": "minimax/MINIMAXH3videoedit.json",
+    "description": "Re-drive an existing clip with MiniMax H3; length and height follow the source.",
+    "inputs": {
+      "prompt": {
+        "node_id": "196",
+        "input_key": "prompt",
+        "type": "string",
+        "label": "Prompt"
+      },
+      "video": {
+        "node_id": "195",
+        "input_key": "video",
+        "type": "string",
+        "label": "Source Video"
+      },
+      "width": {
+        "node_id": "196",
+        "input_key": "width",
+        "type": "number",
+        "label": "Width"
+      },
+      "seed": {
+        "node_id": "190",
+        "input_key": "noise_seed",
+        "type": "number",
+        "label": "Seed"
+      },
+      "steps": {
+        "node_id": "192",
+        "input_key": "steps",
+        "type": "number",
+        "label": "Steps"
+      },
+      "frame_rate": {
+        "node_id": "193",
+        "input_key": "frame_rate",
+        "type": "number",
+        "label": "FPS"
+      }
+    }
   }
 }
