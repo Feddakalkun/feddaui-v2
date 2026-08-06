@@ -9,6 +9,7 @@ import { ToastProvider } from './components/ui/Toast';
 import { ComfyExecutionProvider } from './contexts/ComfyExecutionContext';
 import { ModuleProvider, useModules } from './contexts/ModuleContext';
 import { AgentWorkflowProvider, useAgentWorkflow } from './contexts/AgentWorkflowContext';
+import { ModelDownloadProvider } from './contexts/ModelDownloadContext';
 import { WorkflowSwitcher } from './components/chat/WorkflowSwitcher';
 import { ImageStudioPage } from './pages/ImageStudioPage';
 import { VideoStudioPage } from './pages/VideoStudioPage';
@@ -283,7 +284,10 @@ export default function App() {
           {/* Inside ModuleProvider: the workflow bar reads the registry and
               what is installed from it. */}
           <AgentWorkflowProvider>
-            <FeddaApp />
+            {/* Outside the page tree so a download outlives navigating away. */}
+            <ModelDownloadProvider>
+              <FeddaApp />
+            </ModelDownloadProvider>
           </AgentWorkflowProvider>
         </ModuleProvider>
       </ToastProvider>

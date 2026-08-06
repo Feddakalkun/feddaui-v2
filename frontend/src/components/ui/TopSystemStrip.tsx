@@ -4,6 +4,7 @@ import { useComfyStatus } from '../../hooks/useComfyStatus';
 import { useOllamaStatus } from '../../hooks/useOllamaStatus';
 import { useComfyExecution } from '../../contexts/ComfyExecutionContext';
 import { BACKEND_API } from '../../config/api';
+import { useModelDownload } from '../../contexts/ModelDownloadContext';
 
 export const TopSystemStrip = () => {
   const comfy = useComfyStatus(3000);
@@ -19,6 +20,7 @@ export const TopSystemStrip = () => {
   const [civitaiConfigured, setCivitaiConfigured] = useState(false);
   const [civitaiLoading, setCivitaiLoading] = useState(true);
   const [civitaiSaving, setCivitaiSaving] = useState(false);
+  const { progress: download } = useModelDownload();
   // Venice key lives in localStorage — the Venice pages call api.venice.ai directly from the browser
   const [veniceConfigured, setVeniceConfigured] = useState(() => !!localStorage.getItem('venice_api_key'));
 
@@ -250,6 +252,34 @@ export const TopSystemStrip = () => {
 
   return (
     <div className="hidden xl:flex items-center gap-2">
+
+      {/* Model download - global, so it survives leaving the page that started it */}
+      {download && (
+        <div className="h-8 min-w-[300px] px-3 rounded-lg border border-amber-500/30 bg-amber-500/10 flex items-center gap-2.5">
+          <DownloadCloud className="w-3.5 h-3.5 text-amber-300 animate-pulse shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="flex justify-between items-center gap-2 mb-1">
+              <span className="text-[10px] font-mono text-amber-100/80 truncate">
+                {download.filename || 'Downloading models'}
+              </span>
+              <span className="text-[10px] font-mono text-amber-300 shrink-0">
+                {Math.round(download.fraction * 100)}%
+              </span>
+            </div>
+            <div className="h-1 rounded-full bg-black/40 overflow-hidden">
+              <div
+                className="h-full bg-amber-400 transition-[width] duration-500"
+                style={{ width: `${Math.min(100, Math.max(0, download.fraction * 100))}%` }}
+              />
+            </div>
+          </div>
+          {download.remaining > 1 && (
+            <span className="text-[10px] font-mono text-amber-300/60 shrink-0">
+              {download.remaining} left
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Execution Progress Bar */}
       {state === 'executing' && (

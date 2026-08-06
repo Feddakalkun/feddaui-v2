@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useComfyExecution } from '../contexts/ComfyExecutionContext';
+import { useModelDownload } from '../contexts/ModelDownloadContext';
 import { BACKEND_API } from '../config/api';
 
 export interface DownloadFileStatus {
@@ -29,6 +30,7 @@ export interface WorkflowDownloadState {
 
 export function useWorkflowDownloadStatus(workflowId: string): WorkflowDownloadState {
   const { isDownloaderNode } = useComfyExecution();
+  const { track } = useModelDownload();
   const [preflight, setPreflight] = useState<PreflightFileStatus[]>([]);
   const [liveFiles, setLiveFiles] = useState<DownloadFileStatus[]>([]);
   const [checked, setChecked] = useState(false);
@@ -76,11 +78,16 @@ export function useWorkflowDownloadStatus(workflowId: string): WorkflowDownloadS
         `${BACKEND_API.BASE_URL}/api/workflow/download-models/${encodeURIComponent(workflowId)}`,
         { method: 'POST' }
       );
-      if (resp.ok) setManualDownloading(true);
+      if (resp.ok) {
+        setManualDownloading(true);
+        // Hand the workflow to the global tracker: this modal unmounts the
+        // moment the user clicks away, and the download does not.
+        track(workflowId);
+      }
     } catch {
       // Network unavailable — leave state unchanged
     }
-  }, [workflowId]);
+  }, [workflowId, track]);
 
   // Poll live file sizes while a download could be running. The third condition
   // matters: /api/generate now starts missing-model downloads itself through the
