@@ -749,7 +749,6 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'ltx-audio-img2vid',
-    hidden: true,
     sourceModuleId: 'ltx-video',
     label: 'LTX Audio + Image2Video',
     description: 'Animate a reference image driven by an audio clip — motion follows the sound.',
