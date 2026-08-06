@@ -119,16 +119,35 @@ class ModelDownloader:
         """
         tmp_path = dest_path.with_suffix(dest_path.suffix + ".fedda_tmp")
         try:
-            self._update_progress(filename, "downloading", 0)
             dest_path.parent.mkdir(parents=True, exist_ok=True)
 
-            response = requests.get(url, stream=True, timeout=30, headers=headers or {})
+            # Resume whatever a previous attempt already fetched. A 28 GB
+            # checkpoint restarting from zero because the app was restarted is
+            # hours thrown away, and the sidecar is right there on disk.
+            resume_from = tmp_path.stat().st_size if tmp_path.exists() else 0
+            req_headers = dict(headers or {})
+            if resume_from > 0:
+                req_headers["Range"] = f"bytes={resume_from}-"
+
+            response = requests.get(url, stream=True, timeout=30, headers=req_headers)
             response.raise_for_status()
 
-            total_size = int(response.headers.get("content-length", 0))
-            downloaded_size = 0
+            # 206 means the server honoured the range; anything else means it
+            # sent the whole file, so the partial has to go or the two would be
+            # concatenated into a corrupt blob.
+            resuming = resume_from > 0 and response.status_code == 206
+            if resume_from > 0 and not resuming:
+                resume_from = 0
 
-            with open(tmp_path, "wb") as f:
+            content_length = int(response.headers.get("content-length", 0))
+            total_size = content_length + resume_from if content_length else 0
+            downloaded_size = resume_from
+            self._update_progress(
+                filename, "downloading",
+                int(resume_from / total_size * 100) if total_size else 0,
+            )
+
+            with open(tmp_path, "ab" if resuming else "wb") as f:
                 for chunk in response.iter_content(chunk_size=65536):
                     if chunk:
                         f.write(chunk)
@@ -153,12 +172,14 @@ class ModelDownloader:
             return True
         except Exception as e:
             self._update_progress(filename, "error", 0, str(e))
-            for p in (tmp_path, dest_path):
-                try:
-                    if p.exists():
-                        p.unlink()
-                except OSError:
-                    pass
+            # The sidecar is deliberately kept: it is what the next attempt
+            # resumes from. Only a half-written destination is dangerous,
+            # because that is the name everything else treats as a real model.
+            try:
+                if dest_path.exists():
+                    dest_path.unlink()
+            except OSError:
+                pass
             return False
         finally:
             with self.lock:

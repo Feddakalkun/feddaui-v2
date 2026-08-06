@@ -120,6 +120,11 @@ export function useWorkflowDownloadStatus(workflowId: string): WorkflowDownloadS
           totalBytes: Number(f.totalBytes ?? 0),
         }));
         setLiveFiles(files);
+        // Adopt a download nobody told us about: /api/generate starts these
+        // itself, and one already running when the page loads has no click to
+        // report. Bytes moving on an unfinished file is the only signal there
+        // is, and without it the top bar stays empty while the disk fills.
+        if (files.some((f) => !f.exists && f.currentBytes > 0)) track(workflowId);
         // Every file on disk means the download is done, whoever started it.
         // Re-running preflight clears hasMissingFiles, which stops this poll —
         // otherwise a Generate-triggered download would leave it running forever
@@ -138,7 +143,7 @@ export function useWorkflowDownloadStatus(workflowId: string): WorkflowDownloadS
       mounted = false;
       clearInterval(id);
     };
-  }, [pollingActive, manualDownloading, workflowId, fetchPreflight]);
+  }, [pollingActive, manualDownloading, workflowId, fetchPreflight, track]);
 
   const missingCount = preflight.filter((f) => !f.exists).length;
 
