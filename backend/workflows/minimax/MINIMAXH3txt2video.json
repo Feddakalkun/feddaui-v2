@@ -80,7 +80,7 @@
       "steps": 20,
       "denoise": 1,
       "model": [
-        "9001",
+        "154",
         0
       ]
     },
@@ -118,7 +118,7 @@
   "151": {
     "inputs": {
       "model": [
-        "9001",
+        "154",
         0
       ],
       "conditioning": [
@@ -221,18 +221,6 @@
     "class_type": "HuggingFaceDownloader",
     "_meta": {
       "title": "🤗 HuggingFace Model Downloader Pro"
-    }
-  },
-  "9001": {
-    "class_type": "MiniMaxH3MemoryEfficientSageAttentionPatch",
-    "inputs": {
-      "model": [
-        "154",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Memory efficient attention (FEDDA)"
     }
   }
 }

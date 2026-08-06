@@ -92,7 +92,7 @@
   "185": {
     "inputs": {
       "model": [
-        "9001",
+        "186",
         0
       ],
       "conditioning": [
@@ -168,7 +168,7 @@
       "steps": 20,
       "denoise": 1,
       "model": [
-        "9001",
+        "186",
         0
       ]
     },
@@ -273,18 +273,6 @@
     "class_type": "VHS_VideoInfo",
     "_meta": {
       "title": "Video Info 🎥🅥🅗🅢"
-    }
-  },
-  "9001": {
-    "class_type": "MiniMaxH3MemoryEfficientSageAttentionPatch",
-    "inputs": {
-      "model": [
-        "186",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Memory efficient attention (FEDDA)"
     }
   }
 }
