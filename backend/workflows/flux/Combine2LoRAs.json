@@ -1,0 +1,581 @@
+{
+  "1": {
+    "inputs": {
+      "unet_name": "flux1-dev.sft",
+      "weight_dtype": "fp8_e4m3fn"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model"
+    }
+  },
+  "3": {
+    "inputs": {
+      "clip_name1": "t5xxl_fp8_e4m3fn.safetensors",
+      "clip_name2": "clip_l.safetensors",
+      "type": "flux",
+      "device": "default"
+    },
+    "class_type": "DualCLIPLoader",
+    "_meta": {
+      "title": "DualCLIPLoader"
+    }
+  },
+  "4": {
+    "inputs": {
+      "max_shift": 0.75,
+      "base_shift": 0.45,
+      "width": [
+        "19",
+        1
+      ],
+      "height": [
+        "19",
+        2
+      ],
+      "model": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingFlux",
+    "_meta": {
+      "title": "ModelSamplingFlux"
+    }
+  },
+  "5": {
+    "inputs": {
+      "clip_l": "",
+      "t5xxl": [
+        "114",
+        0
+      ],
+      "guidance": 3.5,
+      "clip": [
+        "125",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncodeFlux",
+    "_meta": {
+      "title": "CLIPTextEncodeFlux"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": "",
+      "clip": [
+        "125",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "7": {
+    "inputs": {
+      "vae_name": "flux\\ae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "13": {
+    "inputs": {
+      "samples": [
+        "46",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "19": {
+    "inputs": {
+      "dimensions": "1152 x 896 (1.286:1)",
+      "invert": true,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImagePresets",
+    "_meta": {
+      "title": "Empty Latent Image Presets"
+    }
+  },
+  "46": {
+    "inputs": {
+      "seed": [
+        "126",
+        0
+      ],
+      "steps": 20,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "sgm_uniform",
+      "denoise": 1,
+      "model": [
+        "125",
+        0
+      ],
+      "positive": [
+        "5",
+        0
+      ],
+      "negative": [
+        "6",
+        0
+      ],
+      "latent_image": [
+        "19",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "49": {
+    "inputs": {
+      "UNKNOWN": "sdpa"
+    },
+    "_meta": {}
+  },
+  "53": {
+    "inputs": {
+      "UNKNOWN": "randomize",
+      "image": [
+        "13",
+        0
+      ],
+      "florence2_model": [
+        "49",
+        0
+      ]
+    },
+    "_meta": {}
+  },
+  "54": {
+    "inputs": {
+      "images": [
+        "53",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "65": {
+    "inputs": {
+      "clip_l": "",
+      "t5xxl": [
+        "120",
+        0
+      ],
+      "guidance": 3.5,
+      "clip": [
+        "124",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncodeFlux",
+    "_meta": {
+      "title": "CLIPTextEncodeFlux"
+    }
+  },
+  "73": {
+    "inputs": {
+      "MODEL": [
+        "4",
+        0
+      ],
+      "CLIP": [
+        "3",
+        0
+      ],
+      "VAE": [
+        "7",
+        0
+      ]
+    },
+    "_meta": {}
+  },
+  "74": {
+    "inputs": {
+      "images": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "82": {
+    "inputs": {
+      "UNKNOWN": "fp16"
+    },
+    "_meta": {}
+  },
+  "83": {
+    "inputs": {
+      "UNKNOWN": false,
+      "sam2_model": [
+        "82",
+        0
+      ],
+      "image": [
+        "53",
+        0
+      ],
+      "bboxes": [
+        "85",
+        1
+      ]
+    },
+    "_meta": {}
+  },
+  "84": {
+    "inputs": {
+      "mask_opacity": 0.8,
+      "mask_color": "100,15,240",
+      "pass_through": false,
+      "image": [
+        "53",
+        0
+      ],
+      "mask": [
+        "107",
+        0
+      ]
+    },
+    "class_type": "ImageAndMaskPreview",
+    "_meta": {
+      "title": "ImageAndMaskPreview"
+    }
+  },
+  "85": {
+    "inputs": {
+      "UNKNOWN": false,
+      "data": [
+        "53",
+        3
+      ],
+      "index": [
+        "136",
+        0
+      ]
+    },
+    "_meta": {}
+  },
+  "86": {
+    "inputs": {
+      "erode_dilate": 25,
+      "fill_holes": 25,
+      "remove_isolated_pixels": 4,
+      "smooth": 0,
+      "blur": 0,
+      "mask": [
+        "83",
+        0
+      ]
+    },
+    "class_type": "MaskFix+",
+    "_meta": {
+      "title": "🔧 Mask Fix"
+    }
+  },
+  "101": {
+    "inputs": {
+      "rgthree_comparer": {
+        "images": [
+          {
+            "name": "A",
+            "selected": true,
+            "url": "/api/view?filename=rgthree.compare._temp_xcphe_00083_.png&type=temp&subfolder=&rand=0.665784664309433"
+          },
+          {
+            "name": "B",
+            "selected": true,
+            "url": "/api/view?filename=rgthree.compare._temp_xcphe_00084_.png&type=temp&subfolder=&rand=0.8931480989478175"
+          }
+        ]
+      },
+      "image_a": [
+        "13",
+        0
+      ],
+      "image_b": [
+        "102",
+        0
+      ]
+    },
+    "class_type": "Image Comparer (rgthree)",
+    "_meta": {
+      "title": "Image Comparer (rgthree)"
+    }
+  },
+  "102": {
+    "inputs": {
+      "UNKNOWN": 20,
+      "image": [
+        "13",
+        0
+      ],
+      "segs": [
+        "103",
+        0
+      ],
+      "model": [
+        "124",
+        0
+      ],
+      "positive": [
+        "65",
+        0
+      ],
+      "negative": [
+        "6",
+        0
+      ],
+      "denoise": [
+        "137",
+        0
+      ]
+    },
+    "_meta": {}
+  },
+  "103": {
+    "inputs": {
+      "UNKNOWN": false,
+      "mask": [
+        "106",
+        0
+      ]
+    },
+    "_meta": {}
+  },
+  "105": {
+    "inputs": {
+      "UNKNOWN": false,
+      "images": [
+        "102",
+        0
+      ]
+    },
+    "_meta": {}
+  },
+  "106": {
+    "inputs": {
+      "UNKNOWN": 10,
+      "mask": [
+        "107",
+        0
+      ]
+    },
+    "_meta": {}
+  },
+  "107": {
+    "inputs": {
+      "expand": 2,
+      "tapered_corners": false,
+      "mask": [
+        "86",
+        0
+      ]
+    },
+    "class_type": "GrowMask",
+    "_meta": {
+      "title": "Grow Mask"
+    }
+  },
+  "114": {
+    "inputs": {
+      "delimiter": ", ",
+      "clean_whitespace": "true",
+      "text_a": [
+        "117",
+        0
+      ],
+      "text_b": [
+        "118",
+        0
+      ]
+    },
+    "class_type": "Text Concatenate",
+    "_meta": {
+      "title": "Text Concatenate"
+    }
+  },
+  "117": {
+    "inputs": {
+      "text": "A hyper-realistic macro shot of two adult women sitting in a bumper car, looking at viewer. front view. The image captures fine details, such as the texture of the womens hair, with precise focus on the women. The lighting is soft and natural, enhancing the realistic effect."
+    },
+    "class_type": "Text Multiline",
+    "_meta": {
+      "title": "Prompt"
+    }
+  },
+  "118": {
+    "inputs": {
+      "text": "The woman on the left has her hair up in a messy bun with front strands coming down on the side of her face. She wears glasses and a blue dress, The Woman on the right is wearing a pink dress"
+    },
+    "class_type": "Text Multiline",
+    "_meta": {
+      "title": "Additional info picture 1"
+    }
+  },
+  "119": {
+    "inputs": {
+      "text": ""
+    },
+    "class_type": "Text Multiline",
+    "_meta": {
+      "title": "Additional info picture 2"
+    }
+  },
+  "120": {
+    "inputs": {
+      "delimiter": ", ",
+      "clean_whitespace": "true",
+      "text_a": [
+        "117",
+        0
+      ],
+      "text_b": [
+        "119",
+        0
+      ]
+    },
+    "class_type": "Text Concatenate",
+    "_meta": {
+      "title": "Text Concatenate"
+    }
+  },
+  "121": {
+    "inputs": {
+      "text_0": "A hyper-realistic macro shot of two adult women sitting in a bumper car, looking at viewer. front view. The image captures fine details, such as the texture of the womens hair, with precise focus on the women. The lighting is soft and natural, enhancing the realistic effect., The woman on the left has her hair up in a messy bun with front strands coming down on the side of her face. She wears glasses and a blue dress, The Woman on the right is wearing a pink dress",
+      "text": [
+        "114",
+        0
+      ]
+    },
+    "class_type": "ShowText|pysssss",
+    "_meta": {
+      "title": "Text 1"
+    }
+  },
+  "122": {
+    "inputs": {
+      "text_0": "A hyper-realistic macro shot of two adult women sitting in a bumper car, looking at viewer. front view. The image captures fine details, such as the texture of the womens hair, with precise focus on the women. The lighting is soft and natural, enhancing the realistic effect.",
+      "text": [
+        "120",
+        0
+      ]
+    },
+    "class_type": "ShowText|pysssss",
+    "_meta": {
+      "title": "Text 2"
+    }
+  },
+  "124": {
+    "inputs": {
+      "lora_name": "YOUR_LORA_1.safetensors",
+      "strength_model": 1,
+      "strength_clip": 1
+    },
+    "class_type": "LoraLoader",
+    "_meta": {
+      "title": "Person 2"
+    }
+  },
+  "125": {
+    "inputs": {
+      "lora_name": "YOUR_LORA_2.safetensors",
+      "strength_model": 1,
+      "strength_clip": 1
+    },
+    "class_type": "LoraLoader",
+    "_meta": {
+      "title": "Person 1"
+    }
+  },
+  "126": {
+    "inputs": {
+      "UNKNOWN": "fixed"
+    },
+    "_meta": {}
+  },
+  "129": {
+    "inputs": {
+      "mask_opacity": 0.8,
+      "mask_color": "100,15,240",
+      "pass_through": false,
+      "image": [
+        "53",
+        0
+      ],
+      "mask": [
+        "107",
+        0
+      ]
+    },
+    "class_type": "ImageAndMaskPreview",
+    "_meta": {
+      "title": "ImageAndMaskPreview"
+    }
+  },
+  "130": {
+    "inputs": {
+      "rgthree_comparer": {
+        "images": [
+          {
+            "name": "A",
+            "selected": true,
+            "url": "/api/view?filename=rgthree.compare._temp_gpedi_00077_.png&type=temp&subfolder=&rand=0.13548432505675545"
+          },
+          {
+            "name": "B",
+            "selected": true,
+            "url": "/api/view?filename=rgthree.compare._temp_gpedi_00078_.png&type=temp&subfolder=&rand=0.0290262096933509"
+          }
+        ]
+      },
+      "image_a": [
+        "102",
+        0
+      ],
+      "image_b": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "Image Comparer (rgthree)",
+    "_meta": {
+      "title": "Image Comparer (rgthree)"
+    }
+  },
+  "136": {
+    "inputs": {
+      "UNKNOWN": "1"
+    },
+    "_meta": {
+      "title": "Choose person"
+    }
+  },
+  "137": {
+    "inputs": {
+      "UNKNOWN": "0.8"
+    },
+    "_meta": {
+      "title": "Denoise"
+    }
+  }
+}
