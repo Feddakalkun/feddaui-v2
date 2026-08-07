@@ -69,14 +69,21 @@ export const PromptAgentBox = ({ workflowId, image, seconds = 5, onPrompt }: Pro
     }
   };
 
-  // Opening turn: when an image appears, or straight away on a workflow that
-  // never has one. Text-to-video is exactly where nobody knows what to type,
-  // and waiting for a frame that cannot arrive left the box saying "add a
-  // frame" forever.
+  // With no image the greeting is a fixed line, not a generated one. There is
+  // nothing to say that depends on anything, so asking a model to produce it
+  // only bought a round-trip and a chance to invent a room full of bookshelves.
+  // With an image the opening turn is worth the call - it has to look first.
   useEffect(() => {
     const key = image ?? '__no-image__';
     if (openedFor.current === key) return;
     openedFor.current = key;
+    if (!image) {
+      setMessages([{
+        role: 'agent',
+        text: "I'm your prompt agent. Give me a couple of keywords and I'll write the scene for you.",
+      }]);
+      return;
+    }
     setMessages([]);
     void turn('', []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -100,7 +107,7 @@ export const PromptAgentBox = ({ workflowId, image, seconds = 5, onPrompt }: Pro
       <div ref={scroller} className="custom-scrollbar min-h-[120px] flex-1 space-y-2 overflow-y-auto px-3 pb-2">
         {messages.length === 0 && !busy && (
           <p className="text-[11px] leading-relaxed text-white/30">
-            {image ? 'Reading your image…' : 'Thinking…'}
+            {image ? 'Reading your image…' : ''}
           </p>
         )}
         {messages.map((m, i) => (
@@ -129,7 +136,7 @@ export const PromptAgentBox = ({ workflowId, image, seconds = 5, onPrompt }: Pro
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
           }}
           rows={1}
-          placeholder={image ? 'What should happen?' : 'Describe what you want…'}
+          placeholder={image ? 'What should happen?' : 'red devil girl, laughing…'}
           className="max-h-24 flex-1 resize-none rounded-lg border border-white/10 bg-black/35 px-2.5 py-1.5 text-[12px] text-zinc-100 outline-none transition focus:border-white/25"
         />
         <button
