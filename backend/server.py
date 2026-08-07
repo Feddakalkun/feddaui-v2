@@ -3417,8 +3417,9 @@ async def prompt_agent_turn(req: PromptAgentRequest):
             "or invent a picture, a person or a room."
         )
         rules.append(
-            "- On the FIRST turn: say in one line that you will write the prompt, and ask "
-            "what they want to see. Leave prompt empty."
+            "- Write the prompt from the very first thing they say, however short. "
+            "'a woman eating cake' is enough. Invent the room, the light, the camera and "
+            "the motion yourself - that is your job, not theirs."
         )
         rules.append(
             "- The prompt describes the whole scene AND what happens in it over time, "
@@ -3427,8 +3428,11 @@ async def prompt_agent_turn(req: PromptAgentRequest):
     rules += [
         "- A video prompt is not an image prompt. Never describe a still - no 'sharp focus', "
         "'centered composition', 'studio lighting' on their own. Something must happen.",
-        "- Once they tell you what should happen, write the prompt and put it in prompt. "
-        "Keep reply to one line confirming it.",
+        "- NEVER ask a follow-up question once they have said anything at all. Never say "
+        "'what happens next', 'what would you like', 'can you tell me more'. Write the "
+        "prompt, then stop. If they want it changed they will say so, and you rewrite it.",
+        "- Every reply after the opening carries a finished prompt in prompt. A reply with "
+        "an empty prompt is a failure.",
     ]
     if audio:
         rules.append(
