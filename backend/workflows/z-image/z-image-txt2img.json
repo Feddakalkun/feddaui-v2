@@ -169,7 +169,7 @@
   },
   "29": {
     "inputs": {
-      "text": "=== DOWNLOAD REPORT ===\nTotal files: 8\nSuccessful downloads: 0\nAlready existed: 8\nInterrupted: 0\nFailed: 0\nMax concurrent: 3\nSpeed limit: Unlimited\nResume enabled: True\nValidation enabled: False\nAuto-organize: False\n\nDetails:\n✓ z_image_turbo_bf16.safetensors: Already exists (11.46 GB)\n✓ qwen_3_4b.safetensors: Already exists (7.49 GB)\n✓ z-image-vae.safetensors: Already exists (319.77 MB)\n✓ Z-Image-Turbo-Fun-Controlnet-Union.safetensors: Already exists (2.89 GB)\n✓ lotus-depth-g-v2-0-disparity.safetensors: Already exists (3.23 GB)\n✓ vae-ft-mse-840000-ema-pruned.safetensors: Already exists (319.14 MB)\n✓ face_yolov8m.pt: Already exists (49.59 MB)\n✓ sam_vit_b_01ec64.pth: Already exists (357.67 MB)",
+      "text": "",
       "anything": [
         "28",
         0

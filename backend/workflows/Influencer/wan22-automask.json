@@ -34,7 +34,7 @@
   },
   "28": {
     "inputs": {
-      "text_0": "=== DOWNLOAD REPORT ===\nTotal files: 14\nSuccessful downloads: 0\nAlready existed: 14\nInterrupted: 0\nFailed: 0\nMax concurrent: 3\nSpeed limit: Unlimited\nResume enabled: True\nValidation enabled: False\nAuto-organize: False\n\nDetails:\n✓ wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors: Already exists (13.31 GB)\n✓ wan2.2_t2v_high_noise_14B_fp8_scaled.safetensors: Already exists (13.31 GB)\n✓ smoothMixWan22I2VT2V_t2vLowV20.safetensors: Already exists (19.82 GB)\n✓ smoothMixWan22I2VT2V_t2vHighV20.safetensors: Already exists (19.82 GB)\n✓ nsfw_wan_umt5-xxl_fp8_scaled.safetensors: Already exists (6.27 GB)\n✓ wan_2.1_vae.safetensors: Already exists (242.06 MB)\n✓ Wan2.2-I2V-HIGH-4steps-lora-rank64-Seko-V1.safetensors: Already exists (1.14 GB)\n✓ Wan2.2-I2V-LOW-4steps-lora-rank64-Seko-V1.safetensors: Already exists (1.14 GB)\n✓ Wan2.2-T2V-4steps-HIGH-rank64-Seko-V2.0.safetensors: Already exists (1.14 GB)\n✓ Wan2.2-T2V-4steps-LOW-rank64-Seko-V2.0.safetensors: Already exists (1.14 GB)\n✓ SECRET_SAUCE_WAN2.1_14B_fp8.safetensors: Already exists (146.39 MB)\n✓ lightx2v_T2V_14B_cfg_step_distill_v2_lora_rank32_bf16.safetensors: Already exists (304.33 MB)\n✓ Wan2.1_T2V_14B_FusionX_LoRA.safetensors: Already exists (302.15 MB)\n✓ Wan2.1_I2V_14B_FusionX_LoRA.safetensors: Already exists (353.94 MB)",
+      "text_0": "",
       "text": [
         "27",
         0

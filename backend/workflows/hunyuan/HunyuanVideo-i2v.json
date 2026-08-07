@@ -11,7 +11,10 @@
       "auto_organize": false,
       "hf_token": "",
       "speak_and_recognation": {
-        "__value__": [false, true]
+        "__value__": [
+          false,
+          true
+        ]
       }
     },
     "class_type": "HuggingFaceDownloader",
@@ -21,8 +24,11 @@
   },
   "2": {
     "inputs": {
-      "text": "=== DOWNLOAD REPORT ===\nRun workflow once to trigger model downloads.",
-      "anything": ["1", 0]
+      "text": "",
+      "anything": [
+        "1",
+        0
+      ]
     },
     "class_type": "easy showAnything",
     "_meta": {
@@ -45,8 +51,14 @@
         "type": "PowerLoraLoaderHeaderWidget"
       },
       "➕ Add Lora": "",
-      "model": ["3", 0],
-      "clip": ["5", 0]
+      "model": [
+        "3",
+        0
+      ],
+      "clip": [
+        "5",
+        0
+      ]
     },
     "class_type": "Power Lora Loader (rgthree)",
     "_meta": {
@@ -95,8 +107,14 @@
   "9": {
     "inputs": {
       "crop": "center",
-      "clip_vision": ["7", 0],
-      "image": ["8", 0]
+      "clip_vision": [
+        "7",
+        0
+      ],
+      "image": [
+        "8",
+        0
+      ]
     },
     "class_type": "CLIPVisionEncode",
     "_meta": {
@@ -107,8 +125,14 @@
     "inputs": {
       "prompt": "",
       "image_interleave": 2,
-      "clip": ["4", 1],
-      "clip_vision_output": ["9", 0]
+      "clip": [
+        "4",
+        1
+      ],
+      "clip_vision_output": [
+        "9",
+        0
+      ]
     },
     "class_type": "TextEncodeHunyuanVideo_ImageToVideo",
     "_meta": {
@@ -118,7 +142,10 @@
   "11": {
     "inputs": {
       "text": "",
-      "clip": ["4", 1]
+      "clip": [
+        "4",
+        1
+      ]
     },
     "class_type": "CLIPTextEncode",
     "_meta": {
@@ -127,14 +154,32 @@
   },
   "12": {
     "inputs": {
-      "positive": ["10", 0],
-      "vae": ["6", 0],
-      "width": ["17", 1],
-      "height": ["17", 2],
-      "length": ["18", 0],
+      "positive": [
+        "10",
+        0
+      ],
+      "vae": [
+        "6",
+        0
+      ],
+      "width": [
+        "17",
+        1
+      ],
+      "height": [
+        "17",
+        2
+      ],
+      "length": [
+        "18",
+        0
+      ],
       "batch_size": 1,
       "guidance_type": "v2 (replace)",
-      "start_image": ["8", 0]
+      "start_image": [
+        "8",
+        0
+      ]
     },
     "class_type": "HunyuanImageToVideo",
     "_meta": {
@@ -153,7 +198,10 @@
   "14": {
     "inputs": {
       "add_noise": "enable",
-      "noise_seed": ["13", 0],
+      "noise_seed": [
+        "13",
+        0
+      ],
       "steps": 30,
       "cfg": 1.0,
       "sampler_name": "euler",
@@ -161,10 +209,22 @@
       "start_at_step": 0,
       "end_at_step": 10000,
       "return_with_leftover_noise": "disable",
-      "model": ["4", 0],
-      "positive": ["12", 0],
-      "negative": ["11", 0],
-      "latent_image": ["12", 1]
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "12",
+        0
+      ],
+      "negative": [
+        "11",
+        0
+      ],
+      "latent_image": [
+        "12",
+        1
+      ]
     },
     "class_type": "KSamplerAdvanced",
     "_meta": {
@@ -177,8 +237,14 @@
       "overlap": 64,
       "temporal_size": 32,
       "temporal_overlap": 8,
-      "samples": ["14", 0],
-      "vae": ["6", 0]
+      "samples": [
+        "14",
+        0
+      ],
+      "vae": [
+        "6",
+        0
+      ]
     },
     "class_type": "VAEDecodeTiled",
     "_meta": {
@@ -197,7 +263,10 @@
       "trim_to_audio": false,
       "pingpong": false,
       "save_output": true,
-      "images": ["15", 0]
+      "images": [
+        "15",
+        0
+      ]
     },
     "class_type": "VHS_VideoCombine",
     "_meta": {
@@ -228,7 +297,10 @@
   "19": {
     "inputs": {
       "text": "0",
-      "anything": ["13", 0]
+      "anything": [
+        "13",
+        0
+      ]
     },
     "class_type": "easy showAnything",
     "_meta": {

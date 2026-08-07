@@ -426,7 +426,7 @@
   },
   "199": {
     "inputs": {
-      "text": "=== DOWNLOAD REPORT ===\nTotal files: 5\nSuccessful downloads: 1\nAlready existed: 4\nInterrupted: 0\nFailed: 0\nMax concurrent: 3\nSpeed limit: Unlimited\nResume enabled: True\nValidation enabled: False\nAuto-organize: False\n\nDetails:\n✓ wan_2.1_vae.safetensors: Already exists (242.06 MB)\n✓ umt5_xxl_fp8_e4m3fn_scaled.safetensors: Already exists (6.27 GB)\n✓ clip_vision_h.safetensors: Already exists (1.18 GB)\n✓ lightx2v_T2V_14B_cfg_step_distill_v2_lora_rank32_bf16.safetensors: Already exists (304.33 MB)\n✓ SCAIL-2-Q4_K_M.gguf: Downloaded successfully to unet/ (10.12 GB)",
+      "text": "",
       "anything": [
         "198",
         0

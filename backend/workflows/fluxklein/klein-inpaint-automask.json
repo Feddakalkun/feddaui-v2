@@ -24,7 +24,7 @@
   },
   "121": {
     "inputs": {
-      "text": "=== DOWNLOAD REPORT ===\nTotal files: 6\nSuccessful downloads: 0\nAlready existed: 6\nInterrupted: 0\nFailed: 0\nMax concurrent: 3\nSpeed limit: Unlimited\nResume enabled: True\nValidation enabled: False\nAuto-organize: False\n\nDetails:\n✓ flux-2-klein-9b-fp8.safetensors: Already exists (8.79 GB)\n✓ nsfwKlein.safetensors: Already exists (8.46 GB)\n✓ qwen_3_8b_fp8mixed.safetensors: Already exists (8.07 GB)\n✓ flux2-vae.safetensors: Already exists (320.64 MB)\n✓ bfs_head_v1_flux-klein_9b_step3500_rank128.safetensors: Already exists (632.03 MB)\n✓ Flux2-Klein-9B-consistency-V2.safetensors: Already exists (316.03 MB)",
+      "text": "",
       "anything": [
         "116",
         0

@@ -120,7 +120,7 @@
   },
   "195": {
     "inputs": {
-      "text": "=== DOWNLOAD REPORT ===\nTotal files: 5\nSuccessful downloads: 0\nAlready existed: 5\nInterrupted: 0\nFailed: 0\nMax concurrent: 3\nSpeed limit: Unlimited\nResume enabled: True\nValidation enabled: False\nAuto-organize: False\n\nDetails:\n✓ Qwen-Image-Edit-2511-FP8_e4m3fn.safetensors: Already exists (19.03 GB)\n✓ qwen_2.5_vl_7b_fp8_scaled.safetensors: Already exists (8.74 GB)\n✓ qwen_image_vae.safetensors: Already exists (242.05 MB)\n✓ qwen-image-edit-2511-multiple-angles-lora.safetensors: Already exists (281.47 MB)\n✓ Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors: Already exists (810.25 MB)",
+      "text": "",
       "anything": [
         "194",
         0

@@ -212,7 +212,7 @@
   },
   "156": {
     "inputs": {
-      "text": "=== DOWNLOAD REPORT ===\nTotal files: 4\nSuccessful downloads: 0\nAlready existed: 4\nInterrupted: 0\nFailed: 0\nMax concurrent: 3\nSpeed limit: Unlimited\nResume enabled: True\nValidation enabled: False\nAuto-organize: False\n\nDetails:\n✓ minimax_h3_video_vae_fp16.safetensors: Already exists (4.85 GB)\n✓ minimax_h3_audio_vae_fp32.safetensors: Already exists (577.22 MB)\n✓ minimax_h3_ref2va_pruned_int8_convrot.safetensors: Already exists (19.53 GB)\n✓ qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors: Already exists (14.61 GB)",
+      "text": "",
       "anything": [
         "158",
         0

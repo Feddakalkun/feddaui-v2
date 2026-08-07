@@ -131,7 +131,7 @@
   },
   "153": {
     "inputs": {
-      "text_0": "=== DOWNLOAD REPORT ===\nTotal files: 6\nSuccessful downloads: 1\nAlready existed: 5\nInterrupted: 0\nFailed: 0\nMax concurrent: 3\nSpeed limit: Unlimited\nResume enabled: True\nValidation enabled: False\nAuto-organize: False\n\nDetails:\n✓ WAN22-NSFW-I2V-HIGH.safetensors: Already exists (13.53 GB)\n✓ WAN22-NSFW-I2V-LOW.safetensors: Already exists (13.53 GB)\n✓ nsfw_wan_umt5-xxl_fp8_scaled.safetensors: Already exists (6.27 GB)\n✓ wan_2.1_vae.safetensors: Already exists (242.06 MB)\n✓ clip_vision_h.safetensors: Already exists (1.18 GB)\n✓ umt5_xxl_fp8_e4m3fn_scaled.safetensors: Downloaded successfully to text_encoders/ (6.27 GB)",
+      "text_0": "",
       "text": [
         "152",
         0

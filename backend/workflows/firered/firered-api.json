@@ -80,7 +80,7 @@
   },
   "118": {
     "inputs": {
-      "prompt": "把图1中的模特换成图2的红色露肩连衣裙，搭配图3中的卡其色棒球帽、猫眼眼镜、银色链条项链、白色厚底运动鞋和棕色绒面手提包，保持模特姿态和背景不变。",
+      "prompt": "Edit the image as instructed while keeping the pose and background unchanged.",
       "clip": [
         "115",
         0

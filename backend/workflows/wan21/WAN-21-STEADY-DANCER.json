@@ -746,7 +746,7 @@
   },
   "149": {
     "inputs": {
-      "text_0": "=== DOWNLOAD REPORT ===\nTotal files: 6\nSuccessful downloads: 0\nAlready existed: 6\nInterrupted: 0\nFailed: 0\nMax concurrent: 3\nSpeed limit: Unlimited\nResume enabled: True\nValidation enabled: False\nAuto-organize: False\n\nDetails:\n✓ Wan21_I2V_SteadyDancer_fp16-Q6_K_fix_5d_tensor_from_fp8_e4m3fn_scaled_KJ.gguf: Already exists (12.80 GB)\n✓ lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors: Already exists (703.82 MB)\n✓ wan_2.1_vae.safetensors: Already exists (242.06 MB)\n✓ umt5-xxl-enc-bf16.safetensors: Already exists (10.58 GB)\n✓ vitpose-l-wholebody.onnx: Already exists (1.15 GB)\n✓ yolov10m.onnx: Already exists (58.80 MB)",
+      "text_0": "",
       "text": [
         "141",
         0

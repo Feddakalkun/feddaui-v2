@@ -192,7 +192,7 @@
   },
   "273": {
     "inputs": {
-      "text": "\u8272\u8c03\u8273\u4e3d\uff0c\u8fc7\u66dd\uff0c\u9759\u6001\uff0c\u7ec6\u8282\u6a21\u7cca\u4e0d\u6e05\uff0c\u5b57\u5e55\uff0c\u98ce\u683c\uff0c\u4f5c\u54c1\uff0c\u753b\u4f5c\uff0c\u753b\u9762\uff0c\u9759\u6b62\uff0c\u6574\u4f53\u53d1\u7070\uff0c\u6700\u5dee\u8d28\u91cf\uff0c\u4f4e\u8d28\u91cf\uff0cJPEG\u538b\u7f29\u6b8b\u7559\uff0c\u4e11\u964b\u7684\uff0c\u6b8b\u7f3a\u7684\uff0c\u591a\u4f59\u7684\u624b\u6307\uff0c\u753b\u5f97\u4e0d\u597d\u7684\u624b\u90e8\uff0c\u753b\u5f97\u4e0d\u597d\u7684\u8138\u90e8\uff0c\u7578\u5f62\u7684\uff0c\u6bc1\u5bb9\u7684\uff0c\u5f62\u6001\u7578\u5f62\u7684\u80a2\u4f53\uff0c\u624b\u6307\u878d\u5408\uff0c\u9759\u6b62\u4e0d\u52a8\u7684\u753b\u9762\uff0c\u6742\u4e71\u7684\u80cc\u666f\uff0c\u4e09\u6761\u817f\uff0c\u80cc\u666f\u4eba\u5f88\u591a\uff0c\u5012\u7740\u8d70",
+      "text": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走",
       "clip": [
         "218",
         0
@@ -252,7 +252,7 @@
     },
     "class_type": "VHS_VideoCombine",
     "_meta": {
-      "title": "Video Combine \ud83c\udfa5\ud83c\udd65\ud83c\udd57\ud83c\udd62"
+      "title": "Video Combine 🎥🅥🅗🅢"
     }
   },
   "278": {
@@ -347,7 +347,7 @@
     },
     "class_type": "AspectRatioResizeImage",
     "_meta": {
-      "title": "\ud83d\uddbc\ufe0f Resize to Aspect Ratio"
+      "title": "🖼️ Resize to Aspect Ratio"
     }
   },
   "317": {
@@ -364,12 +364,12 @@
     },
     "class_type": "HuggingFaceDownloader",
     "_meta": {
-      "title": "\ud83e\udd17 HuggingFace Model Downloader Pro"
+      "title": "🤗 HuggingFace Model Downloader Pro"
     }
   },
   "318": {
     "inputs": {
-      "text_0": "=== DOWNLOAD REPORT ===\nTotal files: 48\nSuccessful downloads: 35\nAlready existed: 13\nInterrupted: 0\nFailed: 0\nMax concurrent: 3\nSpeed limit: Unlimited\nResume enabled: True\nValidation enabled: False\nAuto-organize: False\n\nDetails:\n\u2713 wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors: Already exists (13.31 GB)\n\u2713 wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors: Already exists (13.31 GB)\n\u2713 nsfw_wan_umt5-xxl_fp8_scaled.safetensors: Already exists (6.27 GB)\n\u2713 wan_2.1_vae.safetensors: Already exists (242.06 MB)\n\u2713 clip_vision_h.safetensors: Already exists (1.18 GB)\n\u2713 Wan2.2-I2V-HIGH-4steps-lora-rank64-Seko-V1.safetensors: Already exists (1.14 GB)\n\u2713 Wan2.2-I2V-LOW-4steps-lora-rank64-Seko-V1.safetensors: Already exists (1.14 GB)\n\u2713 lightx2v_T2V_14B_cfg_step_distill_v2_lora_rank32_bf16.safetensors: Already exists (304.33 MB)\n\u2713 lightx2v_I2V_14B_480p_cfg_step_distill_rank32_bf16.safetensors: Already exists (356.13 MB)\n\u2713 CumShot-High.safetensors: Already exists (292.59 MB)\n\u2713 CumShot-Low.safetensors: Already exists (292.59 MB)\n\u2713 Oral-Ins-High.safetensors: Already exists (292.63 MB)\n\u2713 Oral-Ins-Low.safetensors: Already exists (292.63 MB)\n\u2713 wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors: Downloaded successfully to diffusion_models/ (13.31 GB)\n\u2713 wan2.2_t2v_high_noise_14B_fp8_scaled.safetensors: Downloaded successfully to diffusion_models/ (13.31 GB)\n\u2713 Wan2.2-T2V-4steps-HIGH-rank64-Seko-V2.0.safetensors: Downloaded successfully to loras/ (1.14 GB)\n\u2713 Wan2.2-T2V-4steps-LOW-rank64-Seko-V2.0.safetensors: Downloaded successfully to loras/ (1.14 GB)\n\u2713 SECRET_SAUCE_WAN2.1_14B_fp8.safetensors: Downloaded successfully to loras/ (146.39 MB)\n\u2713 Wan2.1_T2V_14B_FusionX_LoRA.safetensors: Downloaded successfully to loras/ (302.15 MB)\n\u2713 Wan2.1_I2V_14B_FusionX_LoRA.safetensors: Downloaded successfully to loras/ (353.94 MB)\n\u2713 wan2.2_t2v_highnoise_pov_missionary_v1.0.safetensors: Downloaded successfully to loras/ (292.59 MB)\n\u2713 wan2.2_t2v_lownoise_pov_missionary_v1.0.safetensors: Downloaded successfully to loras/ (292.59 MB)\n\u2713 wan2.2_i2v_highnoise_pov_missionary_v1.0.safetensors: Downloaded successfully to loras/ (292.59 MB)\n\u2713 wan2.2_i2v_lownoise_pov_missionary_v1.0.safetensors: Downloaded successfully to loras/ (292.59 MB)\n\u2713 Wan22-T2V-DildoRide-HIGH.safetensors: Downloaded successfully to loras/ (585.10 MB)\n\u2713 Wan22-T2V-DildoRide-LOW.safetensors: Downloaded successfully to loras/ (585.10 MB)\n\u2713 Wan22-T2V-DoggyStyle-HIGH.safetensors: Downloaded successfully to loras/ (585.10 MB)\n\u2713 Wan22-T2V-DoggyStyle-LOW.safetensors: Downloaded successfully to loras/ (585.10 MB)\n\u2713 Wan2.2_Double-Penetration-High.safetensors: Downloaded successfully to loras/ (292.63 MB)\n\u2713 Wan2.2_Double-Penetration-Low.safetensors: Downloaded successfully to loras/ (292.63 MB)\n\u2713 wan_dildo_closeup_i2vA14B_HIGHNOISE_v20.safetensors: Downloaded successfully to loras/ (292.63 MB)\n\u2713 wan_dildo_closeup_i2vA14B_LOWNOISE_v20.safetensors: Downloaded successfully to loras/ (292.63 MB)\n\u2713 wan_dildo_fullbody_i2vA14B_HIGHNOISE_v20.safetensors: Downloaded successfully to loras/ (292.63 MB)\n\u2713 wan_dildo_fullbody_i2vA14B_LOWNOISE_v20.safetensors: Downloaded successfully to loras/ (292.63 MB)\n\u2713 PussyLoRA_HighNoise_Wan2.2_HearmemanAI.safetensors: Downloaded successfully to loras/ (292.63 MB)\n\u2713 PussyLoRA_LowNoise_Wan2.2_HearmemanAI.safetensors: Downloaded successfully to loras/ (292.63 MB)\n\u2713 V3TWERKHIGH.safetensors: Downloaded successfully to loras/ (292.63 MB)\n\u2713 V3TWERKLOW.safetensors: Downloaded successfully to loras/ (292.63 MB)\n\u2713 Fingering-I2V.safetensors: Downloaded successfully to loras/ (342.61 MB)\n\u2713 Fingering-T2V.safetensors: Downloaded successfully to loras/ (292.59 MB)\n\u2713 mql_casting_sex_doggy_kneel_diagonally_behind_vagina_wan22_i2v_v1_high_noise.safetensors: Downloaded successfully to loras/ (292.60 MB)\n\u2713 mql_casting_sex_doggy_kneel_diagonally_behind_vagina_wan22_i2v_v1_low_noise.safetensors: Downloaded successfully to loras/ (292.60 MB)\n\u2713 mql_wink_wan22_i2v_v1_high_noise.safetensors: Downloaded successfully to loras/ (146.34 MB)\n\u2713 mql_wink_wan22_i2v_v1_low_noise.safetensors: Downloaded successfully to loras/ (146.34 MB)\n\u2713 mql_casting_sex_reverse_cowgirl_lie_front_vagina_wan22_i2v_v1_high_noise.safetensors: Downloaded successfully to loras/ (292.60 MB)\n\u2713 mql_casting_sex_reverse_cowgirl_lie_front_vagina_wan22_i2v_v1_low_noise.safetensors: Downloaded successfully to loras/ (292.60 MB)\n\u2713 KISSHIGH.safetensors: Downloaded successfully to loras/ (146.38 MB)\n\u2713 KISSLOW.safetensors: Downloaded successfully to loras/ (146.38 MB)",
+      "text_0": "",
       "text": [
         "317",
         0
@@ -377,7 +377,7 @@
     },
     "class_type": "ShowText|pysssss",
     "_meta": {
-      "title": "Show Text \ud83d\udc0d"
+      "title": "Show Text 🐍"
     }
   },
   "465": {
@@ -414,7 +414,7 @@
     },
     "class_type": "SimpleMath+",
     "_meta": {
-      "title": "\ud83d\udd27 Simple Math"
+      "title": "🔧 Simple Math"
     }
   },
   "479": {
@@ -487,7 +487,7 @@
         "lora": "KISSLOW.safetensors",
         "strength": 1
       },
-      "\u2795 Add Lora": "",
+      "➕ Add Lora": "",
       "model": [
         "217",
         0
@@ -572,7 +572,7 @@
         "lora": "KISSHIGH.safetensors",
         "strength": 1
       },
-      "\u2795 Add Lora": "",
+      "➕ Add Lora": "",
       "model": [
         "270",
         0

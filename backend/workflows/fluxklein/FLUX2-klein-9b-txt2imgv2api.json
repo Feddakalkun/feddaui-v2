@@ -18,7 +18,7 @@
   },
   "121": {
     "inputs": {
-      "text": "=== DOWNLOAD REPORT ===\nTotal files: 3\nSuccessful downloads: 0\nAlready existed: 3\nInterrupted: 0\nFailed: 0\nMax concurrent: 3\nSpeed limit: Unlimited\nResume enabled: True\nValidation enabled: False\nAuto-organize: False\n\nDetails:\n✓ flux-2-klein-9b-fp8.safetensors: Already exists (8.79 GB)\n✓ qwen_3_8b_fp8mixed.safetensors: Already exists (8.07 GB)\n✓ flux2-vae.safetensors: Already exists (320.64 MB)",
+      "text": "",
       "anything": [
         "116",
         0
@@ -44,7 +44,7 @@
   },
   "180": {
     "inputs": {
-      "value": "Photograph of a young Caucasian woman with long, straight blonde hair and fair skin. She has a slender physique and is wearing a white off-the-shoulder ribbed crop top that reveals her midriff, and light blue, slightly distressed jeans. Her expression is neutral, and she stands in front of a wooden door with a cream-colored panel. The setting appears to be indoors, possibly a bedroom or living area, with natural lighting illuminating her."
+      "value": "A portrait photograph, natural light, realistic skin."
     },
     "class_type": "PrimitiveStringMultiline",
     "_meta": {

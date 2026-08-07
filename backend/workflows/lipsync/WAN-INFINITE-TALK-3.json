@@ -138,7 +138,7 @@
     },
     "class_type": "VHS_VideoCombine",
     "_meta": {
-      "title": "Video Combine \ud83c\udfa5\ud83c\udd65\ud83c\udd57\ud83c\udd62"
+      "title": "Video Combine 🎥🅥🅗🅢"
     }
   },
   "134": {
@@ -377,12 +377,12 @@
     },
     "class_type": "HuggingFaceDownloader",
     "_meta": {
-      "title": "\ud83e\udd17 HuggingFace Model Downloader Pro"
+      "title": "🤗 HuggingFace Model Downloader Pro"
     }
   },
   "539": {
     "inputs": {
-      "text_0": "=== DOWNLOAD REPORT ===\nTotal files: 7\nSuccessful downloads: 0\nAlready existed: 7\nInterrupted: 0\nFailed: 0\nMax concurrent: 3\nSpeed limit: Unlimited\nResume enabled: True\nValidation enabled: False\nAuto-organize: False\n\nDetails:\n\u2713 wan2.1_i2v_480p_14B_fp8_e4m3fn.safetensors: Already exists (15.27 GB)\n\u2713 Wan2_1-InfiniTetalk-Single_fp16.safetensors: Already exists (4.77 GB)\n\u2713 Wan2_1-InfiniteTalk-Multi_fp16.safetensors: Already exists (4.77 GB)\n\u2713 umt5-xxl-enc-bf16.safetensors: Already exists (10.58 GB)\n\u2713 clip_vision_h.safetensors: Already exists (1.18 GB)\n\u2713 wan_2.1_vae.safetensors: Already exists (242.06 MB)\n\u2713 lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors: Already exists (703.82 MB)",
+      "text_0": "",
       "text": [
         "538",
         0
@@ -390,7 +390,7 @@
     },
     "class_type": "ShowText|pysssss",
     "_meta": {
-      "title": "Show Text \ud83d\udc0d"
+      "title": "Show Text 🐍"
     }
   },
   "540": {
