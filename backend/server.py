@@ -3428,6 +3428,13 @@ async def prompt_agent_turn(req: PromptAgentRequest):
     )
     if scene:
         system += "What the picture actually shows: {}\n\n".format(scene)
+    else:
+        # Stated as a fact, not implied by an absent line. Asked to "open by
+        # naming what you can see" with nothing to see, the model invented a
+        # picture - a guy in a blue hoodie in a cozy room - and described it
+        # confidently. The absence of a description is not an instruction.
+        system += ("There is NO picture in this conversation. Do not describe, "
+                   "mention or invent one. Never claim to see anything.\n\n")
     system += (
         "Reply with a single JSON object and nothing else:\n"
         '{"reply": "<two short lines>", "prompt": "<the finished video prompt, or empty>"}\n\n'
