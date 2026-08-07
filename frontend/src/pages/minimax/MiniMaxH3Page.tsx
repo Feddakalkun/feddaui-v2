@@ -52,8 +52,14 @@ const MODES = {
 
 export const MiniMaxH3Page = ({ mode }: { mode: Mode }) => {
   const config = MODES[mode];
-  // Quantised by default: the fp8 pair is 35 GB of weights and does not run on
-  // a 24 GB card at all, so offering it first would hand most people an OOM.
+  // Both builds now share the full text encoder; only the diffusion model
+  // differs. The encoder is pinned to `device: cpu` in the graph, so
+  // quantising it saved no VRAM whatsoever - it cost prompt fidelity for
+  // nothing, which is what made the Q2 pairing produce poor video.
+  //
+  // The labels quote weights, not peak: a 480x768x124 latent needs several GB
+  // of activations on top, which is why 19 GB of int8 weights OOMs on a 24 GB
+  // card even when the card starts empty.
   const [quant, setQuant] = usePersistentState<'gguf' | 'fp8'>('minimax_quant', 'gguf');
 
   return (
@@ -93,7 +99,7 @@ export const MiniMaxH3Page = ({ mode }: { mode: Mode }) => {
             <div className="workflow-section-title">Model size</div>
           </div>
           <div className="flex gap-1.5">
-            {([['gguf', 'Quantised — fits 24 GB'], ['fp8', 'Full — needs 32 GB+']] as const).map(([value, label]) => (
+            {([['gguf', 'Q3 — 15 GB weights'], ['fp8', 'Int8 — 19 GB weights, tight']] as const).map(([value, label]) => (
               <button
                 key={value}
                 type="button"

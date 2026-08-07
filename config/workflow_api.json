@@ -1711,84 +1711,6 @@
       }
     }
   },
-  "chroma-simple-txt2img": {
-    "name": "Chroma Simple Txt2Img",
-    "filename": "chroma/chroma-simple-txt2img-api.json",
-    "description": "Alternative native Comfy Chroma graph with softer defaults for comparison.",
-    "inputs": {
-      "prompt": {
-        "node_id": "748",
-        "input_key": "text",
-        "type": "string",
-        "label": "Positive Prompt"
-      },
-      "negative": {
-        "node_id": "749",
-        "input_key": "text",
-        "type": "string",
-        "label": "Negative Prompt"
-      },
-      "width": {
-        "node_id": "737",
-        "input_key": "width",
-        "type": "number",
-        "label": "Width"
-      },
-      "height": {
-        "node_id": "737",
-        "input_key": "height",
-        "type": "number",
-        "label": "Height"
-      },
-      "seed": {
-        "node_id": "718",
-        "input_key": "noise_seed",
-        "type": "number",
-        "label": "Seed"
-      },
-      "steps": {
-        "node_id": "751",
-        "input_key": "steps",
-        "type": "number",
-        "label": "Steps"
-      },
-      "cfg": {
-        "node_id": "694",
-        "input_key": "cfg",
-        "type": "number",
-        "label": "CFG Scale"
-      },
-      "sampler_name": {
-        "node_id": "700",
-        "input_key": "sampler_name",
-        "type": "string",
-        "label": "Sampler"
-      },
-      "flow_shift": {
-        "node_id": "701",
-        "input_key": "shift",
-        "type": "number",
-        "label": "Flow Shift"
-      },
-      "scheduler_alpha": {
-        "node_id": "751",
-        "input_key": "alpha",
-        "type": "number",
-        "label": "Scheduler Alpha"
-      },
-      "scheduler_beta": {
-        "node_id": "751",
-        "input_key": "beta",
-        "type": "number",
-        "label": "Scheduler Beta"
-      },
-      "loras": {
-        "node_id": "800",
-        "type": "loras",
-        "label": "LoRAs"
-      }
-    }
-  },
   "firered-image-edit": {
     "name": "FireRed Image Edit",
     "filename": "firered/firered-api.json",
@@ -4120,7 +4042,7 @@
   "minimax-h3-txt2vid-gguf": {
     "name": "MiniMax H3 Text to Video (GGUF)",
     "filename": "minimax/MINIMAXH3txt2video-gguf.json",
-    "description": "Quantised MiniMax H3 - Q3 model, Q2 text encoder. Fits a 24 GB card, which the fp8 build does not.",
+    "description": "Q3 diffusion model with the full text encoder - about 15 GB of weights, the build with room for activations on a 24 GB card.",
     "inputs": {
       "prompt": {
         "node_id": "153",
@@ -4169,7 +4091,7 @@
   "minimax-h3-img2vid-gguf": {
     "name": "MiniMax H3 Image to Video (GGUF)",
     "filename": "minimax/MINIMAXH3img2video-gguf.json",
-    "description": "Quantised MiniMax H3 - Q3 model, Q2 text encoder. Fits a 24 GB card, which the fp8 build does not.",
+    "description": "Q3 diffusion model with the full text encoder - about 15 GB of weights, the build with room for activations on a 24 GB card.",
     "inputs": {
       "prompt": {
         "node_id": "138",
@@ -4230,7 +4152,7 @@
   "minimax-h3-videdit-gguf": {
     "name": "MiniMax H3 Video Edit (GGUF)",
     "filename": "minimax/MINIMAXH3videoedit-gguf.json",
-    "description": "Quantised MiniMax H3 - Q3 model, Q2 text encoder. Fits a 24 GB card, which the fp8 build does not.",
+    "description": "Q3 diffusion model with the full text encoder - about 15 GB of weights, the build with room for activations on a 24 GB card.",
     "inputs": {
       "prompt": {
         "node_id": "196",

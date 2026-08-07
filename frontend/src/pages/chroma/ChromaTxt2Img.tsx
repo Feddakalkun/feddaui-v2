@@ -1,5 +1,15 @@
 import { Txt2ImgPage } from '../zimage/ZImageTxt2Img';
 
+/**
+ * One Chroma page, not two.
+ *
+ * "Chroma Simple" was the same graph: identical nodes, same UNET, same
+ * encoder, same VAE, same sampler chain. It differed only in steps (32 vs 40),
+ * cfg (1.25 vs 1.7), scheduler alpha/beta and the default size - every one of
+ * which is a slider on this page already. A second card, graph and registry
+ * entry bought nothing but a second 17.8 GB readiness check.
+ */
+
 const CHROMA_PRESETS = [
   { label: 'Square', w: 1152, h: 1152 },
   { label: 'Portrait', w: 896, h: 1344 },
@@ -21,37 +31,17 @@ export const ChromaTxt2Img = () => {
       loraPrefixes={[]}
       loraPacks={[]}
       aspectPresets={CHROMA_PRESETS}
-      enableLoras={false}
+      // The graph carries a real LoraLoader and the workflow registers a
+      // `loras` parameter, so the picker works the moment a Chroma LoRA exists.
+      enableLoras
       defaultSteps={40}
       defaultCfg={1.7}
+      // Simple's range, kept: it is the safer floor of the two.
       defaultNegative={`${CHROMA_NEGATIVE}, restricted palette, flat colors`}
       maxSteps={60}
       showCfgControl
       minCfg={1.0}
       maxCfg={3.0}
-    />
-  );
-};
-
-export const ChromaSimpleTxt2Img = () => {
-  return (
-    <Txt2ImgPage
-      storageKey="chroma_simple_txt2img"
-      workflowId="chroma-simple-txt2img"
-      familyLabel="Chroma Simple"
-      promptContext="chroma"
-      accent="emerald"
-      loraPrefixes={[]}
-      loraPacks={[]}
-      aspectPresets={CHROMA_PRESETS}
-      enableLoras={false}
-      defaultSteps={32}
-      defaultCfg={1.25}
-      defaultNegative={CHROMA_NEGATIVE}
-      maxSteps={55}
-      showCfgControl
-      minCfg={1.0}
-      maxCfg={2.5}
     />
   );
 };

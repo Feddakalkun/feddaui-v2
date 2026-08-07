@@ -303,20 +303,6 @@ export const FEDDA_MODULES: FeddaModule[] = [
     card: { poster: '/cards/bunny/chroma1-hd.jpeg' },
   },
   {
-    id: 'chroma-simple',
-    sourceModuleId: 'chroma-image',
-    label: 'Chroma Simple',
-    description: 'Native Chroma comparison graph with softer defaults.',
-    area: 'image',
-    pack: 'booster',
-
-    tabs: ['chroma-simple-txt2img'],
-    workflows: ['chroma-simple-txt2img'],
-    defaultTab: 'chroma-simple-txt2img',
-    Icon: Sparkles,
-    card: { poster: '/cards/bunny/chroma-simple.jpeg' },
-  },
-  {
     id: 'flux2-klein',
     hidden: true,
     sourceModuleId: 'flux-klein',

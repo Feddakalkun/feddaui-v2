@@ -188,12 +188,10 @@
       "enabled": true,
       "tabs": [
         "chroma",
-        "chroma-txt2img",
-        "chroma-simple-txt2img"
+        "chroma-txt2img"
       ],
       "workflows": [
-        "chroma1-hd-txt2img",
-        "chroma-simple-txt2img"
+        "chroma1-hd-txt2img"
       ],
       "custom_nodes": [
         "ComfyUI-Studio-nodes"
