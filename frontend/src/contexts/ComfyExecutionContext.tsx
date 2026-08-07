@@ -51,6 +51,9 @@ interface ComfyExecutionContextType {
     lastOutputVideos: OutputFile[]; // videos/gifs from latest executed event
     previewUrl: string | null; // live preview image during sampling
     overallProgress: number; // 0-100 workflow-level progress
+    elapsedMs: number;          // wall time since the run started
+    secondsPerStep: number | null;  // smoothed s/it, null until two steps are seen
+    etaMs: number | null;       // remaining steps x secondsPerStep
     // Queue a workflow: builds node map, sends to ComfyUI, returns prompt_id
     queueWorkflow: (workflow: Record<string, any>) => Promise<string>;
     // Register a pre-built node map (used when submitting via /api/generate instead of queueWorkflow)
@@ -132,6 +135,14 @@ export const ComfyExecutionProvider = ({ children }: { children: React.ReactNode
     const [currentNodeName, setCurrentNodeName] = useState('');
     const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
     const [progress, setProgress] = useState(0);
+    // A percentage alone does not tell you whether to wait or go and do
+    // something else. Elapsed time, s/it and an ETA do, and ComfyUI already
+    // sends the step index and step count needed to derive all three.
+    const [elapsedMs, setElapsedMs] = useState(0);
+    const [secondsPerStep, setSecondsPerStep] = useState<number | null>(null);
+    const [etaMs, setEtaMs] = useState<number | null>(null);
+    const runStartedAtRef = useRef<number | null>(null);
+    const lastStepRef = useRef<{ value: number; at: number } | null>(null);
     const [isDownloaderNode, setIsDownloaderNode] = useState(false);
     const [currentDownloaderInfo, setCurrentDownloaderInfo] = useState<NodeInfo | null>(null);
     const [error, setError] = useState<ExecutionError | null>(null);
@@ -228,6 +239,21 @@ export const ComfyExecutionProvider = ({ children }: { children: React.ReactNode
             onProgress: (_node: string, value: number, max: number) => {
                 if (cancelledRef.current) return;
                 setProgress(Math.round((value / max) * 100));
+
+                // Rate comes from the gap between consecutive steps, smoothed:
+                // the first step of a sampler includes model load and would
+                // otherwise poison the estimate for the whole run.
+                const now = Date.now();
+                const prev = lastStepRef.current;
+                lastStepRef.current = { value, at: now };
+                if (prev && value > prev.value) {
+                    const perStep = (now - prev.at) / 1000 / (value - prev.value);
+                    setSecondsPerStep((old) => {
+                        const next = old == null ? perStep : old * 0.7 + perStep * 0.3;
+                        setEtaMs(Math.max(0, max - value) * next * 1000);
+                        return next;
+                    });
+                }
             },
 
             onCompleted: (promptId: string, output: Record<string, any>) => {
@@ -301,6 +327,16 @@ export const ComfyExecutionProvider = ({ children }: { children: React.ReactNode
     // Transition immediately to 'executing' when pages submit via /api/generate.
     // Without this, the top bar stays idle during long GGUF model loading phases
     // because ComfyUI's event loop is blocked and sends no WebSocket events until sampling starts.
+    // One interval for the whole app rather than a timer per consumer, and it
+    // only exists while something is actually running.
+    useEffect(() => {
+        if (state !== 'executing') return;
+        const id = setInterval(() => {
+            if (runStartedAtRef.current) setElapsedMs(Date.now() - runStartedAtRef.current);
+        }, 500);
+        return () => clearInterval(id);
+    }, [state]);
+
     const startExecution = useCallback(() => {
         cancelledRef.current = false;
         if (doneTimerRef.current) {
@@ -308,6 +344,11 @@ export const ComfyExecutionProvider = ({ children }: { children: React.ReactNode
             doneTimerRef.current = null;
         }
         executedNodesRef.current.clear();
+        runStartedAtRef.current = Date.now();
+        lastStepRef.current = null;
+        setElapsedMs(0);
+        setSecondsPerStep(null);
+        setEtaMs(null);
         setCompletedNodes(0);
         setOutputReadyCount(0);
         setLastOutputImages([]);
@@ -377,6 +418,11 @@ export const ComfyExecutionProvider = ({ children }: { children: React.ReactNode
         nodeMapRef.current = nodeMap;
         setTotalNodes(Object.keys(nodeMap).length);
         executedNodesRef.current.clear();
+        runStartedAtRef.current = Date.now();
+        lastStepRef.current = null;
+        setElapsedMs(0);
+        setSecondsPerStep(null);
+        setEtaMs(null);
         setCompletedNodes(0);
         setOutputReadyCount(0);
         setLastOutputImages([]);
@@ -444,6 +490,9 @@ export const ComfyExecutionProvider = ({ children }: { children: React.ReactNode
             lastOutputVideos,
             previewUrl,
             overallProgress,
+            elapsedMs,
+            secondsPerStep,
+            etaMs,
             queueWorkflow,
             registerNodeMap: (nm) => { nodeMapRef.current = nm; },
             startExecution,

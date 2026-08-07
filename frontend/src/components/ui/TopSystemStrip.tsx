@@ -6,10 +6,24 @@ import { useComfyExecution } from '../../contexts/ComfyExecutionContext';
 import { BACKEND_API } from '../../config/api';
 import { useModelDownload } from '../../contexts/ModelDownloadContext';
 
+/** m:ss under an hour, h:mm:ss above it - a bare seconds count stops being
+ *  readable exactly when a run is long enough for you to care. */
+const fmtDuration = (ms: number) => {
+  const total = Math.max(0, Math.round(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const sec = total % 60;
+  return h > 0
+    ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
+    : `${m}:${String(sec).padStart(2, '0')}`;
+};
+
+
 export const TopSystemStrip = () => {
   const comfy = useComfyStatus(3000);
   const ollama = useOllamaStatus();
-  const { state, currentNodeName, currentNodeId, progress, overallProgress, isDownloaderNode, currentDownloaderInfo } = useComfyExecution();
+  const { state, currentNodeName, currentNodeId, progress, overallProgress, isDownloaderNode, currentDownloaderInfo,
+          elapsedMs, secondsPerStep, etaMs } = useComfyExecution();
   
   const [comfyStats, setComfyStats] = useState<any>(null);
   const [gpuStats, setGpuStats] = useState<any>(null);
@@ -299,7 +313,20 @@ export const TopSystemStrip = () => {
                  {isDownloaderNode ? downloaderLabel : currentNodeName || 'Running...'}
                </span>
                <span className={`text-[9px] font-mono ${isDownloaderNode ? 'text-amber-200/80' : 'text-cyan-400/80'}`}>
-                 {isDownloaderNode && downloaderDetail ? `${downloaderDetail} · node ${currentNodeId}` : `${progress}%`}
+                 {isDownloaderNode && downloaderDetail
+                   ? `${downloaderDetail} · node ${currentNodeId}`
+                   : [
+                       `${progress}%`,
+                       fmtDuration(elapsedMs),
+                       // Below 1 s/it the useful figure is it/s, same as the
+                       // sampler's own console line.
+                       secondsPerStep == null
+                         ? null
+                         : secondsPerStep >= 1
+                           ? `${secondsPerStep.toFixed(1)} s/it`
+                           : `${(1 / secondsPerStep).toFixed(1)} it/s`,
+                       etaMs == null ? null : `ETA ${fmtDuration(etaMs)}`,
+                     ].filter(Boolean).join(' · ')}
                </span>
              </div>
              

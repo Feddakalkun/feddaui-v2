@@ -1626,3 +1626,27 @@ body {
   border-color: rgba(248,113,113,0.55) !important;
   background: rgba(248,113,113,0.18) !important;
 }
+
+/*
+  Preview and prompt as a pair on workflows with no image input.
+  Before this the preview took the full 1540px row and the prompt sat below it,
+  so two half-empty blocks pushed the settings off screen. Below 1100px they
+  stack again - two columns there leaves the prompt box too narrow to type in.
+*/
+.cockpit-pair {
+  display: grid;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (min-width: 1100px) {
+  .cockpit-pair {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+/* Image-input workflows keep the old vertical flow; the upload row already
+   pairs input and output, so the prompt joining them would make three. */
+.cockpit-stack-plain {
+  display: contents;
+}

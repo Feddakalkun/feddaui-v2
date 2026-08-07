@@ -656,15 +656,29 @@ export const WorkflowPage = ({
         {settings.length > 0 && (
           <WorkflowSection
             title="Settings"
-            actions={advanced.length > 0 ? (
-              <button
-                type="button"
-                onClick={() => setShowAdvanced((v) => !v)}
-                className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-600 transition hover:text-zinc-400"
-              >
-                {showAdvanced ? '− Advanced' : '+ Advanced'}
-              </button>
-            ) : undefined}
+            // Settings persist per workflow, so a value dragged badly once
+            // follows you across sessions with no way back to the graph's own
+            // numbers. Reset is the way out.
+            actions={(
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setValues(defaults)}
+                  className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-600 transition hover:text-zinc-400"
+                >
+                  Reset to default
+                </button>
+                {advanced.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvanced((v) => !v)}
+                    className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-600 transition hover:text-zinc-400"
+                  >
+                    {showAdvanced ? '− Advanced' : '+ Advanced'}
+                  </button>
+                )}
+              </div>
+            )}
           >
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {basic.map(renderSetting)}

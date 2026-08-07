@@ -175,7 +175,10 @@ export const UploadSlot = ({
           {previewKind === 'video' ? (
             <video src={preview} muted loop autoPlay playsInline className="absolute inset-0 h-full w-full object-cover" />
           ) : (
-            <img src={preview} alt={label} className="absolute inset-0 h-full w-full object-cover" />
+            // object-cover crops to the slot's shape, so a portrait dropped into
+            // a wide slot showed a horizontal band of itself and hid the face.
+            // The point of the preview is confirming you picked the right file.
+            <img src={preview} alt={label} className="absolute inset-0 h-full w-full object-contain" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
           <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-all group-hover:opacity-100">

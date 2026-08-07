@@ -284,9 +284,15 @@ export function SimpleImageCockpit({
           {/*
             Input and output side by side. The live preview used to sit two
             thirds down the page inside the control grid, so you could not see
-            what you fed in and what came out at the same time. Workflows with
-            no image input give the preview the whole row.
+            what you fed in and what came out at the same time.
+
+            With no image input the preview used to take the whole row and the
+            prompt sat underneath it - two half-empty blocks and a page that
+            scrolled for no reason. They pair up instead. `cockpit-pair` breaks
+            back to one column below 1100px, where two columns would leave the
+            prompt box too narrow to type in.
           */}
+          <div className={requireImageUpload ? 'cockpit-stack-plain' : 'cockpit-pair'}>
           <div className={requireImageUpload ? 'cockpit-io-row' : 'cockpit-io-row is-single'}>
             {requireImageUpload && (
             <div className="cockpit-upload-row">
@@ -376,15 +382,18 @@ export function SimpleImageCockpit({
             workflowId={workflowId}
             value={prompt}
             onChange={setPrompt}
+            // The box accepts a dropped image as well as text, and nothing said
+            // so. "Describe the subject" only ever advertised half of it.
             placeholder={promptMode === 'multiple'
               ? 'One prompt per line — each line runs as its own job'
-              : 'Describe the subject, mood, lighting...'}
+              : 'Drag and drop an image, or write a prompt…'}
             minRows={4}
             accent={accent}
             label="Prompt"
             mode={promptMode}
             onModeChange={onPromptModeChange}
           />
+          </div>
 
           {/* Negative belongs with the prompt it modifies, not parked among the
               numeric controls. Collapsed by default - most runs never touch it. */}

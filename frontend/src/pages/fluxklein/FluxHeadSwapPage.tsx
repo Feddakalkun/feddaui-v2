@@ -198,7 +198,12 @@ export const FluxHeadSwapPage = () => {
     >
       <div className="space-y-4">
         <WorkflowSection title="Images">
-          <div className="grid grid-cols-2 gap-3">
+          {/*
+            Capped, not full-bleed. Two slots across 1540 px made each one 750x150
+            - a 5:1 strip - so every portrait was cropped to a band regardless of
+            what was uploaded. The shape was the bug, not the images.
+          */}
+          <div className="grid max-w-[760px] grid-cols-2 gap-3">
             <UploadSlot
               preview={preview(baseFile)}
               uploading={busy.base}
@@ -206,7 +211,7 @@ export const FluxHeadSwapPage = () => {
               onUrl={(u) => uploadUrl('base', u)}
               label="Base"
               hint="Picture 1 — body, lighting, background"
-              height={150}
+              height={300}
             />
             <UploadSlot
               preview={preview(faceFile)}
@@ -215,7 +220,7 @@ export const FluxHeadSwapPage = () => {
               onUrl={(u) => uploadUrl('face', u)}
               label="Face"
               hint="Picture 2 — head to transplant"
-              height={150}
+              height={300}
             />
           </div>
           <p className="mt-2 font-mono text-[9px] text-zinc-600">

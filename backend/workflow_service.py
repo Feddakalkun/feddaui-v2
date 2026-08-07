@@ -367,6 +367,8 @@ class WorkflowService:
         if workflow_id == "qwen-multi-angles":
             self._trim_qwen_multi_angle_outputs(workflow, user_params)
 
+        self._drop_unfilled_optional_images(workflow, mapping.get("inputs", {}), effective_params)
+
         # Strip nodes unreachable from output nodes. Literal-value injection (e.g. the
         # Ideogram scheduler bypass) can leave entire sub-graphs orphaned; some of those
         # orphaned nodes may have no class_type or broken references that cause ComfyUI
@@ -407,6 +409,41 @@ class WorkflowService:
                 inputs["hf_token"] = hf_token
             
         return workflow
+
+    def _drop_unfilled_optional_images(self, workflow: dict, declared_inputs: Dict[str, Any],
+                                       user_params: Dict[str, Any]) -> None:
+        """Unwire image slots the user left empty, instead of shipping the baked-in file.
+
+        MiniMax's reference node takes a dynamic list - `ref_images.ref_image_0`,
+        `ref_images.ref_image_1` - and the graph was saved with a picture in the
+        second slot. Leaving that slot empty in the UI therefore did not mean
+        "one reference image"; it meant "whatever the graph author last used",
+        silently steering the result with an image nobody chose.
+
+        Only dotted keys are touched. A dot is what marks a slot in a dynamic
+        list, which is exactly the case where a missing entry is legal - a plain
+        `image` input is structural and removing it would break the graph.
+        Orphaned loaders are left to the unreachable-node pruner below.
+        """
+        empty = {
+            info.get("node_id")
+            for key, info in (declared_inputs or {}).items()
+            if info.get("type") == "string"
+            and str(info.get("input_key")) == "image"
+            and not str(user_params.get(key) or "").strip()
+        }
+        if not empty:
+            return
+
+        for node_id, node in workflow.items():
+            if not isinstance(node, dict):
+                continue
+            for key, value in list((node.get("inputs") or {}).items()):
+                if "." not in key:
+                    continue
+                if isinstance(value, list) and len(value) == 2 and str(value[0]) in empty:
+                    del node["inputs"][key]
+                    logger.info("Unwired optional image slot %s on node %s", key, node_id)
 
     def verify_wan21_payload(self, workflow: Dict[str, Any], user_params: Dict[str, Any]) -> Dict[str, Any]:
         """Confirm the WAN Steady Dancer input nodes reflect the filenames requested by the UI."""
