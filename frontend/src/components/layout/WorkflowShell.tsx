@@ -58,7 +58,16 @@ export const WorkflowShell = ({
       <section className={`workflow-control-pane ${leftClassName}`.trim()}>
         {preview ? <div className="workflow-shell-preview">{preview}</div> : null}
 
-        {workflowId && <WorkflowDownloadBanner workflowId={workflowId} />}
+        {/*
+          Wrapped so the grid has one stable child to place. The banner itself
+          returns a different root per state - downloading, missing, ready - and
+          none of them share a class to hook onto.
+        */}
+        {workflowId && (
+          <div className="workflow-download-banner">
+            <WorkflowDownloadBanner workflowId={workflowId} />
+          </div>
+        )}
 
         <div className="workflow-scroll">
           {children}

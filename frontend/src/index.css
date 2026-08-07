@@ -1650,3 +1650,43 @@ body {
 .cockpit-stack-plain {
   display: contents;
 }
+
+/*
+  Preview beside the controls, not on top of them.
+
+  The control pane stacked preview -> download banner -> scrolling body, and the
+  preview band had no height cap, so on Head Swap the two source images sat
+  below the fold for the whole run: you could not see what you fed in while it
+  was being processed. Above 1100px the preview becomes its own column and the
+  body scrolls next to it. Every page using WorkflowShell inherits this.
+
+  The download banner keeps the full width - it is a status line about the
+  page, not part of either column.
+*/
+@media (min-width: 1100px) {
+  .workflow-control-pane:has(> .workflow-shell-preview) {
+    display: grid;
+    grid-template-columns: minmax(0, 30rem) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    align-content: start;
+  }
+
+  .workflow-control-pane > .workflow-shell-preview {
+    grid-column: 1;
+    grid-row: 2;
+    border-bottom: none;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  .workflow-control-pane:has(> .workflow-shell-preview) > .workflow-download-banner {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .workflow-control-pane:has(> .workflow-shell-preview) > .workflow-scroll {
+    grid-column: 2;
+    grid-row: 2;
+  }
+}
