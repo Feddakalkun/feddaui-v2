@@ -20,7 +20,10 @@ const MAX_ITEMS = 40;
 export const GlobalOutputStrip = () => {
   const { state, previewUrl, lastOutputImages, lastOutputVideos, outputReadyCount } = useComfyExecution();
   const [items, setItems] = usePersistentState<StripItem[]>('global_gen_history', []);
-  const [open, setOpen] = usePersistentState<boolean>('global_strip_open', true);
+  // Recent Generations opens closed for the same reason as the output pane:
+  // on a fresh page it is a row of nothing, charged against the height the
+  // controls need.
+  const [open, setOpen] = usePersistentState<boolean>('global_strip_open', false);
   const [lightbox, setLightbox] = useState<StripItem | null>(null);
 
   // Accumulate every finished output (any page, any workflow) into one list.

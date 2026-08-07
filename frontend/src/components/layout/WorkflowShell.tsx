@@ -1,7 +1,8 @@
-import type { ElementType, ReactNode } from 'react';
+import { useEffect, useState, type ElementType, type ReactNode } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { WorkflowDownloadBanner } from '../ui/WorkflowDownloadBanner';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { useComfyExecution } from '../../contexts/ComfyExecutionContext';
 
 interface WorkflowShellProps {
   title: string;
@@ -30,28 +31,49 @@ export const WorkflowShell = ({
 }: WorkflowShellProps) => {
   // Remembered per workflow — the strip reserves up to 42vh, so collapsing it is
   // a per-page preference the user shouldn't have to redo on every visit.
+  // Collapsed until there is something to show. Opening by default spent the
+  // top of every page on an empty output pane, which is what pushed the
+  // controls below the fold before a single generation existed. It opens
+  // itself the moment a run produces output, so nothing is hidden that the
+  // user actually made.
   const [outputCollapsed, setOutputCollapsed] = usePersistentState(
     `workflow_output_collapsed_${workflowId ?? 'default'}`,
-    false,
+    true,
   );
+
+  // Deliberately not persisted. A run reveals the pane so the result is never
+  // hidden, but that reveal must not become the saved preference - otherwise
+  // one generation puts every future visit back to opening on an empty pane,
+  // which is the thing being fixed.
+  const { state } = useComfyExecution();
+  const [revealedByRun, setRevealedByRun] = useState(false);
+  useEffect(() => {
+    if (state === 'executing') setRevealedByRun(true);
+  }, [state]);
+  const collapsed = outputCollapsed && !revealedByRun;
 
   return (
     <div className={`workflow-shell ${hideOutputPane ? 'workflow-shell-no-output' : ''}`.trim()}>
       {!hideOutputPane && (
         <section
-          className={`workflow-output-strip ${outputCollapsed ? 'workflow-output-strip-collapsed' : ''} ${outputClassName}`.trim()}
+          className={`workflow-output-strip ${collapsed ? 'workflow-output-strip-collapsed' : ''} ${outputClassName}`.trim()}
         >
           <button
             type="button"
-            onClick={() => setOutputCollapsed((v) => !v)}
-            aria-expanded={!outputCollapsed}
-            title={outputCollapsed ? 'Show output' : 'Hide output'}
+            onClick={() => {
+              // Hiding it by hand also clears the run's reveal, or the button
+              // would appear to do nothing while a generation is in flight.
+              setRevealedByRun(false);
+              setOutputCollapsed(collapsed ? false : true);
+            }}
+            aria-expanded={!collapsed}
+            title={collapsed ? 'Show output' : 'Hide output'}
             className="workflow-output-toggle"
           >
-            {outputCollapsed ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
-            <span>{outputCollapsed ? 'Show output' : 'Hide output'}</span>
+            {collapsed ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
+            <span>{collapsed ? 'Show output' : 'Hide output'}</span>
           </button>
-          {!outputCollapsed && output}
+          {!collapsed && output}
         </section>
       )}
 

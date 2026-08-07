@@ -689,7 +689,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['minimax-h3-txt2vid'],
     defaultTab: 'minimax-h3-txt2vid',
     Icon: Film,
-    card: {},
+    card: { poster: '/cards/bunny/minimax-h3-txt2vid.jpeg' },
   },
   {
     id: 'minimax-h3-img2vid',
@@ -703,7 +703,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['minimax-h3-img2vid'],
     defaultTab: 'minimax-h3-img2vid',
     Icon: Film,
-    card: {},
+    card: { poster: '/cards/bunny/minimax-h3-img2vid.jpeg' },
   },
   {
     id: 'minimax-h3-videdit',
@@ -717,7 +717,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['minimax-h3-videdit'],
     defaultTab: 'minimax-h3-videdit',
     Icon: Film,
-    card: {},
+    card: { poster: '/cards/bunny/minimax-h3-videdit.jpeg' },
   },
   {
     id: 'ltx-txt2vid',

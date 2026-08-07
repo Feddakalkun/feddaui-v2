@@ -30,6 +30,7 @@ import { groupIntoFamilies, type WorkflowFamily } from '../../modules/workflowFa
 const FAMILY_ART: Record<string, string> = {
   'ltx-video': '/cards/bunny/family/ltx-video.jpeg',
   'wan-video': '/cards/bunny/family/wan-video.jpeg',
+  'minimax-h3': '/cards/bunny/family/minimax-h3.jpeg',
 };
 
 /** "an LTX Video", "a WAN Video" — letters like L/M/N/S read as vowels when spoken. */
