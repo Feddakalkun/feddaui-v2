@@ -417,7 +417,7 @@ Write-Host "`n[1b/3] Patching Python dependencies..." -ForegroundColor Yellow
 # Only the == lines are synced. The >= and bare entries are left alone on
 # purpose - torch and transformers live there, and dragging those along turns a
 # version fix into a torch generation swap nobody asked for.
-$ComfyReq = Join-Path $RootPath "ComfyUIequirements.txt"
+$ComfyReq = Join-Path (Join-Path $RootPath "ComfyUI") "requirements.txt"
 if (Test-Path $ComfyReq) {
     $Pinned = Get-Content $ComfyReq | Where-Object { $_ -match '^[A-Za-z0-9._-]+==' } | ForEach-Object { $_.Trim() }
     $Stale = @()
