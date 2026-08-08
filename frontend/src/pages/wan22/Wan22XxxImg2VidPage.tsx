@@ -27,8 +27,8 @@ export const Wan22XxxImg2VidPage = () => (
   <WorkflowPage
     workflowId="wan22xxx-img2vid"
     family="WAN 2.2"
-    capability="Uncensored Img2Vid"
-    description="Animate a still with the uncensored WAN 2.2 pass."
+    capability="Img2Vid Unfiltered"
+    description="Animate a still with the unfiltered WAN 2.2 pass."
     icon={Play}
     output="video"
     inputs={[{ key: 'image', kind: 'image', label: 'Input', hint: 'The still to animate' }]}

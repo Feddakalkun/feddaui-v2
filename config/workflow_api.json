@@ -1095,14 +1095,14 @@
       },
       "nsfw": {
         "type": "nsfw_toggle",
-        "label": "NSFW"
+        "label": "Unfiltered"
       }
     }
   },
   "wan22-img2vid": {
     "name": "WAN 2.2 Image to Video",
     "filename": "wan22/img2vid-single-wan22.json",
-    "description": "WAN 2.2 single-shot image-to-video (lightning 4-step, NSFW encoder, RIFE 30fps).",
+    "description": "WAN 2.2 single-shot image-to-video (lightning 4-step, unfiltered encoder, RIFE 30fps).",
     "inputs": {
       "image": {
         "node_id": "278",
@@ -1157,7 +1157,7 @@
       },
       "nsfw": {
         "type": "nsfw_toggle",
-        "label": "NSFW"
+        "label": "Unfiltered"
       }
     }
   },
@@ -1562,7 +1562,7 @@
       },
       "nsfw": {
         "type": "nsfw_toggle",
-        "label": "NSFW"
+        "label": "Unfiltered"
       }
     }
   },
@@ -1774,9 +1774,9 @@
     }
   },
   "qwen-rapid-edit-v23": {
-    "name": "Qwen Rapid Edit v23 NSFW",
+    "name": "Qwen Rapid Edit v23",
     "filename": "qwen/qwen-rapid-edit-v23-api.json",
-    "description": "Phr00t Qwen Image Edit Rapid AIO v23 NSFW image-edit workflow with workflow-owned model downloader.",
+    "description": "Phr00t Qwen Image Edit Rapid AIO v23 image-edit workflow with workflow-owned model downloader.",
     "inputs": {
       "image": {
         "node_ids": [
@@ -2417,9 +2417,9 @@
     }
   },
   "wan22xxx-img2vid": {
-    "name": "WAN 2.2 XXX Img2Vid",
+    "name": "WAN 2.2 Img2Vid Unfiltered",
     "filename": "wan22/WAN22XXX-img2video.json",
-    "description": "Animate a reference image with dual high/low noise WAN 2.2 14B fp8 pass — NSFW UMT5 encoder, Power LoRA slots.",
+    "description": "Animate a reference image with dual high/low noise WAN 2.2 14B fp8 pass — unfiltered UMT5 encoder, Power LoRA slots.",
     "inputs": {
       "image": {
         "node_id": "278",
@@ -2791,7 +2791,7 @@
   "wan22-img2vid-gguf": {
     "name": "WAN 2.2 Image to Video (GGUF)",
     "filename": "wan22/img2vid-single-wan22-gguf.json",
-    "description": "WAN 2.2 single-shot image-to-video (lightning 4-step, NSFW encoder, RIFE 30fps).",
+    "description": "WAN 2.2 single-shot image-to-video (lightning 4-step, unfiltered encoder, RIFE 30fps).",
     "inputs": {
       "image": {
         "node_id": "278",
@@ -2846,7 +2846,7 @@
       },
       "nsfw": {
         "type": "nsfw_toggle",
-        "label": "NSFW"
+        "label": "Unfiltered"
       }
     }
   },
@@ -3585,9 +3585,9 @@
     }
   },
   "klein-inpaint": {
-    "name": "FLUX2-KLEIN - NSFW Edit",
+    "name": "FLUX2-KLEIN Edit",
     "filename": "fluxklein/klein-inpaint.json",
-    "description": "Uncensored FLUX2-Klein reference edit. Describe the change in plain language - no mask needed. Optionally paint a mask in ComfyUI to restrict the change.",
+    "description": "Unfiltered FLUX2-Klein reference edit. Describe the change in plain language - no mask needed. Optionally paint a mask in ComfyUI to restrict the change.",
     "inputs": {
       "image": {
         "node_id": "763",
@@ -3725,9 +3725,9 @@
     }
   },
   "flux2klein-uncensored-txt2img": {
-    "name": "FLUX2-KLEIN NSFW",
+    "name": "FLUX2-KLEIN Unfiltered",
     "filename": "fluxklein/KLEINNSFW.json",
-    "description": "FLUX.2-klein uncensored text-to-image. Carries its own HuggingFaceDownloader for the nsfwKlein weights.",
+    "description": "FLUX.2-klein unfiltered text-to-image. Carries its own HuggingFaceDownloader for the nsfwKlein weights.",
     "inputs": {
       "prompt": {
         "node_id": "1212",

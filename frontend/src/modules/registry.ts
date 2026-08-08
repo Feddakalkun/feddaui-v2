@@ -320,7 +320,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
   {
     id: 'klein-inpaint',
     sourceModuleId: 'flux-klein',
-    label: 'NSFW Edit',
+    label: 'Edit',
     description: 'Uncensored FLUX2-Klein reference edit - describe the change, no mask.',
     area: 'image',
     pack: 'booster',

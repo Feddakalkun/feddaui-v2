@@ -15,7 +15,7 @@ export const KleinInpaintPage = () => (
   <WorkflowPage
     workflowId="klein-inpaint"
     family="FLUX2-KLEIN"
-    capability="NSFW Edit"
+    capability="Reference Edit"
     description="Describe the change in plain language — the model finds what you mean and leaves the rest of the photo alone."
     icon={Eraser}
     output="image"
