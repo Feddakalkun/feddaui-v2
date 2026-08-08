@@ -337,9 +337,14 @@ export const PromptAssistant = ({
       {/* Label row */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <label className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em]">
-            {label}
-          </label>
+          {/* WorkflowSection already titles this block "Prompt", so printing
+              the default again put PROMPT directly under PROMPT. Only a label
+              that actually says something different is shown. */}
+          {label && label !== 'Prompt' && (
+            <label className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em]">
+              {label}
+            </label>
+          )}
           {/*
             Batch used to be its own section with a second textarea. It is a
             mode of this one card instead: Multiple treats each line as a
@@ -374,27 +379,15 @@ export const PromptAssistant = ({
             </>
           ) : (
             <>
-              {/* Enhance button */}
-              <button
-                onClick={() => runStream('enhance')}
-                title="Enhance current prompt with AI"
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/[0.03] border border-white/8
-                  text-[12px] font-black uppercase tracking-widest text-white/35 transition-all ${ACCENT_BTN[accent]}`}
-              >
-                <Wand2 className="w-3.5 h-3.5" /> Enhance
-              </button>
-              {/* Caption an image into the prompt. Drag-and-drop onto the
-                  textarea already did this, but only if you knew it existed. */}
-              {enableCaption && (
-                <button
-                  onClick={() => captionInputRef.current?.click()}
-                  title="Pick an image and describe it into the prompt"
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/[0.03] border border-white/8
-                  text-[12px] font-black uppercase tracking-widest text-white/35 transition-all ${ACCENT_BTN[accent]}`}
-                >
-                  <ImageIcon className="w-3.5 h-3.5" /> Prompt from image
-                </button>
-              )}
+              {/* Enhance and "Prompt from image" both lived here and both are
+                  gone. The agent beside this box does the same two jobs and
+                  does not wait to be clicked: it opens itself when an image
+                  lands and says what it sees. Three buttons for one job is
+                  what made this section unreadable.
+
+                  Dropping or pasting an image onto the textarea still captions
+                  it - that behaviour is kept, it just no longer needs a button
+                  advertising it. */}
               {/* Char count */}
               <span className="text-white/10 font-mono text-[10px] ml-1">{value.length}</span>
             </>
