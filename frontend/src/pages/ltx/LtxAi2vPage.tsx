@@ -30,11 +30,19 @@ export const SUGGESTED_EDGE_VOICES = [
 ];
 const DEFAULT_NEGATIVE = 'blurry, low quality, still frame, frames, watermark, overlay, titles, has blurbox, has subtitles';
 
+// The image says who, the audio says what - the prompt only picks how it is
+// performed, and there are really only two answers. Presets instead of asking
+// everyone to write the same two sentences.
+const TALKING = 'close-up, she is talking, her lips moving in sync with the audio, natural mouth and jaw movement, subtle head motion and blinking, expressive face';
+const SINGING = 'close-up, she is singing, mouth opening wide on sustained notes, lips and jaw moving in sync with the vocal, head swaying with the rhythm, eyes closing on the held notes, expressive performance';
+const PERFORMANCE_PRESETS = [
+  { label: 'Talking', text: TALKING },
+  { label: 'Singing', text: SINGING },
+];
+
 export const LtxAi2vPage = () => {
-  const [prompt, setPrompt] = usePersistentState(
-    'ltx_ai2v_prompt',
-    'close-up, she is talking, her lips moving in sync with the audio, natural mouth and jaw movement, subtle head motion and blinking, expressive face',
-  );
+  const [prompt, setPrompt] = usePersistentState('ltx_ai2v_prompt', TALKING);
+  const [promptOpen, setPromptOpen] = useState(false);
   const [batchRaw, setBatchRaw] = usePersistentState('ltx_ai2v_batch_raw', '');
   const [negative, setNegative] = usePersistentState('ltx_ai2v_negative', DEFAULT_NEGATIVE);
   const [seed, setSeed] = usePersistentState('ltx_ai2v_seed', -1);
@@ -379,9 +387,44 @@ export const LtxAi2vPage = () => {
           </WorkflowSection>
         </div>
 
+        {/* Lipsync barely needs a prompt: the image fixes who and the audio
+            fixes what they say, so the text only picks a performance. Two
+            presets cover almost every run, and the writing surface folds away
+            behind them instead of being the first thing on the page. */}
         <WorkflowSection
-          title="Prompt"
+          title="Performance"
           actions={(
+            <div className="flex items-center gap-2">
+              {PERFORMANCE_PRESETS.map((p) => (
+                <button
+                  key={p.label}
+                  type="button"
+                  onClick={() => { setPrompt(p.text); setPromptOpen(false); }}
+                  className={
+                    'rounded border px-2.5 py-1 text-[11px] transition ' +
+                    (prompt.trim() === p.text
+                      ? 'border-violet-500/50 bg-violet-500/10 text-violet-300'
+                      : 'border-white/10 bg-white/[0.03] text-zinc-400 hover:text-zinc-200')
+                  }
+                >
+                  {p.label}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setPromptOpen((v) => !v)}
+                className="rounded border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] text-zinc-500 transition hover:text-zinc-300"
+              >
+                {promptOpen ? 'Hide prompt' : 'Edit prompt'}
+              </button>
+            </div>
+          )}
+        >
+          {!promptOpen && (
+            <p className="truncate text-[12px] text-white/35">{prompt.trim() || 'No prompt set'}</p>
+          )}
+          <div className={promptOpen ? undefined : 'hidden'}>
+          <div className="mb-3 flex justify-end">
             <NeutralButton
               onClick={buildPromptFromReference}
               disabled={!imageFilename || referenceCaptioning}
@@ -389,8 +432,7 @@ export const LtxAi2vPage = () => {
               {referenceCaptioning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
               Build From Reference
             </NeutralButton>
-          )}
-        >
+          </div>
           <PromptAssistant
             context="ltx-lipsync"
             value={prompt}
@@ -410,6 +452,7 @@ export const LtxAi2vPage = () => {
               progress={run.batchProgress}
               autoFillContext="ltx-lipsync"
             />
+          </div>
           </div>
         </WorkflowSection>
 
