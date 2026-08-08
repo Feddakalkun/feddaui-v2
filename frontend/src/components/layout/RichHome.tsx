@@ -73,11 +73,13 @@ function HomeCard({ module, onSelect }: { module: FeddaModule; onSelect: (id: st
     <button
       onClick={() => onSelect(module.defaultTab)}
       aria-label={module.label}
-      // Height comes from the row, not from an aspect ratio. Fixing the ratio
-      // made the cards grow with the window width until the page scrolled;
-      // letting the row size them is what keeps the home on one screen at any
-      // zoom level. The poster still fills via object-cover.
-      className="group relative h-full min-h-0 w-full overflow-hidden rounded-lg border border-white/10 bg-[#08090d] transition-all hover:-translate-y-0.5 hover:border-white/25"
+      // The card carries the poster's own 3:2 instead of taking whatever
+      // height the row has left over. Row-sizing was chosen to keep the home
+      // on one screen, but it produced a 354x315 box - ratio 1.12 - for a 1.50
+      // image at 771px and 150% zoom, so cover discarded a quarter of the
+      // width. A declared ratio cannot do that, and at two columns it is
+      // usually shorter than the height the row was handing out anyway.
+      className="group relative aspect-[3/2] w-full overflow-hidden rounded-lg border border-white/10 bg-[#08090d] transition-all hover:-translate-y-0.5 hover:border-white/25"
     >
       {module.card?.poster ? (
         <>
@@ -185,7 +187,11 @@ export const RichHome = ({ onSelect }: RichHomeProps) => {
   // is worse than a little scrolling - which is all that happens below roughly
   // 560px of height.
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-[#050506]">
+    // overflow-hidden clipped whatever did not fit. That was safe while the
+    // rows could shrink without limit, but now that they carry a shape-based
+    // floor it would cut the bottom row off entirely at high zoom. Scroll
+    // instead: the home still fits one screen at ordinary sizes.
+    <div className="flex h-full flex-col overflow-y-auto bg-[#050506]">
       <div className="mx-auto flex h-full w-full max-w-7xl flex-col gap-3 px-6 pb-5 pt-3">
         <div className="shrink-0">
           <HFTokenReminder />
@@ -203,7 +209,14 @@ export const RichHome = ({ onSelect }: RichHomeProps) => {
           </section>
         )}
 
-        <div className="grid min-h-[150px] w-full flex-[3] gap-3 md:grid-cols-2">
+        {/* A floor tied to the poster's shape, not a flat pixel count. Forcing
+            the whole home into one viewport made the row hand these cards
+            whatever height was left: at 771 CSS px and 150% zoom that was a
+            1.12 container for a 1.50 image, so cover cropped a third of the
+            width away. The rows still flex and still prefer to fit, but they
+            will not squeeze a landscape card into a square - the page scrolls
+            a little instead, which is the cheaper loss. */}
+        <div className="grid w-full shrink-0 gap-3 md:grid-cols-2">
           {topCards.map((module) => (
             <HomeCard key={module.id} module={module} onSelect={onSelect} />
           ))}
