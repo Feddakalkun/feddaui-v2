@@ -17,7 +17,7 @@
     "url": "https://github.com/rgthree/rgthree-comfy.git",
     "folder": "rgthree-comfy",
     "note": "Power Lora Loader, Image Comparer \u2014 used in all z-image workflows",
-    "core": true
+    "core": false
   },
   {
     "name": "ComfyUI-VideoHelperSuite",
@@ -72,7 +72,7 @@
     "url": "https://github.com/DonutsDelivery/ComfyUI-DonutNodes.git",
     "folder": "ComfyUI-DonutNodes",
     "note": "Donut Detailer",
-    "core": true
+    "core": false
   },
   {
     "name": "comfyui_controlnet_aux",
@@ -129,14 +129,14 @@
     "url": "https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler.git",
     "folder": "ComfyUI-SeedVR2_VideoUpscaler",
     "note": "Video Upscaling",
-    "core": true
+    "core": false
   },
   {
     "name": "ComfyUI_UltimateSDUpscale",
     "url": "https://github.com/ssitu/ComfyUI_UltimateSDUpscale.git",
     "folder": "ComfyUI_UltimateSDUpscale",
     "note": "Ultimate SD Upscale",
-    "core": true
+    "core": false
   },
   {
     "name": "ComfyUI-Inpaint-CropAndStitch",
