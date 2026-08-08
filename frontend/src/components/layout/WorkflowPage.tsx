@@ -645,7 +645,17 @@ export const WorkflowPage = ({
                 // Frames live in `files`, not `values` - the builder read the
                 // wrong map and so never saw an image at all.
                 image={promptBuilder.imageKey ? files[promptBuilder.imageKey] ?? null : null}
-                seconds={Number(values.length_seconds ?? 5)}
+                // Most video graphs count frames, not seconds: MiniMax exposes
+                // `length` and `frame_rate` and no length_seconds at all, so
+                // this always fell through to 5. The agent then wrote a
+                // five-beat timeline for a clip that runs 1.7s, and the model
+                // had to cram or drop most of it.
+                seconds={(() => {
+                  const frames = Number(values.length ?? 0);
+                  const fps = Number(values.frame_rate ?? values.fps ?? 0);
+                  if (frames > 0 && fps > 0) return Math.max(1, Math.round(frames / fps));
+                  return Number(values.length_seconds ?? 5);
+                })()}
                 onPrompt={setPromptText}
               />
             )}
