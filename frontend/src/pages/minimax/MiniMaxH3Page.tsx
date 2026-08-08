@@ -22,7 +22,7 @@ const MODES = {
     workflowId: 'minimax-h3-txt2vid',
     capability: 'Text to Video',
     description: 'Video and synchronised audio straight from a prompt.',
-    inputs: [] as { key: string; kind: 'image' | 'video'; label: string; hint: string }[],
+    inputs: [] as { key: string; kind: 'image' | 'video'; label: string; hint: string; optional?: boolean }[],
     sized: true,
     lengthed: true,
   },
@@ -32,7 +32,8 @@ const MODES = {
     description: 'Driven by one or two reference images.',
     inputs: [
       { key: 'image', kind: 'image' as const, label: 'Reference', hint: 'The subject to animate' },
-      { key: 'image2', kind: 'image' as const, label: 'Second', hint: 'Optional pose or style reference' },
+      { key: 'image2', kind: 'image' as const, label: 'Second',
+        hint: 'Optional pose or style reference', optional: true },
     ],
     sized: true,
     lengthed: true,

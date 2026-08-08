@@ -130,7 +130,7 @@
     "inputs": {
       "clip_name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
       "type": "minimax",
-      "device": "cpu"
+      "device": "default"
     },
     "class_type": "CLIPLoader",
     "_meta": {
@@ -236,7 +236,7 @@
     },
     "class_type": "HuggingFaceDownloader",
     "_meta": {
-      "title": "🤗 HuggingFace Model Downloader Pro"
+      "title": "\ud83e\udd17 HuggingFace Model Downloader Pro"
     }
   },
   "159": {
@@ -262,7 +262,7 @@
     },
     "class_type": "VHS_VideoCombine",
     "_meta": {
-      "title": "Video Combine 🎥🅥🅗🅢"
+      "title": "Video Combine \ud83c\udfa5\ud83c\udd65\ud83c\udd57\ud83c\udd62"
     }
   }
 }
