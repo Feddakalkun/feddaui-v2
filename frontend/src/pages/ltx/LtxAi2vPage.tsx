@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Loader2, Music, Volume2, Wand2 } from 'lucide-react';
+import { AudioTimeline } from '../../components/ui/AudioTimeline';
 import { PromptAssistant } from '../../components/ui/PromptAssistant';
 import { useToast } from '../../components/ui/Toast';
 import { BACKEND_API } from '../../config/api';
@@ -491,23 +492,19 @@ export const LtxAi2vPage = () => {
               <Field label="Target Width — height follows the image's aspect ratio">
                 <ChipGroup options={WIDTH_PRESETS} value={width} onChange={setWidth} />
               </Field>
-              <SliderField
-                label="Audio Start"
-                value={audioStart}
-                onChange={setAudioStart}
-                min={0}
-                max={120}
-                step={1}
-                format={(v) => `${v}s into the clip`}
-              />
-              <SliderField
-                label="Video Length"
-                value={duration}
-                onChange={setDuration}
-                min={0}
-                max={600}
-                step={1}
-                format={(v) => (v === 0 ? 'to end of audio' : `${v}s from the start point`)}
+              {/* Was two range sliders, 0-120s and 0-600s, asking which second
+                  to cut at against nothing you could see or hear. The timeline
+                  draws the decoded waveform and plays only the selection, so
+                  the phrase you are aiming at is visible before it costs a
+                  generation. `duration` keeps its meaning: 0 is "to the end". */}
+              <AudioTimeline
+                src={audioPreview}
+                start={audioStart}
+                end={duration === 0 ? 0 : audioStart + duration}
+                onChange={(s, e) => {
+                  setAudioStart(Math.max(0, Math.round(s * 10) / 10));
+                  setDuration(e === 0 ? 0 : Math.max(0.2, Math.round((e - s) * 10) / 10));
+                }}
               />
               <label className="mt-1 flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[11px] text-white/70">
                 <span>Upscale 1.5&times; <span className="text-white/30">(off on long clips to avoid OOM)</span></span>
