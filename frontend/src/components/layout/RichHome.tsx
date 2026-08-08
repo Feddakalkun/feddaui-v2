@@ -17,7 +17,13 @@ function ChatBanner({ module, onSelect }: { module: FeddaModule; onSelect: (id: 
       aria-label={module.label}
       // Capped against viewport height as well as its ratio, so on a wide
       // window the banner cannot grow until it squeezes the card rows.
-      className="group relative aspect-[1168/300] max-h-[20vh] w-full overflow-hidden rounded-2xl border border-cyan-400/25 bg-[#08090d] text-left transition-all hover:-translate-y-0.5 hover:border-cyan-300/50"
+      //
+      // 20vh was too tight to honour the ratio: at 1002x777 the box came out
+      // 953x154, a ratio of 6.18 against the poster's 3.89, so cover scaled the
+      // image up to fill the width and threw away about a third of its height -
+      // the top of the bunny. 32vh lets the declared aspect actually apply at
+      // ordinary window sizes; the cap still catches very short windows.
+      className="group relative aspect-[1168/300] max-h-[32vh] w-full overflow-hidden rounded-2xl border border-cyan-400/25 bg-[#08090d] text-left transition-all hover:-translate-y-0.5 hover:border-cyan-300/50"
     >
       {module.card?.poster && (
         <img
@@ -78,7 +84,12 @@ function HomeCard({ module, onSelect }: { module: FeddaModule; onSelect: (id: st
           <img
             src={module.card.poster}
             alt=""
-            className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+            // Height comes from the row, so the container's ratio moves with
+            // the window while the poster's stays at 3:2. Whenever they differ
+            // cover has to crop, and centred cropping takes the subject's head
+            // off before it takes the empty floor. Biased upward so the crop
+            // eats the bottom margin instead.
+            className="absolute inset-0 h-full w-full object-cover object-[50%_35%] transition duration-500 group-hover:scale-[1.03]"
           />
           {module.card?.video ? (
             <video
