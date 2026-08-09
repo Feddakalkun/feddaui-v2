@@ -92,7 +92,7 @@ export const MiniMaxH3Page = ({ mode }: { mode: Mode }) => {
               hint: 'Frames times width times height is what fills the card. Around 45 million total has run here; 47 million ran out of memory. Fewer frames is usually the cheapest way back under the line, since resolution costs quality faster than length does.' }]
           : []),
         { kind: 'slider', key: 'frame_rate', label: 'FPS', min: 8, max: 30, defaultValue: 24 },
-        { kind: 'slider', key: 'steps', label: 'Steps', min: 4, max: 50, defaultValue: 20, advanced: true,
+        { kind: 'slider', key: 'steps', label: 'Steps', min: 4, max: 50, defaultValue: 20,
           hint: 'A straight multiplier on render time - measured here at about 19 seconds per step, so 20 steps is roughly six and a half minutes and 8 steps is under three. Try lowering it before you lower the resolution; if quality holds, the time was free.' },
         // The encoder is 15 GB and has finished its work before sampling
         // starts, so where it sits is a straight trade rather than a setting
@@ -106,7 +106,6 @@ export const MiniMaxH3Page = ({ mode }: { mode: Mode }) => {
           key: 'encoder_device',
           label: 'Text encoder',
           defaultValue: 'cpu',
-          advanced: true,
           hint: 'The encoder is 15 GB. On CPU it takes a few minutes to load and read '
               + 'the prompt before anything appears to happen - that silence is normal, '
               + 'not a hang - but it leaves the GPU free for the larger Int8 model. On '
