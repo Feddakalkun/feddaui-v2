@@ -31,6 +31,16 @@ const FAMILY_ART: Record<string, string> = {
   'ltx-video': '/cards/bunny/family/ltx-video.jpeg',
   'wan-video': '/cards/bunny/family/wan-video.jpeg',
   'minimax-h3': '/cards/bunny/family/minimax-h3.jpeg',
+  // Only the three video families were ever listed, so every image family
+  // fell through to one of its own children's posters - opening FLUX showed
+  // the same picture on the family tile and on the workflow right beneath it.
+  'flux-klein': '/cards/bunny/family/flux-klein.jpeg',
+  'qwen-image': '/cards/bunny/family/qwen-image.jpeg',
+  'sdxl-pack': '/cards/bunny/family/sdxl-pack.jpeg',
+  'chroma-image': '/cards/bunny/family/chroma-image.jpeg',
+  'z-image-core': '/cards/bunny/family/z-image-core.jpeg',
+  'firered-image': '/cards/bunny/family/firered-image.jpeg',
+  'krea2-txt2img': '/cards/bunny/family/krea2-txt2img.jpeg',
 };
 
 /** "an LTX Video", "a WAN Video" — letters like L/M/N/S read as vowels when spoken. */
