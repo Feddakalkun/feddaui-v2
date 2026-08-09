@@ -394,6 +394,11 @@ export const WorkflowPage = ({
     const set = (v: number | string) => setValues((prev) => ({ ...prev, [s.key]: v }));
 
     if (s.kind === 'slider') {
+      // A frame count means nothing on its own - 48 frames is two seconds at
+      // 24fps and three at 16. The number the user is actually choosing is the
+      // length of the clip, so show it next to the one the graph wants.
+      const fps = Number(values.frame_rate ?? values.fps ?? 0);
+      const showsSeconds = s.key === 'length' && fps > 0;
       return (
         <SliderField
           key={s.key}
@@ -403,6 +408,9 @@ export const WorkflowPage = ({
           min={s.min}
           max={s.max}
           step={s.step ?? 1}
+          format={showsSeconds
+            ? (v) => `${v} frames · ${(v / fps).toFixed(1)}s`
+            : undefined}
         />
       );
     }
