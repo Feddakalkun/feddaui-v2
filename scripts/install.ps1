@@ -564,6 +564,11 @@ $Deps = @(
     "accelerate", "transformers", "diffusers", "safetensors",
     "huggingface-hub", "onnxruntime-gpu", "onnxruntime", "omegaconf",
     "aiohttp", "aiohttp-sse",
+    # Every Edge voice in the lipsync and LTX audio pages comes from this. It
+    # was missing, so /api/tts/edge-voices answered "No module named edge_tts"
+    # with an empty list and the picker showed only "Default voice" - a dead
+    # dropdown that looked like a UI bug rather than an absent dependency.
+    "edge-tts",
     "pytube", "yt-dlp", "moviepy", "youtube-transcript-api",
     "numba",
     "imageio", "imageio-ffmpeg", "av",
