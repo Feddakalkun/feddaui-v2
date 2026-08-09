@@ -257,8 +257,17 @@ export const Txt2ImgPage = ({
     if (!requireImageUpload || !uploadedImage) return;
     const img = new Image();
     img.onload = () => {
-      setWidth(Math.round(img.naturalWidth / 8) * 8);
-      setHeight(Math.round(img.naturalHeight / 8) * 8);
+      // Keep the source's shape, but not necessarily its size: people drop
+      // upscaler output in here, and a 3461px square asks the sampler for a
+      // 12-megapixel edit that only ends one way on 24 GB. Scaled down by the
+      // long edge so the aspect survives and the job stays runnable; images
+      // already under the cap are untouched.
+      const LONG_EDGE_MAX = 1536;
+      const { naturalWidth: nw, naturalHeight: nh } = img;
+      if (!nw || !nh) return;
+      const scale = Math.min(1, LONG_EDGE_MAX / Math.max(nw, nh));
+      setWidth(Math.max(8, Math.round((nw * scale) / 8) * 8));
+      setHeight(Math.max(8, Math.round((nh * scale) / 8) * 8));
     };
     img.src = uploadedImage;
   }, [uploadedImage, requireImageUpload, setWidth, setHeight]);
@@ -410,14 +419,21 @@ export const Txt2ImgPage = ({
 
   useEffect(() => {
     if (allowedResolutions.length === 0) return;
-    if (workflowId === 'sdxl-inpaint-automask') return; // let image size or manual control it
+    // An edit workflow's output must keep the shape of the picture it is
+    // editing, so the upload effect above sets width and height from the
+    // file's own dimensions - which are essentially never one of the presets.
+    // This guard then snapped them straight back to aspectPresets[0], and on
+    // Qwen Rapid Edit that is Square 768x768, so every upload came out
+    // squashed. sdxl-inpaint-automask was exempted by name when someone hit
+    // the same bug; the rule itself was the problem, not that one workflow.
+    if (requireImageUpload && uploadedImage) return;
     const isAllowed = allowedResolutions.some((resolution) => resolution.w === width && resolution.h === height);
     if (isAllowed) return;
     const fallback = aspectPresets[0] ?? allowedResolutions[0];
     if (!fallback) return;
     setWidth(fallback.w);
     setHeight(fallback.h);
-  }, [allowedResolutions, aspectPresets, width, height, setWidth, setHeight, workflowId]);
+  }, [allowedResolutions, aspectPresets, width, height, setWidth, setHeight, workflowId, requireImageUpload, uploadedImage]);
 
   useEffect(() => {
     if (loraEntries.length > 0) return;
