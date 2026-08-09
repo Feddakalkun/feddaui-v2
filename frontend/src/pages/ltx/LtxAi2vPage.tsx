@@ -66,6 +66,10 @@ export const LtxAi2vPage = () => {
   const [ttsEngine, setTtsEngine] = usePersistentState<'edge' | 'chatterbox'>('ltx_ai2v_tts_engine', 'edge');
   const [ttsCbVoice, setTtsCbVoice] = usePersistentState('ltx_ai2v_tts_cb_voice', '');
   const [ttsGenerating, setTtsGenerating] = useState(false);
+  // Lipsync has had these since it was written; this page never got them,
+  // so the same backend fields sat unused behind an identical voice picker.
+  const [ttsRate, setTtsRate] = usePersistentState('ltx_ai2v_tts_rate', 1.0);
+  const [ttsPitch, setTtsPitch] = usePersistentState('ltx_ai2v_tts_pitch', 0);
   const [edgeVoices, setEdgeVoices] = useState<Array<{ id: string; name: string }>>([]);
   const [cbVoices, setCbVoices] = useState<Array<{ id: string; name: string }>>([]);
 
@@ -154,6 +158,8 @@ export const LtxAi2vPage = () => {
           voice_name: ttsVoice,
           reference_audio: ttsEngine === 'chatterbox' ? ttsCbVoice : '',
           cfg_scale: 0.5,
+          speaking_rate: ttsRate,
+          pitch: ttsPitch,
         }),
       });
       const data = await res.json();
@@ -363,6 +369,26 @@ export const LtxAi2vPage = () => {
                       </optgroup>
                     )}
                   </select>
+                )}
+                {/* Edge accepts both and the backend already forwards them;
+                    this page simply never offered them, while Lipsync did. */}
+                {ttsEngine === 'edge' && (
+                <div className="mt-2 grid grid-cols-2 gap-3">
+                  <SliderField
+                    label="Speed"
+                    value={ttsRate}
+                    onChange={setTtsRate}
+                    min={0.5} max={1.5} step={0.05}
+                    format={(v) => `${v.toFixed(2)}x`}
+                  />
+                  <SliderField
+                    label="Pitch"
+                    value={ttsPitch}
+                    onChange={setTtsPitch}
+                    min={-50} max={50} step={1}
+                    format={(v) => `${v > 0 ? '+' : ''}${Math.round(v)}Hz`}
+                  />
+                </div>
                 )}
                 <button
                   type="button"
