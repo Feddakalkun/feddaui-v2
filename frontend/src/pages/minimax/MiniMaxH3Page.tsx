@@ -1,5 +1,6 @@
 import { Film } from 'lucide-react';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { InfoTip } from '../../components/ui/InfoTip';
 import { WorkflowPage } from '../../components/layout/WorkflowPage';
 
 /**
@@ -87,10 +88,12 @@ export const MiniMaxH3Page = ({ mode }: { mode: Mode }) => {
           ? [{ kind: 'slider' as const, key: 'height', label: 'Height', min: 256, max: 1536, step: 32, defaultValue: 1344 }]
           : []),
         ...(config.lengthed
-          ? [{ kind: 'slider' as const, key: 'length', label: 'Frames', min: 25, max: 200, step: 1, defaultValue: 124 }]
+          ? [{ kind: 'slider' as const, key: 'length', label: 'Frames', min: 25, max: 200, step: 1, defaultValue: 124,
+              hint: 'Frames times width times height is what fills the card. Around 45 million total has run here; 47 million ran out of memory. Fewer frames is usually the cheapest way back under the line, since resolution costs quality faster than length does.' }]
           : []),
         { kind: 'slider', key: 'frame_rate', label: 'FPS', min: 8, max: 30, defaultValue: 24 },
-        { kind: 'slider', key: 'steps', label: 'Steps', min: 4, max: 50, defaultValue: 20, advanced: true },
+        { kind: 'slider', key: 'steps', label: 'Steps', min: 4, max: 50, defaultValue: 20, advanced: true,
+          hint: 'A straight multiplier on render time - measured here at about 19 seconds per step, so 20 steps is roughly six and a half minutes and 8 steps is under three. Try lowering it before you lower the resolution; if quality holds, the time was free.' },
         // The encoder is 15 GB and has finished its work before sampling
         // starts, so where it sits is a straight trade rather than a setting
         // with a right answer. On a 24 GB card holding it on the GPU leaves
@@ -119,7 +122,16 @@ export const MiniMaxH3Page = ({ mode }: { mode: Mode }) => {
       extraSections={(
         <div className="workflow-section">
           <div className="workflow-section-header">
-            <div className="workflow-section-title">Model size</div>
+            <div className="workflow-section-title flex items-center gap-1.5">
+              Model size
+              <InfoTip text={
+                'Q3 is 3-bit and fits easily, but the precision loss shows first in bodies '
+                + 'and hands - limbs melt on image-to-video long before a text-only clip '
+                + 'looks wrong. Int8 holds together far better and needs about 4 GB more, '
+                + 'which on a 24 GB card means something else has to give: keep the text '
+                + 'encoder on CPU, and expect to trade some frames or resolution for it.'
+              } />
+            </div>
           </div>
           <div className="flex gap-1.5">
             {([['gguf', 'Q3 — 15 GB weights'], ['fp8', 'Int8 — 19 GB weights, tight']] as const).map(([value, label]) => (

@@ -52,6 +52,8 @@ export type WorkflowSettingSpec =
       /** Some graphs type their widget inputs as strings. */
       asString?: boolean;
       advanced?: boolean;
+      /** Shown on hover beside the label, the instant you point at it. */
+      hint?: string;
     }
   | { kind: 'seed'; key: string; label?: string; defaultValue?: number; advanced?: boolean }
   | {
@@ -411,6 +413,7 @@ export const WorkflowPage = ({
           min={s.min}
           max={s.max}
           step={s.step ?? 1}
+          hint={s.hint}
           format={showsSeconds
             ? (v) => `${v} frames · ${(v / fps).toFixed(1)}s`
             : undefined}

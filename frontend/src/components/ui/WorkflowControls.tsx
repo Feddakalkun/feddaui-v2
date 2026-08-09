@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ListOrdered, Loader2, Music, Play, Upload, X } from 'lucide-react';
+import { InfoTip } from './InfoTip';
 import { cn, inputBase } from '../../lib/styles';
 import { FeddaButton } from './FeddaPrimitives';
 
@@ -48,13 +49,18 @@ interface SliderFieldProps {
   max: number;
   step?: number;
   format?: (value: number) => string;
+  /** Explanation shown the instant you point at the label. */
+  hint?: string;
 }
 
 /** Labeled slider with a monospace value readout. */
-export const SliderField = ({ label, value, onChange, min, max, step = 0.01, format }: SliderFieldProps) => (
+export const SliderField = ({ label, value, onChange, min, max, step = 0.01, format, hint }: SliderFieldProps) => (
   <div className="space-y-1">
     <div className="flex items-center justify-between">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">{label}</span>
+      <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+        {label}
+        {hint && <InfoTip text={hint} />}
+      </span>
       <span className="font-mono text-[11px] text-zinc-300">{format ? format(value) : value.toFixed(2)}</span>
     </div>
     <input
