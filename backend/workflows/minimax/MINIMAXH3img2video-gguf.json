@@ -92,8 +92,8 @@
         0
       ],
       "latent_image": [
-        "136",
-        1
+        "900",
+        0
       ]
     },
     "class_type": "SamplerCustomAdvanced",
@@ -263,6 +263,21 @@
     "class_type": "VHS_VideoCombine",
     "_meta": {
       "title": "Video Combine \ud83c\udfa5\ud83c\udd65\ud83c\udd57\ud83c\udd62"
+    }
+  },
+  "900": {
+    "inputs": {
+      "empty_cache": true,
+      "gc_collect": true,
+      "unload_all_models": true,
+      "any_input": [
+        "136",
+        1
+      ]
+    },
+    "class_type": "VRAM_Debug",
+    "_meta": {
+      "title": "Free VAE before sampling"
     }
   }
 }
