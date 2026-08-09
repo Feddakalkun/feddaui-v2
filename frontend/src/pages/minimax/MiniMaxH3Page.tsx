@@ -104,6 +104,10 @@ export const MiniMaxH3Page = ({ mode }: { mode: Mode }) => {
           label: 'Text encoder',
           defaultValue: 'cpu',
           advanced: true,
+          hint: 'The encoder is 15 GB. On CPU it takes a few minutes to load and read '
+              + 'the prompt before anything appears to happen - that silence is normal, '
+              + 'not a hang - but it leaves the GPU free for the larger Int8 model. On '
+              + 'GPU it is seconds, and only fits alongside Q3 on a 24 GB card.',
           options: [
             { label: 'CPU — slow encode, frees 15 GB', value: 'cpu' },
             { label: 'GPU — fast, needs headroom', value: 'default' },

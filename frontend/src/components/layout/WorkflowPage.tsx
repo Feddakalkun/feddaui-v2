@@ -10,6 +10,7 @@ import { WorkflowShell, WorkflowSection } from './WorkflowShell';
 import { PromptAgentBox } from '../workflows/PromptAgentBox';
 import { WorkflowVideoPreviewStrip } from './WorkflowVideoPreviewStrip';
 import { LiveSamplingPreview } from '../workflows/LiveSamplingPreview';
+import { InfoTip } from '../ui/InfoTip';
 import { PromptAssistant } from '../ui/PromptAssistant';
 import { GenerateButton, SeedField, SliderField, UploadSlot } from '../ui/WorkflowControls';
 import { cn } from '../../lib/styles';
@@ -85,6 +86,8 @@ export type WorkflowSettingSpec =
       options: { label: string; value: number | string }[];
       defaultValue: number | string;
       advanced?: boolean;
+      /** Shown on hover beside the label, the instant you point at it. */
+      hint?: string;
     };
 
 export interface WorkflowPromptSpec {
@@ -460,8 +463,9 @@ export const WorkflowPage = ({
     const span = chipWidth <= 20 ? 'lg:col-span-1' : chipWidth <= 32 ? 'lg:col-span-2' : 'lg:col-span-4';
     return (
       <div key={s.key} className={cn('col-span-full', span)}>
-        <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+        <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
           {s.label}
+          {s.hint && <InfoTip text={s.hint} />}
         </div>
         <div className="flex flex-wrap gap-1.5">
           {s.options.map((o) => (
