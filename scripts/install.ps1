@@ -671,11 +671,20 @@ Write-Step "Nodes: $Installed installed, $Skipped already present, $Failed faile
 # version fix into a torch generation swap nobody asked for.
 $ComfyReq = Join-Path (Join-Path $RootPath "ComfyUI") "requirements.txt"
 if (Test-Path $ComfyReq) {
+    # Continue, not Stop, for the whole probe loop. A pinned package that is
+    # not installed yet makes Python raise PackageNotFoundError, and PowerShell
+    # 5.1 wraps a native command's redirected stderr in a NativeCommandError -
+    # which under ErrorActionPreference Stop throws and kills the installer.
+    # That is exactly what happened: a clean install died on the first missing
+    # pin, right after the custom nodes, so steps 5 to 7 never ran and the
+    # frontend was never built. Same trap the node loop above already guards.
+    $ErrorActionPreference = "Continue"
     $Pinned = Get-Content $ComfyReq | Where-Object { $_ -match '^[A-Za-z0-9._-]+==' } | ForEach-Object { $_.Trim() }
     $Stale = @()
     foreach ($Pin in $Pinned) {
         $Name, $Want = $Pin -split '==', 2
-        $Have = & $PyExe -c "import importlib.metadata as m; print(m.version('$Name'))" 2>$null
+        $Have = $null
+        try { $Have = & $PyExe -c "import importlib.metadata as m; print(m.version('$Name'))" 2>$null } catch { $Have = $null }
         if ($LASTEXITCODE -ne 0 -or -not $Have) { $Stale += $Pin; continue }
         if ($Have.Trim() -ne $Want.Trim()) { $Stale += $Pin }
     }
@@ -687,6 +696,7 @@ if (Test-Path $ComfyReq) {
     } else {
         Write-Host "  ComfyUI pinned dependencies OK" -ForegroundColor Green
     }
+    $ErrorActionPreference = "Stop"
 }
 
 $WanAnimatePatch = Join-Path $RootPath "scripts\patch_wan_animate_preprocess.ps1"
