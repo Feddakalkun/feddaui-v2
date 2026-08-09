@@ -374,20 +374,35 @@ export const LtxAi2vPage = () => {
                     this page simply never offered them, while Lipsync did. */}
                 {ttsEngine === 'edge' && (
                 <div className="mt-2 grid grid-cols-2 gap-3">
-                  <SliderField
-                    label="Speed"
-                    value={ttsRate}
-                    onChange={setTtsRate}
-                    min={0.5} max={1.5} step={0.05}
-                    format={(v) => `${v.toFixed(2)}x`}
-                  />
-                  <SliderField
-                    label="Pitch"
-                    value={ttsPitch}
-                    onChange={setTtsPitch}
-                    min={-50} max={50} step={1}
-                    format={(v) => `${v > 0 ? '+' : ''}${Math.round(v)}Hz`}
-                  />
+                  {/* Number fields, not sliders. This column is 71px wide, so a
+                      50-step range gave 1.4px per step - you cannot aim that,
+                      and widening the range only made it worse. Typing 3 is
+                      exact at any width, and the arrow keys still nudge. */}
+                  {([
+                    ['Speed', ttsRate, setTtsRate, 0.75, 1.25, 0.01, 'x'],
+                    ['Pitch', ttsPitch, setTtsPitch, -25, 25, 1, 'Hz'],
+                  ] as const).map(([label, val, set, min, max, step, unit]) => (
+                    <label key={label} className="block">
+                      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                        {label}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="number"
+                          value={val}
+                          min={min}
+                          max={max}
+                          step={step}
+                          onChange={(e) => {
+                            const n = Number(e.target.value);
+                            if (Number.isFinite(n)) set(Math.min(max, Math.max(min, n)));
+                          }}
+                          className={cn(inputBase, 'w-full text-[11px]')}
+                        />
+                        <span className="text-[10px] text-zinc-500">{unit}</span>
+                      </div>
+                    </label>
+                  ))}
                 </div>
                 )}
                 <button
