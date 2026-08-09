@@ -140,7 +140,10 @@ $Yaml += "    base_path: $Resolved"
 $Yaml += $Lines
 $Yaml += ""
 
-Set-Content -Path $YamlPath -Value $Yaml -Encoding utf8
+# WriteAllLines, not Set-Content: PowerShell 5.1's -Encoding utf8 emits a
+# byte order mark, and a BOM on the first line of a YAML file is a silent
+# way to have every one of these paths ignored.
+[System.IO.File]::WriteAllLines($YamlPath, $Yaml, (New-Object System.Text.UTF8Encoding $false))
 
 Write-Host ""
 Write-Host "  Linked $Total model files." -ForegroundColor Green
