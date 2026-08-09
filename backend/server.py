@@ -3436,6 +3436,13 @@ async def prompt_agent_turn(req: PromptAgentRequest):
     rules += [
         "- A video prompt is not an image prompt. Never describe a still - no 'sharp focus', "
         "'centered composition', 'studio lighting' on their own. Something must happen.",
+        # It was writing "pants zip down slowly, then snap back up" for a two
+        # second clip: two opposing actions in less time than one of them
+        # takes. It is told the duration but nothing said the duration is a
+        # budget.
+        "- {secs} seconds is short. Write ONE continuous action that runs the whole clip, "
+        "not a sequence of them, and never an action followed by its reverse. If the user "
+        "asks for more than fits, pick the part worth seeing.".format(secs=req.seconds),
         "- NEVER ask a follow-up question once they have said anything at all. Never say "
         "'what happens next', 'what would you like', 'can you tell me more'. Write the "
         "prompt, then stop. If they want it changed they will say so, and you rewrite it.",
@@ -3477,7 +3484,17 @@ async def prompt_agent_turn(req: PromptAgentRequest):
         style=persona.get("style", ""),
     )
     if scene:
-        system += "What the picture actually shows: {}\n\n".format(scene)
+        # Context, and said to be context. Handed a bare description the model
+        # read it as a checklist: the caption happened to mention a man
+        # adjusting his pants, so the prompt came back about trousers zipping
+        # down and back up - a detail nobody asked for, elaborated because it
+        # was there.
+        system += (
+            "What the picture shows, for context only: {}\n\n"
+            "That description is background, not a list of things that must "
+            "happen. Use only the parts that matter for what the user asks "
+            "for, and ignore the rest.\n\n"
+        ).format(scene)
     else:
         # Stated as a fact, not implied by an absent line. Asked to "open by
         # naming what you can see" with nothing to see, the model invented a
