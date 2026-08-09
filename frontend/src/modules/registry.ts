@@ -793,7 +793,10 @@ export const FEDDA_MODULES: FeddaModule[] = [
 
   {
     id: 'lipsync',
-    hidden: true,
+    // Was hidden while it was being built. Everything it needs has been in
+    // place for a while: both graphs, the page, both tabs and the card art -
+    // so hiding it only meant two working lipsync engines nobody could reach.
+    // Models download per workflow like every other one.
     sourceModuleId: 'wan-video',
     label: 'Lipsync',
     description: 'Talking-head: drive a portrait mouth from an audio clip (InfiniteTalk, MultiTalk).',
