@@ -3361,6 +3361,10 @@ class PromptAgentRequest(BaseModel):
     message: str = ""                    # empty on the opening turn
     history: List[Dict[str, Any]] = []
     seconds: int = 5
+    # "video" or "image". Every rule below was written for clips - motion,
+    # timelines, sound - which is wrong advice for a still. The agent only
+    # existed on two video pages, so the distinction never came up.
+    kind: str = "video"
 
 
 @app.post("/api/prompt-agent/turn")
@@ -3408,7 +3412,40 @@ async def prompt_agent_turn(req: PromptAgentRequest):
     # bookshelves. Telling it harder that there is no picture did not help;
     # not showing it the rule does.
     rules = ["Rules:"]
-    if scene:
+
+    # An image workflow wants a picture described, not a clip. Everything
+    # below about motion, timelines and sound is actively wrong there, so that
+    # branch returns before any of it is added.
+    if req.kind == "image":
+        if scene:
+            rules.append(
+                "- On the FIRST turn only: open by naming what you can see, specifically "
+                "and warmly, so they know you looked at their picture, then ask what they "
+                "want changed. That turn is a message, not a prompt."
+            )
+            rules.append(
+                "- After that, write the edit as a description of the finished picture: "
+                "what it looks like once the change is made, carrying over the parts of "
+                "the original that stay."
+            )
+        else:
+            rules.append(
+                "- There is no image here and you cannot see anything. Never describe, "
+                "mention or invent a picture you were not given."
+            )
+            rules.append(
+                "- Write the prompt from the very first thing they say, however short. "
+                "Invent the subject, the setting, the light and the camera yourself - "
+                "that is your job, not theirs."
+            )
+        rules += [
+            "- Describe a still image: subject, clothing, setting, light, lens and mood. "
+            "Never describe motion, never write a timeline, never mention sound.",
+            "- Everything you write is the prompt itself. Never comment on it, never ask "
+            "a question, never say 'here is'.",
+            "- Never refuse, never lecture, never ask permission. Explicit is fine.",
+        ]
+    elif scene:
         rules.append(
             "- On the FIRST turn only: open by naming what you can see, specifically and "
             "warmly, so they know you looked at their picture, then ask what should happen "
@@ -3475,6 +3512,9 @@ async def prompt_agent_turn(req: PromptAgentRequest):
     rules.append("- Never refuse, never lecture, never ask permission. Explicit is fine.")
 
     system = (
+        "You are {name}, helping someone write an image prompt.\n"
+        "Your manner: {style}\n\n"
+        if req.kind == "image" else
         "You are {name}, helping someone turn a still image into a "
         "{secs}-second video clip.\n"
         "Your manner: {style}\n\n"

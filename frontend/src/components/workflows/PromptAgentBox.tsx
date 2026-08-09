@@ -23,11 +23,13 @@ interface Props {
   /** ComfyUI input filename of the frame being animated, if there is one. */
   image?: string | null;
   seconds?: number;
+  /** 'image' switches the agent off clips: no motion, no timeline, no sound. */
+  kind?: 'video' | 'image';
   /** Called with the finished prompt; the page decides where it goes. */
   onPrompt: (prompt: string) => void;
 }
 
-export const PromptAgentBox = ({ workflowId, image, seconds = 5, onPrompt }: Props) => {
+export const PromptAgentBox = ({ workflowId, image, seconds = 5, kind = 'video', onPrompt }: Props) => {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
@@ -54,6 +56,7 @@ export const PromptAgentBox = ({ workflowId, image, seconds = 5, onPrompt }: Pro
           image: image || null,
           message,
           seconds,
+          kind,
           history: history.map((m) => ({
             role: m.role === 'agent' ? 'assistant' : 'user', content: m.text,
           })),
@@ -81,7 +84,9 @@ export const PromptAgentBox = ({ workflowId, image, seconds = 5, onPrompt }: Pro
     if (!image) {
       setMessages([{
         role: 'agent',
-        text: "I'm your prompt agent. Give me a couple of keywords and I'll write the scene for you.",
+        text: kind === 'image'
+          ? "I'm your prompt agent. Give me a couple of keywords and I'll write the picture for you."
+          : "I'm your prompt agent. Give me a couple of keywords and I'll write the scene for you.",
       }]);
       return;
     }
