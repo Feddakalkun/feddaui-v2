@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Loader2, Music, Volume2, Wand2 } from 'lucide-react';
 import { AudioTimeline } from '../../components/ui/AudioTimeline';
+import { InfoTip } from '../../components/ui/InfoTip';
 import { PromptAssistant } from '../../components/ui/PromptAssistant';
 import { useToast } from '../../components/ui/Toast';
 import { BACKEND_API } from '../../config/api';
@@ -530,7 +531,13 @@ export const LtxAi2vPage = () => {
             </Field>
 
             <div className="space-y-3">
-              <Field label="Target Width — height follows the image's aspect ratio">
+              <Field
+                label="Target Width — height follows the image's aspect ratio"
+                hint={'Only the width is chosen; the height follows whatever shape your '
+                  + 'reference image already is, so a portrait stays a portrait. Wider '
+                  + 'costs memory across every frame at once, which is why a long clip '
+                  + 'can run at 768 and fail at 1280 with nothing else changed.'}
+              >
                 <ChipGroup options={WIDTH_PRESETS} value={width} onChange={setWidth} />
               </Field>
               {/* Was two range sliders, 0-120s and 0-600s, asking which second
@@ -548,11 +555,24 @@ export const LtxAi2vPage = () => {
                 }}
               />
               <label className="mt-1 flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[11px] text-white/70">
-                <span>Upscale 1.5&times; <span className="text-white/30">(off on long clips to avoid OOM)</span></span>
+                <span className="flex items-center gap-1.5">
+                  Upscale 1.5&times;
+                  <InfoTip text={
+                    'Runs over every frame of the clip at once rather than one at a time, '
+                    + 'so its memory cost grows with length, not resolution. A few seconds '
+                    + 'is fine; a whole song will run out. Turning it off switches to a '
+                    + 'separate graph with no upscale rather than just skipping a step.'
+                  } />
+                  <span className="text-white/30">(off on long clips to avoid OOM)</span>
+                </span>
                 <input type="checkbox" checked={upscale} onChange={(e) => setUpscale(e.target.checked)} className="h-4 w-4 accent-violet-500" />
               </label>
               <SliderField
                 label="Steps"
+                hint={'This is a distilled turbo model, built to finish in about four steps '
+                  + 'rather than the twenty a normal sampler wants. More is not better '
+                  + 'here; past roughly eight it mostly costs time. Start at 4 and only '
+                  + 'raise it if the motion looks unfinished.'}
                 value={steps}
                 onChange={setSteps}
                 min={4}

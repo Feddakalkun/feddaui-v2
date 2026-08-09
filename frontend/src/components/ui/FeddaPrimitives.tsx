@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { InfoTip } from './InfoTip';
 import { cn, smallLabel } from '../../lib/styles';
 
 type FeddaButtonVariant = 'ghost' | 'violet' | 'cyan' | 'emerald';
@@ -52,14 +53,19 @@ export const FeddaSectionTitle = ({ children, className = '' }: FeddaSectionTitl
 };
 
 interface FieldProps {
+  /** Explanation shown the instant you point at the label. */
+  hint?: string;
   label: string;
   children: ReactNode;
   className?: string;
 }
 
-export const Field = ({ label, children, className = '' }: FieldProps) => (
+export const Field = ({ label, children, className = '', hint }: FieldProps) => (
   <div className={cn('space-y-1.5', className)}>
-    <span className={smallLabel}>{label}</span>
+    <span className={cn(smallLabel, 'flex items-center gap-1.5')}>
+      {label}
+      {hint && <InfoTip text={hint} />}
+    </span>
     {children}
   </div>
 );
