@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, Send, Sparkles } from 'lucide-react';
+import { Download, Loader2, Send, Sparkles } from 'lucide-react';
 import { BACKEND_API } from '../../config/api';
 import { cn } from '../../lib/styles';
 
@@ -32,6 +32,7 @@ export const PromptAgentBox = ({ workflowId, image, seconds = 5, onPrompt }: Pro
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pulling, setPulling] = useState<string | null>(null);
   // Which image we have already opened on, so re-renders do not re-trigger and
   // swapping the frame does start a fresh read.
   const openedFor = useRef<string | null>(null);
@@ -89,6 +90,51 @@ export const PromptAgentBox = ({ workflowId, image, seconds = 5, onPrompt }: Pro
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [image]);
 
+  // The backend answers 503 "No local Ollama text model available." for this
+  // case specifically, so it can be told apart from Ollama being down.
+  const needsModel = !!error && /no local ollama text model/i.test(error);
+
+  const pullModel = async () => {
+    setPulling('Starting…');
+    try {
+      const res = await fetch(`${BACKEND_API.BASE_URL}/api/ollama/pull`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),           // empty = the server's recommended model
+      });
+      if (!res.ok || !res.body) throw new Error('Could not start the download');
+      // ndjson: report the last status line so a 7 GB pull is not a frozen button.
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const msg = JSON.parse(line);
+            if (msg.error) throw new Error(msg.error);
+            if (msg.total && msg.completed) {
+              setPulling(`${Math.round((msg.completed / msg.total) * 100)}%`);
+            } else if (msg.status) {
+              setPulling(String(msg.status));
+            }
+          } catch { /* a partial line is not an error */ }
+        }
+      }
+      setError(null);
+      setPulling(null);
+      setMessages((m) => [...m, { role: 'agent', text: 'Model installed. Say what you want and I will write the prompt.' }]);
+    } catch (e) {
+      setPulling(null);
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
   const send = () => {
     const text = input.trim();
     if (!text || busy) return;
@@ -125,7 +171,28 @@ export const PromptAgentBox = ({ workflowId, image, seconds = 5, onPrompt }: Pro
             <Loader2 className="h-3 w-3 animate-spin" /> thinking…
           </p>
         )}
-        {error && <p className="text-[11px] text-red-300">{error}</p>}
+        {/* A fresh install has Ollama running with nothing in it, so the very
+            first thing a new user met here was a dead end - and since the
+            Enhance button was removed this is the only prompt help there is.
+            The missing piece is one download, so offer it rather than
+            describing it. */}
+        {error && needsModel && (
+          <div className="space-y-1.5">
+            <p className="text-[11px] text-amber-200/80">
+              No prompt model installed yet. Ollama is running, it just has nothing to run.
+            </p>
+            <button
+              type="button"
+              onClick={pullModel}
+              disabled={pulling !== null}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300/25 bg-amber-300/10 px-2.5 py-1.5 text-[11px] text-amber-100 transition hover:bg-amber-300/15 disabled:opacity-60"
+            >
+              {pulling !== null ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+              {pulling !== null ? (pulling || 'Downloading…') : 'Install the prompt model (~7 GB)'}
+            </button>
+          </div>
+        )}
+        {error && !needsModel && <p className="text-[11px] text-red-300">{error}</p>}
       </div>
 
       <div className="flex items-end gap-1.5 p-2">
