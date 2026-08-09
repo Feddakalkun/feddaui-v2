@@ -140,7 +140,9 @@ export interface WorkflowPageProps {
   promptActions?: ReactNode;
   /** Show the prompt builder beside the prompt box. Value is the LoRA path
       prefix it should offer, e.g. "ltx"; omit to leave the builder out. */
-  promptBuilder?: { loraPrefix?: string; imageKey?: string };
+  // `kind` decides what the agent writes. Left off it assumes a clip, which
+  // is the wrong advice on an image workflow - motion and sound for a still.
+  promptBuilder?: { loraPrefix?: string; imageKey?: string; kind?: 'video' | 'image' };
   /** Anything genuinely bespoke, rendered between Settings and Generate. */
   extraSections?: ReactNode;
   /**
@@ -665,6 +667,7 @@ export const WorkflowPage = ({
                 // this always fell through to 5. The agent then wrote a
                 // five-beat timeline for a clip that runs 1.7s, and the model
                 // had to cram or drop most of it.
+                kind={promptBuilder.kind ?? 'video'}
                 seconds={(() => {
                   const frames = Number(values.length ?? 0);
                   const fps = Number(values.frame_rate ?? values.fps ?? 0);

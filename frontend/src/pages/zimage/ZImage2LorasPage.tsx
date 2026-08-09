@@ -27,6 +27,7 @@ export const ZImage2LorasPage = () => (
       placeholder: 'Describe the whole picture — name both people and say who is where…',
       rows: 4,
     }}
+    promptBuilder={{ kind: 'image' }}
     settings={[
       {
         kind: 'text',

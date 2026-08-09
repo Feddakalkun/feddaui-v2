@@ -28,6 +28,7 @@ export const KleinInpaintPage = () => (
       placeholder: 'replace the banana with a penis / make it nude / …',
       rows: 4,
     }}
+    promptBuilder={{ kind: 'image' }}
     settings={[
       { kind: 'slider', key: 'steps', label: 'Steps', min: 2, max: 20, defaultValue: 4 },
       { kind: 'slider', key: 'lora_strength', label: 'Consistency LoRA', min: 0, max: 1, step: 0.05, defaultValue: 0.3 },
