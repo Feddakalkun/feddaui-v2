@@ -91,6 +91,24 @@ export const MiniMaxH3Page = ({ mode }: { mode: Mode }) => {
           : []),
         { kind: 'slider', key: 'frame_rate', label: 'FPS', min: 8, max: 30, defaultValue: 24 },
         { kind: 'slider', key: 'steps', label: 'Steps', min: 4, max: 50, defaultValue: 20, advanced: true },
+        // The encoder is 15 GB and has finished its work before sampling
+        // starts, so where it sits is a straight trade rather than a setting
+        // with a right answer. On a 24 GB card holding it on the GPU leaves
+        // too little for the Int8 model - measured: the UNet came up 728 MB
+        // short with the encoder resident. On CPU the encode costs a couple of
+        // minutes of silence. With more VRAM neither is true, so it is a
+        // choice, not a default to argue about.
+        {
+          kind: 'chips',
+          key: 'encoder_device',
+          label: 'Text encoder',
+          defaultValue: 'cpu',
+          advanced: true,
+          options: [
+            { label: 'CPU — slow encode, frees 15 GB', value: 'cpu' },
+            { label: 'GPU — fast, needs headroom', value: 'default' },
+          ],
+        },
         { kind: 'seed', key: 'seed' },
       ]}
       // Owned by the page, not a setting: it picks which graph runs.
