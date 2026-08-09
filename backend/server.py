@@ -3410,9 +3410,9 @@ async def prompt_agent_turn(req: PromptAgentRequest):
     rules = ["Rules:"]
     if scene:
         rules.append(
-            "- On the FIRST turn: open by naming what you can see, specifically and warmly, "
-            "so they know you looked at their picture. Then say they can set length and "
-            "settings now, and ask what should happen in the clip. Leave prompt empty."
+            "- On the FIRST turn only: open by naming what you can see, specifically and "
+            "warmly, so they know you looked at their picture, then ask what should happen "
+            "in the clip. That turn is the one exception - it is a message, not a prompt."
         )
         rules.append(
             "- The prompt describes MOTION over time, as a short timeline, because the "
@@ -3443,11 +3443,13 @@ async def prompt_agent_turn(req: PromptAgentRequest):
         # is hardcoded in the client, so the user's first message IS the first
         # turn here. The model read it as the opening and left prompt empty,
         # exactly as told. With no picture there is no opening turn to skip.
-        ("- Your reply ALWAYS carries a finished prompt in prompt. Never return an "
-         "empty prompt - that is a failure."
+        # There is only one output now, so the rule is about what it contains
+        # rather than which field to put it in.
+        ("- Everything you write is the prompt itself. Never answer with a comment "
+         "about the prompt, never ask a question, never say 'here is'."
          if not scene else
-         "- Every reply after the first carries a finished prompt in prompt. A reply "
-         "with an empty prompt is a failure."),
+         "- After the opening turn, everything you write is the prompt itself - "
+         "not a comment on it and not a question."),
     ]
     if audio:
         rules.append(
@@ -3474,9 +3476,16 @@ async def prompt_agent_turn(req: PromptAgentRequest):
         # confidently. The absence of a description is not an instruction.
         system += ("There is NO picture in this conversation. Do not describe, "
                    "mention or invent one. Never claim to see anything.\n\n")
+    # No JSON envelope, and no separate "reply". Asking for two fields meant
+    # the model could write well into one and badly into the other - which is
+    # exactly what happened: the chat bubble got "A woman in a black zip-up
+    # jacket steps onto the couch..." while the prompt box got "She continues
+    # to undress." Two texts, one of them useless, and no way to tell which
+    # you would get. The answer IS the prompt now: one text, shown in the chat
+    # and put in the box, so they cannot disagree.
     system += (
-        "Reply with a single JSON object and nothing else:\n"
-        '{"reply": "<two short lines>", "prompt": "<the finished video prompt, or empty>"}\n\n'
+        "Reply with the video prompt itself and nothing else. No preamble, no "
+        "quotes, no JSON, no commentary, no questions.\n\n"
     )
     system += "\n".join(rules) + "\n"
 
@@ -3486,42 +3495,28 @@ async def prompt_agent_turn(req: PromptAgentRequest):
         system_instruction=system,
         model_hint=_get_ollama_text_model(),
     )
-    parsed = _loads_first_object(raw) or {}
-    reply = str(parsed.get("reply") or "").strip()
-    prompt = str(parsed.get("prompt") or "").strip()
+    text = (raw or "").strip()
+    # A model that ignored the instruction and sent JSON anyway still has the
+    # prompt in it somewhere - take it rather than showing braces to the user.
+    if text.startswith("{"):
+        parsed = _loads_first_object(text) or {}
+        text = str(parsed.get("prompt") or parsed.get("reply") or "").strip()
+    text = text.strip().strip('"').strip()
 
-    # One retry, asking for nothing but the prompt. The conversational
-    # envelope is what the model drops under a long rule list; stripped of it,
-    # the same model writes the prompt reliably. Only when the user actually
-    # said something - a bare opening turn is allowed to carry no prompt.
-    if not prompt and (req.message or "").strip():
-        retry_system = (
-            "Write a {secs}-second video prompt for what the user describes. "
-            "Describe the scene and what happens over time, as a short timeline. "
-            "Invent the room, the light and the camera yourself.{audio} "
-            "Reply with the prompt text only - no preamble, no quotes, no JSON."
-        ).format(
-            secs=req.seconds,
-            audio=" Name the sounds too: voices, movement, ambience." if audio else "",
-        )
-        if scene:
-            retry_system += "\n\nWhat the picture shows: " + scene
-        retry = _ollama_chat_text(
-            prompt=req.message,
-            history=[],
-            system_instruction=retry_system,
-            model_hint=_get_ollama_text_model(),
-        ).strip()
-        if retry and not retry.lstrip().startswith("{"):
-            prompt = retry
-            if not reply:
-                reply = "Here it is - tell me what to change."
-    if not reply:
-        # Never let a malformed object reach the user as a wall of JSON.
-        reply = raw.strip()
-        if reply.lstrip().startswith("{"):
-            reply = "Sorry - I garbled that. Say it again?"
-    return {"success": True, "reply": reply, "prompt": prompt, "scene": scene}
+    # The opening turn on a fresh image is the one case with no prompt yet: it
+    # has looked at the picture and is asking what should happen in it.
+    opening = bool(scene) and not (req.message or "").strip()
+    if opening:
+        return {"success": True, "reply": text, "prompt": "", "scene": scene}
+    if not text:
+        return {
+            "success": True,
+            "reply": "Sorry - I garbled that. Say it again?",
+            "prompt": "",
+            "scene": scene,
+        }
+    return {"success": True, "reply": text, "prompt": text, "scene": scene}
+
 
 
 class ComposePromptRequest(BaseModel):
