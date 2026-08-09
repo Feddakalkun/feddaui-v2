@@ -484,7 +484,6 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'sdxl-inpaint-automask',
-    hidden: true,
     sourceModuleId: 'sdxl-pack',
     label: 'SDXL INPAINT AUTOMASK',
     description: 'SDXL inpainting with automatic mask generation for targeted edits.',
@@ -499,7 +498,6 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'facefix',
-    hidden: true,
     sourceModuleId: 'sdxl-pack',
     label: 'Face Fixer',
     description: 'Detect and re-detail every face in a photo — group shots and full-body renders.',
