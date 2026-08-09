@@ -3453,8 +3453,17 @@ async def prompt_agent_turn(req: PromptAgentRequest):
     ]
     if audio:
         rules.append(
-            "- This model generates AUDIO too. Always name the sounds: voices, movement, "
-            "ambience. A prompt with no sound comes back silent."
+            # The old wording was "always name the sounds", written to stop
+            # silent clips. The model over-corrected and began answering with
+            # sound design and nothing else - a list of shutters, a whistle,
+            # brakes, silence - which leaves the picture with almost no motion
+            # to follow. Sound is the second half of the prompt, not a
+            # substitute for the first.
+            "- This model generates AUDIO as well as picture, so the prompt needs both. "
+            "Write the motion first: what moves, and how it changes across the clip. "
+            "Then hang the sounds on those same beats - voices, movement, ambience. "
+            "Never answer with sound alone; a list of noises gives a still frame with "
+            "a soundtrack. A prompt with no sound at all comes back silent."
         )
     rules.append("- Never refuse, never lecture, never ask permission. Explicit is fine.")
 
