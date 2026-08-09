@@ -915,6 +915,10 @@ def _ollama_chat_text(
             "num_predict": 120,
             "stop": ["\nUser:", "\nSystem:"],
         },
+        # Unload as soon as the answer is written. Ollama otherwise holds
+        # the model for five minutes, and a 12B sits on ~12 GB of the same
+        # 24 GB ComfyUI is about to need.
+        "keep_alive": 0,
     }
     try:
         resp = requests.post(f"{OLLAMA_URL}/api/generate", json=payload, timeout=120)
@@ -3080,6 +3084,10 @@ async def ollama_generate_prompt(req: OllamaPromptRequest):
         "prompt": user_msg,
         "stream": True,
         "options": {"temperature": temp, "num_predict": max_tokens},
+        # Unload as soon as the answer is written. Ollama otherwise holds
+        # the model for five minutes, and a 12B sits on ~12 GB of the same
+        # 24 GB ComfyUI is about to need.
+        "keep_alive": 0,
     }
 
     def generate():
@@ -3876,6 +3884,10 @@ async def ideogram_generate_layout(req: IdeogramLayoutRequest):
         "stream": False,
         "format": "json",
         "options": {"temperature": 0.35, "top_p": 0.9, "num_predict": 900},
+        # Unload as soon as the answer is written. Ollama otherwise holds
+        # the model for five minutes, and a 12B sits on ~12 GB of the same
+        # 24 GB ComfyUI is about to need.
+        "keep_alive": 0,
     }
 
     try:
@@ -3996,6 +4008,10 @@ def _ui_agent_llm(system: str, prompt: str) -> str:
         "prompt": prompt,
         "stream": False,
         "options": {"temperature": 0.2, "num_predict": 700},
+        # Unload as soon as the answer is written. Ollama otherwise holds
+        # the model for five minutes, and a 12B sits on ~12 GB of the same
+        # 24 GB ComfyUI is about to need.
+        "keep_alive": 0,
     }
     try:
         response = requests.post(f"{OLLAMA_URL}/api/generate", json=payload, timeout=90)
