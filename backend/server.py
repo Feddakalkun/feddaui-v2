@@ -912,7 +912,12 @@ def _ollama_chat_text(
             "temperature": 0.85,
             "top_p": 0.92,
             "repeat_penalty": 1.08,
-            "num_predict": 120,
+            # 120 cut prompts off mid-sentence. An image prompt of ~90 words is
+            # already at that ceiling, so anything detailed - and the option
+            # picker produces exactly that - arrived truncated. This is a
+            # ceiling, not a target: the model still stops when it is done, and
+            # length is governed by the instructions instead.
+            "num_predict": 320,
             "stop": ["\nUser:", "\nSystem:"],
         },
         # Unload as soon as the answer is written. Ollama otherwise holds
@@ -2055,6 +2060,61 @@ def _compose_caption_prompt(ctx: str) -> Optional[str]:
     if prof.get("single"):
         parts.append(base.get("bans", ""))
     return " ".join(p.strip() for p in parts if p and p.strip()) or None
+
+
+_PROMPT_BUILDER_PATH = Path(__file__).resolve().parent.parent / "config" / "prompt_builder.json"
+_prompt_builder_cache: Dict[str, Any] = {}
+
+
+def _prompt_builder() -> Dict[str, Any]:
+    """Load config/prompt_builder.json, re-reading it when the file changes."""
+    global _prompt_builder_cache
+    try:
+        stamp = _PROMPT_BUILDER_PATH.stat().st_mtime
+    except OSError:
+        return {}
+    if _prompt_builder_cache.get("_stamp") != stamp:
+        try:
+            data = json.loads(_PROMPT_BUILDER_PATH.read_text(encoding="utf-8-sig"))
+            data["_stamp"] = stamp
+            _prompt_builder_cache = data
+        except Exception as exc:  # noqa: BLE001
+            print(f"[PROMPTS] prompt_builder.json unreadable: {exc}")
+            return {}
+    return _prompt_builder_cache
+
+
+@app.get("/api/prompt-builder/catalog")
+async def prompt_builder_catalog():
+    """The dropdown catalogue for the structured txt2img picker."""
+    cfg = _prompt_builder()
+    if not cfg:
+        raise HTTPException(status_code=503, detail="prompt_builder.json is missing or malformed")
+    return {"success": True,
+            "always": cfg.get("always") or [],
+            "groups": cfg.get("groups") or []}
+
+
+def _builder_words(picks: Dict[str, Any]) -> List[str]:
+    """Turn {group: value | [values]} into the catalogue's English phrasings.
+
+    The user picks the idea; the catalogue owns the vocabulary. That split is the
+    point - 'tiny clothes' is a shopping list of words nobody should have to
+    remember, and it lives in the JSON instead.
+    """
+    cfg = _prompt_builder()
+    out: List[str] = []
+    for group in cfg.get("groups") or []:
+        chosen = picks.get(group.get("key"))
+        if not chosen:
+            continue
+        wanted = chosen if isinstance(chosen, list) else [chosen]
+        by_value = {o.get("value"): o.get("words") for o in group.get("options") or []}
+        for v in wanted:
+            words = by_value.get(v)
+            if words:
+                out.append(words)
+    return out
 
 
 def _caption_prompt_for_context(context: str) -> str:
@@ -3476,6 +3536,11 @@ class PromptAgentRequest(BaseModel):
     # Outpaint only: pixels of padding per edge. Which edge is being extended
     # decides what the prompt should say, so the agent has to be told.
     edges: Optional[Dict[str, int]] = None
+    # Structured picker: {group_key: value | [values]} from prompt_builder.json.
+    # The catalogue's phrasings are handed to the model as the brief; it still
+    # writes the prompt, so the result reads as a photograph rather than a
+    # comma-separated dump of every dropdown.
+    picks: Optional[Dict[str, Any]] = None
 
 
 def _describe_outpaint_edges(image_name: str, edges: Dict[str, int]) -> str:
@@ -3796,7 +3861,26 @@ async def prompt_agent_turn(req: PromptAgentRequest):
         "quotes, no JSON, no commentary, no questions.\n\n"
     ).format(what={"outpaint": "prompt for the new strip",
                    "image": "image prompt"}.get(req.kind, "video prompt"))
-    system += "\n".join(rules) + "\n"
+    # The picker's selections, if any. Given as a brief to write from, not as
+    # text to concatenate: handed the raw list the model parroted it back as
+    # tags, which is exactly what the dropdowns were meant to save the user from.
+    if req.picks:
+        chosen = _builder_words(req.picks)
+        baseline = (_prompt_builder().get("always") or [])
+        if chosen:
+            system += (
+                "The user has chosen these elements from the picker. Write ONE "
+                "flowing photographic description that includes all of them:\n- "
+                + "\n- ".join(chosen)
+                + "\n\nUse every item, but write prose - never list them, never "
+                "repeat them as tags, and never add a heading. Anything they did "
+                "not choose is yours to decide, so long as it fits.\n\n"
+            )
+        if baseline:
+            system += (
+                "Always carry this quality baseline into the prompt, whatever else "
+                "is selected: " + "; ".join(baseline) + ".\n\n"
+            )
 
     raw = _ollama_chat_text(
         prompt=req.message or "(the user just added an image)",

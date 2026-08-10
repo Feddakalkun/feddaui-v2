@@ -1,6 +1,7 @@
 import { useState, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import { ChevronDown, Loader2, Maximize2, Plus, RefreshCw, Sparkles, Upload, X } from 'lucide-react';
 import { PromptAgentBox } from './PromptAgentBox';
+import { PromptBuilderPanel } from './PromptBuilderPanel';
 import { PromptAssistant, type PromptContext } from '../ui/PromptAssistant';
 import { LoraCharacterCard } from '../ui/LoraCharacterCard';
 import { BACKEND_API } from '../../config/api';
@@ -271,6 +272,7 @@ export function SimpleImageCockpit({
   setMaskBlurAmount,
 }: SimpleImageCockpitProps) {
   const [presetsOpen, setPresetsOpen] = useState(false);
+  const [builderOpen, setBuilderOpen] = useState(false);
   const visibleLoras = loraEntries.length > 0 ? loraEntries : [{ name: '', strength: 1.0 }];
   const presetGroups = promptPresets.reduce<Record<string, SimpleImagePromptPreset[]>>((groups, preset) => {
     const group = preset.group || 'Presets';
@@ -439,6 +441,25 @@ export function SimpleImageCockpit({
             image={uploadedImage ? uploadedImageName ?? null : null}
             onPrompt={setPrompt}
           />
+          </div>
+
+          {/* Build the picture from dropdowns instead of a blank textarea. The
+              catalogue supplies the wording; the model turns the selections into
+              one description. Collapsed by default, like the panels below. */}
+          <div className="cockpit-negative-panel">
+            <button type="button" onClick={() => setBuilderOpen((v) => !v)} className="cockpit-collapse">
+              <span>Build from options</span>
+              <ChevronDown className={builderOpen ? 'h-3 w-3 rotate-180' : 'h-3 w-3'} />
+            </button>
+            {builderOpen && (
+              <div className="pt-2">
+                <PromptBuilderPanel
+                  workflowId={workflowId ?? ''}
+                  storageKey={workflowId || 'shared'}
+                  onPrompt={setPrompt}
+                />
+              </div>
+            )}
           </div>
 
           {/* Negative belongs with the prompt it modifies, not parked among the

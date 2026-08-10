@@ -1,0 +1,259 @@
+{
+  "_comment": [
+    "Structured picker for txt2img: dropdowns whose keywords are fed to the LLM,",
+    "which writes the actual prompt. Data, not code - adding an option is an edit",
+    "here and needs no release, same as prompt_actions.json.",
+    "",
+    "Each option carries `words`: the English phrasing that goes to the model.",
+    "`label` is what the dropdown shows and may be plainer or Norwegian-friendly;",
+    "the point of splitting them is that you pick the idea and the catalogue",
+    "supplies the vocabulary.",
+    "",
+    "`always` is prepended to every build - the quality/skin baseline that should",
+    "hold whatever else is selected.",
+    "",
+    "control: 'single' = one choice, 'multi' = any number.",
+    "Nothing is preselected except where `default` says so. Age options are adult",
+    "only, and stay that way."
+  ],
+
+  "always": [
+    "extremely detailed realistic skin texture with visible pores, fine peach fuzz and natural blemishes",
+    "no plastic or airbrushed skin, no waxy sheen",
+    "natural subsurface scattering, realistic skin tone variation",
+    "sharp focus on the eyes, catchlights, individually visible eyelashes",
+    "photorealistic, shot on a full-frame camera"
+  ],
+
+  "groups": [
+    {
+      "key": "people",
+      "label": "How many",
+      "control": "single",
+      "default": "one",
+      "options": [
+        { "value": "one",   "label": "1 person",    "words": "a single person alone in frame" },
+        { "value": "two",   "label": "2 people",    "words": "two people together in one shared frame, same lighting and background" },
+        { "value": "three", "label": "3 people",    "words": "three people together in one shared frame, same lighting and background" },
+        { "value": "group", "label": "4+ / group",  "words": "a small group of four or more people in one shared frame" }
+      ]
+    },
+    {
+      "key": "who",
+      "label": "Who",
+      "control": "single",
+      "_note": "Mix only, never a count - 'How many' owns that. Both carried a number once, so '2 people' + 'Man' asked for two people and for one man in the same breath.",
+      "options": [
+        { "value": "female", "label": "Female",      "words": "female" },
+        { "value": "male",   "label": "Male",         "words": "male" },
+        { "value": "mixed",  "label": "Mixed",        "words": "a mix of men and women" }
+      ]
+    },
+    {
+      "key": "age",
+      "label": "Age",
+      "control": "single",
+      "options": [
+        { "value": "18-21", "label": "18-21", "words": "in her very early twenties, youthful fresh face" },
+        { "value": "22-26", "label": "22-26", "words": "in her mid twenties" },
+        { "value": "27-32", "label": "27-32", "words": "in her late twenties to early thirties" },
+        { "value": "33-40", "label": "33-40", "words": "in her thirties, mature and self-assured" },
+        { "value": "41-50", "label": "41-50", "words": "in her forties, fine lines around the eyes" },
+        { "value": "50+",   "label": "50+",   "words": "in her fifties, silver in the hair, lived-in face" }
+      ]
+    },
+    {
+      "key": "build",
+      "label": "Build",
+      "control": "single",
+      "options": [
+        { "value": "slim",      "label": "Slim",          "words": "slim build, slender frame" },
+        { "value": "petite",    "label": "Petite",        "words": "petite, small frame" },
+        { "value": "athletic",  "label": "Athletic",      "words": "athletic build, visible muscle tone, flat stomach" },
+        { "value": "toned",     "label": "Toned",         "words": "lightly toned, soft but fit" },
+        { "value": "curvy",     "label": "Curvy",         "words": "curvy hourglass figure, wide hips, narrow waist" },
+        { "value": "thick",     "label": "Thick",         "words": "thick thighs, full hips and rear" },
+        { "value": "voluptuous","label": "Voluptuous",    "words": "voluptuous full-figured body, heavy bust and hips" },
+        { "value": "plus",      "label": "Plus size",     "words": "plus-size body, soft belly and full limbs" },
+        { "value": "muscular",  "label": "Muscular",      "words": "strongly muscular, defined abs and shoulders" }
+      ]
+    },
+    {
+      "key": "height",
+      "label": "Height",
+      "control": "single",
+      "options": [
+        { "value": "short", "label": "Short",   "words": "short, around 155 cm" },
+        { "value": "mid",   "label": "Average", "words": "average height, around 168 cm" },
+        { "value": "tall",  "label": "Tall",    "words": "tall, around 180 cm, long legs" },
+        { "value": "vtall", "label": "Very tall", "words": "very tall and long-limbed, around 188 cm" }
+      ]
+    },
+    {
+      "key": "bust",
+      "label": "Bust",
+      "control": "single",
+      "options": [
+        { "value": "small",  "label": "Small",   "words": "small breasts" },
+        { "value": "medium", "label": "Medium",  "words": "medium natural breasts" },
+        { "value": "full",   "label": "Full",    "words": "full natural breasts with realistic weight and sag" },
+        { "value": "large",  "label": "Large",   "words": "large heavy natural breasts" }
+      ]
+    },
+    {
+      "key": "face",
+      "label": "Face details",
+      "control": "multi",
+      "options": [
+        { "value": "freckles",   "label": "Freckles",        "words": "freckles scattered across the nose and cheeks" },
+        { "value": "dimples",    "label": "Dimples",         "words": "dimples when she smiles" },
+        { "value": "beautymark", "label": "Beauty mark",     "words": "a small beauty mark near the mouth" },
+        { "value": "gaptooth",   "label": "Gap teeth",       "words": "a small gap between the front teeth" },
+        { "value": "sharpjaw",   "label": "Sharp jaw",       "words": "sharp cheekbones and a defined jawline" },
+        { "value": "roundface",  "label": "Round face",      "words": "a round soft face with full cheeks" },
+        { "value": "hooded",     "label": "Hooded eyes",     "words": "hooded eyes, heavy lids" },
+        { "value": "monolid",    "label": "Monolid eyes",    "words": "monolid eyes" },
+        { "value": "thickbrows", "label": "Thick brows",     "words": "thick natural eyebrows" },
+        { "value": "snubnose",   "label": "Snub nose",       "words": "a small upturned snub nose" },
+        { "value": "fullips",    "label": "Full lips",       "words": "full lips, natural texture" },
+        { "value": "piercings",  "label": "Piercings",       "words": "a small nose stud and several ear piercings" },
+        { "value": "tattoos",    "label": "Tattoos",         "words": "fine-line tattoos on the arms and ribs" },
+        { "value": "noMakeup",   "label": "No makeup",       "words": "bare face, no makeup, natural skin" },
+        { "value": "heavyMakeup","label": "Heavy makeup",    "words": "bold makeup, sharp eyeliner and glossy lips" }
+      ]
+    },
+    {
+      "key": "hair",
+      "label": "Hair",
+      "control": "single",
+      "options": [
+        { "value": "longblonde",  "label": "Long blonde",   "words": "long blonde hair" },
+        { "value": "longbrown",   "label": "Long brown",    "words": "long brown hair" },
+        { "value": "longblack",   "label": "Long black",    "words": "long black hair" },
+        { "value": "red",         "label": "Red",           "words": "coppery red hair" },
+        { "value": "curly",       "label": "Curly",         "words": "voluminous curly hair" },
+        { "value": "wavy",        "label": "Wavy",          "words": "loose wavy hair" },
+        { "value": "bob",         "label": "Bob",           "words": "a chin-length bob" },
+        { "value": "short",       "label": "Short crop",    "words": "short cropped hair" },
+        { "value": "ponytail",    "label": "Ponytail",      "words": "hair pulled back in a high ponytail" },
+        { "value": "wet",         "label": "Wet",           "words": "wet hair, strands stuck to the skin" },
+        { "value": "messy",       "label": "Messy",         "words": "messy undone hair" },
+        { "value": "dyed",        "label": "Dyed bright",   "words": "brightly dyed hair" }
+      ]
+    },
+    {
+      "key": "clothing",
+      "label": "Clothing",
+      "control": "single",
+      "options": [
+        { "value": "micro-bikini",   "label": "Micro bikini",      "words": "a micro bikini, thin string ties, minimal triangle cups" },
+        { "value": "thong-bikini",   "label": "Thong bikini",      "words": "a skimpy thong bikini, high-cut and barely-there" },
+        { "value": "sheer-lingerie", "label": "Sheer lingerie",    "words": "sheer see-through lingerie, delicate lace" },
+        { "value": "bodysuit",       "label": "Bodysuit",          "words": "a skintight sleeveless bodysuit, high-cut legs" },
+        { "value": "crop-shorts",    "label": "Crop top + shorts", "words": "a cropped tank top and very short low-rise denim shorts" },
+        { "value": "micro-skirt",    "label": "Micro skirt",       "words": "a micro miniskirt and a tight cropped top" },
+        { "value": "slip-dress",     "label": "Slip dress",        "words": "a short satin slip dress, thin straps" },
+        { "value": "mesh",           "label": "Mesh top",          "words": "a sheer mesh top over bare skin" },
+        { "value": "oversized-tee",  "label": "Oversized tee only","words": "nothing but an oversized t-shirt, bare legs" },
+        { "value": "sports",         "label": "Sports set",        "words": "a tight sports bra and minimal running shorts" },
+        { "value": "towel",          "label": "Towel",             "words": "wrapped loosely in a towel" },
+        { "value": "casual",         "label": "Casual everyday",   "words": "everyday casual clothes, jeans and a fitted top" },
+        { "value": "streetwear",     "label": "Streetwear",        "words": "oversized streetwear, baggy trousers and a cropped hoodie" },
+        { "value": "eveningwear",    "label": "Evening dress",     "words": "an elegant fitted evening dress" },
+        { "value": "nude",           "label": "Nude",              "words": "fully nude, natural body, tasteful pose" }
+      ]
+    },
+    {
+      "key": "scene",
+      "label": "Scene",
+      "control": "single",
+      "options": [
+        { "value": "metro",      "label": "Metro / subway",  "words": "inside a moving underground metro carriage, handrails and windows behind" },
+        { "value": "platform",   "label": "Metro platform",  "words": "standing on an underground station platform, tiled wall and tunnel behind" },
+        { "value": "parkbench",  "label": "Park bench",      "words": "sitting on a park bench, dappled sunlight through leaves" },
+        { "value": "street",     "label": "City street",     "words": "on a busy city pavement, blurred traffic behind" },
+        { "value": "rooftop",    "label": "Rooftop",         "words": "on a rooftop at dusk, city skyline behind" },
+        { "value": "underpass",  "label": "Underpass",       "words": "in a concrete underpass, graffiti and flickering strip light" },
+        { "value": "parkinggar", "label": "Parking garage",  "words": "in an underground parking garage, concrete pillars and sodium light" },
+        { "value": "bedroom",    "label": "Bedroom",         "words": "in a bedroom with rumpled sheets and soft window light" },
+        { "value": "bathroom",   "label": "Bathroom",        "words": "in a tiled bathroom, steam and a fogged mirror" },
+        { "value": "kitchen",    "label": "Kitchen",         "words": "in a domestic kitchen, morning light across the counter" },
+        { "value": "balcony",    "label": "Balcony",         "words": "on an apartment balcony, laundry and plants" },
+        { "value": "beach",      "label": "Beach",           "words": "on a sandy beach, sea and low sun behind" },
+        { "value": "pool",       "label": "Poolside",        "words": "at the edge of a swimming pool, water reflections" },
+        { "value": "forest",     "label": "Forest path",     "words": "on a forest path, tall trunks and shafts of light" },
+        { "value": "field",      "label": "Open field",      "words": "in an open grass field at golden hour" },
+        { "value": "cafe",       "label": "Cafe",            "words": "at a small cafe table, warm bokeh behind" },
+        { "value": "bar",        "label": "Bar",             "words": "at a dim bar, bottles and warm backlight" },
+        { "value": "club",       "label": "Nightclub",       "words": "in a nightclub, coloured moving lights and haze" },
+        { "value": "gym",        "label": "Gym",             "words": "in a gym, racks and mirrors behind" },
+        { "value": "laundromat", "label": "Laundromat",      "words": "in a laundromat, fluorescent light and machine doors" },
+        { "value": "elevator",   "label": "Elevator",        "words": "in a mirrored elevator, harsh ceiling light" },
+        { "value": "stairwell",  "label": "Stairwell",       "words": "in a concrete stairwell, light from above" },
+        { "value": "car",        "label": "Car interior",    "words": "in the passenger seat of a car, streetlights passing" },
+        { "value": "hotel",      "label": "Hotel room",      "words": "in a hotel room, curtains half drawn" },
+        { "value": "studio",     "label": "Studio",          "words": "against a clean seamless studio backdrop" }
+      ]
+    },
+    {
+      "key": "pose",
+      "label": "Pose",
+      "control": "single",
+      "options": [
+        { "value": "standing",   "label": "Standing",       "words": "standing relaxed, weight on one hip" },
+        { "value": "sitting",    "label": "Sitting",        "words": "sitting, leaning slightly forward" },
+        { "value": "leaning",    "label": "Leaning",        "words": "leaning back against a wall" },
+        { "value": "lying",      "label": "Lying down",     "words": "lying on her back, one knee raised" },
+        { "value": "kneeling",   "label": "Kneeling",       "words": "kneeling upright" },
+        { "value": "overshoulder","label": "Over shoulder", "words": "turned away, looking back over one shoulder" },
+        { "value": "walking",    "label": "Walking",        "words": "mid-stride, caught walking" },
+        { "value": "stretching", "label": "Stretching",     "words": "arms raised, stretching, back arched" }
+      ]
+    },
+    {
+      "key": "framing",
+      "label": "Framing",
+      "control": "single",
+      "options": [
+        { "value": "closeup",   "label": "Close-up",     "words": "tight head-and-shoulders close-up, 85mm" },
+        { "value": "waistup",   "label": "Waist up",     "words": "waist-up portrait, 50mm" },
+        { "value": "threequarter","label": "3/4 body",   "words": "three-quarter body shot, 35mm" },
+        { "value": "full",      "label": "Full body",    "words": "full body in frame head to toe, 24mm" },
+        { "value": "lowangle",  "label": "Low angle",    "words": "shot from a low angle looking up" },
+        { "value": "highangle", "label": "High angle",   "words": "shot from above looking down" },
+        { "value": "pov",       "label": "First person",  "words": "first-person point of view, as seen through the viewer's own eyes, her looking straight into the lens" }
+      ]
+    },
+    {
+      "key": "light",
+      "label": "Light",
+      "control": "single",
+      "options": [
+        { "value": "window",    "label": "Window light",   "words": "soft directional window light" },
+        { "value": "golden",    "label": "Golden hour",    "words": "warm low golden-hour sun, long shadows" },
+        { "value": "overcast",  "label": "Overcast",       "words": "flat soft overcast daylight" },
+        { "value": "harshsun",  "label": "Harsh sun",      "words": "hard midday sun, sharp shadows" },
+        { "value": "flash",     "label": "Direct flash",   "words": "harsh on-camera flash, bright falloff, slight grain" },
+        { "value": "neon",      "label": "Neon",           "words": "saturated neon lighting, magenta and cyan spill" },
+        { "value": "sodium",    "label": "Street sodium",  "words": "orange sodium street light" },
+        { "value": "candle",    "label": "Candlelight",    "words": "warm candlelight, deep falloff" },
+        { "value": "lowkey",    "label": "Low key",        "words": "low-key lighting, deep shadow, single source" },
+        { "value": "fluoro",    "label": "Fluorescent",    "words": "cold overhead fluorescent light" }
+      ]
+    },
+    {
+      "key": "mood",
+      "label": "Look",
+      "control": "single",
+      "options": [
+        { "value": "editorial", "label": "Editorial",      "words": "editorial fashion photography, clean and deliberate" },
+        { "value": "candid",    "label": "Candid phone",   "words": "candid phone snapshot, slightly imperfect framing" },
+        { "value": "film35",    "label": "35mm film",      "words": "35mm film look, warm grade, fine grain" },
+        { "value": "cinematic", "label": "Cinematic",      "words": "cinematic still, anamorphic, shallow depth of field" },
+        { "value": "documentary","label": "Documentary",   "words": "documentary realism, unposed" },
+        { "value": "glamour",   "label": "Glamour",        "words": "polished glamour lighting, high production" },
+        { "value": "amateur",   "label": "Amateur",        "words": "plain amateur snapshot, unremarkable framing, realistic" }
+      ]
+    }
+  ]
+}
