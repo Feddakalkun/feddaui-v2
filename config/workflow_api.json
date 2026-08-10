@@ -2050,6 +2050,18 @@
         "input_key": "direction",
         "type": "string",
         "label": "Orientation"
+      },
+      "width": {
+        "node_id": "199",
+        "input_key": "width",
+        "type": "number",
+        "label": "Width"
+      },
+      "height": {
+        "node_id": "199",
+        "input_key": "height",
+        "type": "number",
+        "label": "Height"
       }
     }
   },

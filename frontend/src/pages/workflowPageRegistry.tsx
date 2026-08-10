@@ -28,6 +28,7 @@ import { LtxFlfPage } from './ltx/LtxFlfPage';
 import { LtxMultiFramePage } from './ltx/LtxMultiFramePage';
 import { FluxHeadSwapPage } from './fluxklein/FluxHeadSwapPage';
 import { KleinInpaintPage } from './fluxklein/KleinInpaintPage';
+import { FluxKleinUncensoredTxt2Img } from './fluxklein/FluxKleinUncensoredTxt2Img';
 import { LivePortraitPage } from './liveportrait/LivePortraitPage';
 import { Wan22VacePage } from './wan22/Wan22VacePage';
 import { LtxAi2vPage } from './ltx/LtxAi2vPage';
@@ -48,6 +49,7 @@ export const IMAGE_WORKFLOW_PAGES: Record<string, ComponentType> = {
   'chroma-txt2img': ChromaTxt2Img,
   'flux': FluxTxt2Img,
   'flux-txt2img': FluxTxt2Img,
+  'flux-uncensored-txt2img': FluxKleinUncensoredTxt2Img,
   'flux-headswap': FluxHeadSwapPage,
   'klein-inpaint': KleinInpaintPage,
   'firered-image-edit': FireRedImageEditPage,

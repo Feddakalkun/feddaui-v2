@@ -305,7 +305,6 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'flux2-klein',
-    hidden: true,
     sourceModuleId: 'flux-klein',
     label: 'FLUX2-KLEIN',
     description: 'FLUX2-KLEIN 9B image generation.',
@@ -348,18 +347,20 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'flux-klein-uncensored',
-    hidden: true,
     // Ships inside the flux-klein pack; there has never been a module of its
     // own, which is why this entry pointed at a source id nothing declared.
     sourceModuleId: 'flux-klein',
-    label: 'FLUX KLEIN UNCENSORED',
-    description: 'FLUX KLEIN UNCENSORED image generation.',
+    label: 'Unfiltered',
+    description: 'FLUX2-KLEIN text-to-image on the unfiltered checkpoint.',
     area: 'image',
     pack: 'booster',
 
-    tabs: ['flux', 'flux-txt2img'],
+    // Its own tab. It shared 'flux-txt2img' with the standard module, whose
+    // page hardcodes the standard workflow id - so this tile would have run the
+    // normal checkpoint while calling itself unfiltered.
+    tabs: ['flux-uncensored-txt2img'],
     workflows: ['flux2klein-uncensored-txt2img'],
-    defaultTab: 'flux-txt2img',
+    defaultTab: 'flux-uncensored-txt2img',
     Icon: Sparkles,
     card: { poster: '/cards/bunny/flux-klein-uncensored.jpeg' },
   },
