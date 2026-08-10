@@ -12,7 +12,17 @@ import { useComfyExecution } from '../../contexts/ComfyExecutionContext';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { comfyService } from '../../services/comfyService';
 
-type StripItem = { u: string; v?: boolean };
+/**
+ * `t` is when we saw it, in ms.
+ *
+ * There was no time on an item at all, so "recent" meant nothing more than
+ * insertion order - and a single run inserts its images in ComfyUI's node
+ * order, which is not time order. A dual-LoRA run reports
+ * ['main_before_detail', 'final_refined'], so the *unfinished* image took the
+ * newest slot. Items saved before this existed have no `t` and sort last,
+ * which is where they belong.
+ */
+type StripItem = { u: string; v?: boolean; t?: number };
 
 const VIDEO_RE = /\.(mp4|webm|mov|gif|webp)($|\?)/i;
 const MAX_ITEMS = 40;
@@ -28,13 +38,21 @@ export const GlobalOutputStrip = () => {
 
   // Accumulate every finished output (any page, any workflow) into one list.
   useEffect(() => {
-    const imgs = lastOutputImages.map((f) => ({ u: comfyService.getImageUrl(f) }));
-    const vids = lastOutputVideos.map((f) => ({ u: comfyService.getImageUrl(f), v: true }));
-    const fresh = [...vids, ...imgs].filter((n) => n.u);
+    const t = Date.now();
+    const imgs = lastOutputImages.map((f) => ({ u: comfyService.getImageUrl(f), t }));
+    const vids = lastOutputVideos.map((f) => ({ u: comfyService.getImageUrl(f), v: true, t }));
+    // Everything in one run shares a timestamp, so their order has to be
+    // decided here. ComfyUI lists them in the order the nodes ran, so the last
+    // one is the freshest - reversed, the finished image leads its own batch
+    // instead of trailing the intermediate one it was made from.
+    const fresh = [...imgs, ...vids].filter((n) => n.u).reverse();
     if (fresh.length === 0) return;
     setItems((prev) => {
       const seen = new Set(fresh.map((n) => n.u));
-      return [...fresh, ...prev.filter((p) => !seen.has(p.u))].slice(0, MAX_ITEMS);
+      // Array#sort is stable, so items sharing a timestamp keep the order above.
+      return [...fresh, ...prev.filter((p) => !seen.has(p.u))]
+        .sort((a, b) => (b.t ?? 0) - (a.t ?? 0))
+        .slice(0, MAX_ITEMS);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [outputReadyCount]);

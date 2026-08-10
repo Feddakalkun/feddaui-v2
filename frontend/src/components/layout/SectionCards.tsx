@@ -39,6 +39,10 @@ const FAMILY_ART: Record<string, string> = {
   'sdxl-pack': '/cards/bunny/family/sdxl-pack.jpeg',
   'chroma-image': '/cards/bunny/family/chroma-image.jpeg',
   'z-image-core': '/cards/bunny/family/z-image-core.jpeg',
+  // The last family without its own art. Its tile fell back to the Two People
+  // workflow poster, which carries a burnt-in title - the one card in the
+  // picker with lettering on it.
+  'z-image-advanced': '/cards/bunny/family/z-image-advanced.jpeg',
   'firered-image': '/cards/bunny/family/firered-image.jpeg',
   'krea2-txt2img': '/cards/bunny/family/krea2-txt2img.jpeg',
 };
