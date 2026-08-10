@@ -44,6 +44,7 @@ const TAB_ALIASES: Record<string, string> = {
   'z-image-dual-base': 'z-image-dual-lora',
   'z-image-dual-detail': 'z-image-dual-lora',
   'z-image-dual-lora-upload': 'z-image-dual-lora',
+  'z-image-dual-lora-v2': 'z-image-dual-lora',
   'z-image-controlnet-pose': 'wan21-steady-dancer',
 };
 

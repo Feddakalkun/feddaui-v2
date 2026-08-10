@@ -283,7 +283,8 @@ export const FEDDA_MODULES: FeddaModule[] = [
     pack: 'booster',
 
     tabs: ['z-image-dual-lora'],
-    workflows: ['z-image-dual-lora'],
+    // Two graphs behind one page: 'Both faces' and the phrase-detected variant.
+    workflows: ['z-image-dual-lora', 'z-image-dual-lora-v2'],
     defaultTab: 'z-image-dual-lora',
     Icon: Sparkles,
     card: { poster: '/cards/bunny/z-image-dual-lora.jpeg' },
@@ -527,7 +528,6 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'sdxl-outpaint',
-    hidden: true,
     sourceModuleId: 'sdxl-pack',
     label: 'SDXL OUTPAINT',
     description: 'Extend an image outward with SDXL according to a prompt.',

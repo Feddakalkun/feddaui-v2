@@ -120,6 +120,15 @@ export const ZImageDualLoraPage = () => {
   // Refine faces (identity) or whole bodies (outfit/pose).
   const [refineMode, setRefineMode] = usePersistentState<'faces' | 'bodies'>('zimage_dual_refine_mode', 'faces');
 
+  // Which graph does the work. 'both' detects two faces with YOLO and repaints
+  // each with its own LoRA. 'phrase' generates the whole scene under Person 1's
+  // LoRA and repaints only the person you name — Florence2 reads the phrase,
+  // SAM2 cuts them out. Naming one person survives poses YOLO's left/right
+  // ordering gets wrong, at the cost of only one LoRA being applied by mask.
+  const [engine, setEngine] = usePersistentState<'both' | 'phrase'>('zimage_dual_engine', 'phrase');
+  const [detectPhrase, setDetectPhrase] = usePersistentState('zimage_dual_detect_phrase', 'right woman');
+  const isPhrase = engine === 'phrase';
+
   // Who-gets-who: by default Person 1's LoRA repaints the LEFT face, Person 2's the
   // RIGHT. If the detector flips them, this swaps which LoRA lands on which person.
   const [swapSides, setSwapSides] = usePersistentState('zimage_dual_swap_sides', false);
@@ -171,8 +180,11 @@ export const ZImageDualLoraPage = () => {
   const [availableLoras, setAvailableLoras] = useState<string[]>([]);
 
   const isRunning = runningWorkflow;
+  // The phrase graph has no upload variant: it always generates its own scene,
+  // so the entry-mode choice does not apply to it.
   const canRun = !!loraMainName && !!loraDetailName && loraMainStrength > 0 && loraDetailStrength > 0
-    && (entryMode === 'generate' || !!uploadFilename);
+    && (isPhrase || entryMode === 'generate' || !!uploadFilename)
+    && (!isPhrase || !!detectPhrase.trim());
 
   const handleUpload = async (file?: File | null) => {
     if (!file || uploading) return;
@@ -262,6 +274,31 @@ export const ZImageDualLoraPage = () => {
     return { base };
   };
 
+  /**
+   * The scene prompt in the shape the v2 graph was tuned with.
+   *
+   * composePrompts() writes a defensive one: "left person: X; right person: Y"
+   * plus "one shared continuous background", "one seamless image", "natural
+   * realistic proportions" - clauses added to stop the older graph splitting
+   * the frame into a diptych. v2 does not need them, and the label syntax is
+   * not how the run that works is worded. That one reads as ordinary
+   * photographic prose - "On the left, a handsome man... On the right, a
+   * beautiful young woman (Iris)..." - so this writes that instead.
+   */
+  const composeSceneV2 = () => {
+    const left = describe(triggerA, genderA, appearanceA) || genderA || 'a person';
+    const right = describe(triggerB, genderB, appearanceB) || genderB || 'a person';
+    const base = [
+      'A high-end studio portrait of two people.',
+      `On the left, ${left}, at a three-quarter angle looking directly at the camera.`,
+      `On the right, ${right}, also at a three-quarter angle looking at the camera.`,
+      `${scene}.`,
+      `${style}.`,
+    ].join(' ');
+    setMainPrompt(base);
+    return base;
+  };
+
   // Per-person face-refine prompts (left = Person 1 / LoRA A, right = Person 2 / LoRA B).
   const personPrompts = () => ({
     personA: [describe(triggerA, genderA, appearanceA) || (genderA || 'woman'), 'natural detailed face, coherent'].join(', '),
@@ -269,7 +306,8 @@ export const ZImageDualLoraPage = () => {
   });
 
   const ensurePromptText = () => ({
-    base: mainPrompt.trim() || composePrompts().base,
+    base: mainPrompt.trim()
+      || (engine === 'phrase' ? composeSceneV2() : composePrompts().base),
     ...personPrompts(),
   });
 
@@ -318,17 +356,43 @@ export const ZImageDualLoraPage = () => {
     setRunningWorkflow(true);
 
     try {
-      // v2: left face → LoRA A, right face → LoRA B (deterministic, two separate
-      // detailer passes). No detection phrase / side pick needed.
+      // Both-faces graph: left face → LoRA A, right face → LoRA B (deterministic,
+      // two separate detailer passes). No detection phrase / side pick needed.
       const antiSplit = 'split image, collage, diptych, two separate photos, different backgrounds';
       const negativeForRun = /split image|collage|diptych/i.test(negativePrompt)
         ? negativePrompt
         : `${negativePrompt}, ${antiSplit}`;
-      const isUpload = entryMode === 'upload';
-      const workflowId = isUpload ? 'z-image-dual-lora-upload' : 'z-image-dual-lora';
+      const isUpload = !isPhrase && entryMode === 'upload';
+      const workflowId = isPhrase
+        ? 'z-image-dual-lora-v2'
+        : isUpload ? 'z-image-dual-lora-upload' : 'z-image-dual-lora';
       await registerWorkflowNodeMap(workflowId);
       // Shared refine params for both entry modes.
-      const params: Record<string, unknown> = {
+      const params: Record<string, unknown> = isPhrase ? {
+        // One pass, one masked repaint. The scene describes both people and is
+        // generated under Person 1's LoRA; only the person the phrase names is
+        // cut out and redrawn with Person 2's, so there is no left/right pick
+        // and no second detailer pass.
+        // The scene already names both people, so appending their descriptions
+        // again just repeated them at the sampler.
+        main_prompt: prompts.base,
+        detail_prompt: prompts.personB,
+        detection_phrase: detectPhrase.trim(),
+        negative: negativeForRun,
+        seed,
+        lora_main_name: loraMainName,
+        lora_main_strength: Number(loraMainStrength),
+        lora_detail_name: loraDetailName,
+        lora_detail_strength: Number(loraDetailStrength),
+        detail_denoise: Number(changeStrength),
+        scene_cfg: Number(sceneCfg),
+        swap_cfg: Number(swapCfg),
+        dual_steps: Number(dualSteps),
+        mask_feather: Number(maskFeather),
+        edge_feather: Number(edgeFeather),
+        detail_size: Number(detailSize),
+        client_id: comfyService.clientId,
+      } : {
         person_a_prompt: prompts.personA,
         person_b_prompt: prompts.personB,
         negative: negativeForRun,
@@ -353,12 +417,14 @@ export const ZImageDualLoraPage = () => {
         detail_size: refineMode === 'bodies' ? Math.max(Number(detailSize), 768) : Number(detailSize),
         client_id: comfyService.clientId,
       };
-      if (isUpload) {
-        // Refine the user's photo — no base generation, so no scene prompt / CFG.
-        params.image = uploadFilename;
-      } else {
-        params.main_prompt = prompts.base;
-        params.scene_cfg = Number(sceneCfg);
+      if (!isPhrase) {
+        if (isUpload) {
+          // Refine the user's photo — no base generation, so no scene prompt / CFG.
+          params.image = uploadFilename;
+        } else {
+          params.main_prompt = prompts.base;
+          params.scene_cfg = Number(sceneCfg);
+        }
       }
       const response = await fetch(`${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.GENERATE}`, {
         method: 'POST',
@@ -382,6 +448,17 @@ export const ZImageDualLoraPage = () => {
       const p2Preview = (done.images || []).find((img) => String(img.filename).toLowerCase().includes('seg_preview_p2'));
       setP1PreviewUrl(p1Preview ? comfyService.getImageUrl(p1Preview) : null);
       setP2PreviewUrl(p2Preview ? comfyService.getImageUrl(p2Preview) : null);
+      // selectBestImage falls back to the last image in the list, which for the
+      // phrase graph is the un-detailed one. A detection miss therefore looked
+      // like a finished result: ComfyUI reports success, only the base image is
+      // saved, and the page showed it as if the second LoRA had been applied.
+      const refined = (done.images || []).some(
+        (img) => String(img.filename).toLowerCase().includes('final_refined'));
+      if (isPhrase && !refined) {
+        throw new Error(
+          `Couldn't find "${detectPhrase.trim()}" in the generated image, so nobody was repainted. `
+          + 'Try wording it the way it appears in the scene, or check the person is really on that side.');
+      }
       if (!finalImage) throw new Error('No refined image returned');
       setFinalImageUrl(comfyService.getImageUrl(finalImage));
 
@@ -406,23 +483,56 @@ export const ZImageDualLoraPage = () => {
       hideOutputPane
       output={null}
     >
-        <section className={`${panelBase} p-3`}>
+        <section className={`${panelBase} space-y-3 p-3`}>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Start from</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Method</span>
             {([
-              { m: 'generate' as const, label: 'Generate base', hint: 'make a new 2-person scene from the prompt' },
-              { m: 'upload' as const, label: 'Upload photo', hint: 'refine two people in a photo you already have' },
+              { m: 'both' as const, label: 'Both faces', hint: 'detect two faces and repaint each with its own LoRA' },
+              { m: 'phrase' as const, label: 'Name one person', hint: 'describe the person to repaint instead of picking a side' },
             ]).map((o) => (
               <button
                 key={o.m}
-                onClick={() => setEntryMode(o.m)}
+                onClick={() => setEngine(o.m)}
                 title={o.hint}
-                className={`flex-1 rounded-md px-3 py-1.5 text-[11px] font-semibold transition ${entryMode === o.m ? 'bg-white text-black' : 'bg-white/[0.04] text-white/55 hover:bg-white/[0.08]'}`}
+                className={`flex-1 rounded-md px-3 py-1.5 text-[11px] font-semibold transition ${engine === o.m ? 'bg-white text-black' : 'bg-white/[0.04] text-white/55 hover:bg-white/[0.08]'}`}
               >
                 {o.label}
               </button>
             ))}
           </div>
+
+          {isPhrase ? (
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-white/40">Repaint who</label>
+              <input
+                value={detectPhrase}
+                onChange={(e) => setDetectPhrase(e.target.value)}
+                placeholder="right woman"
+                className="mt-1 w-full rounded-md border border-white/10 bg-black/35 px-2.5 py-1.5 text-[12px] text-zinc-100 outline-none transition focus:border-white/25"
+              />
+              <p className="mt-1 text-[10px] text-white/30">
+                Person 2's LoRA is painted onto whoever this describes; Person 1's LoRA carries the rest of the scene.
+                Plain words work best — <span className="text-amber-200/70">right woman</span>, <span className="text-amber-200/70">man on the left</span>.
+              </p>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Start from</span>
+              {([
+                { m: 'generate' as const, label: 'Generate base', hint: 'make a new 2-person scene from the prompt' },
+                { m: 'upload' as const, label: 'Upload photo', hint: 'refine two people in a photo you already have' },
+              ]).map((o) => (
+                <button
+                  key={o.m}
+                  onClick={() => setEntryMode(o.m)}
+                  title={o.hint}
+                  className={`flex-1 rounded-md px-3 py-1.5 text-[11px] font-semibold transition ${entryMode === o.m ? 'bg-white text-black' : 'bg-white/[0.04] text-white/55 hover:bg-white/[0.08]'}`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className={`${panelBase} p-3`}>
@@ -497,6 +607,10 @@ export const ZImageDualLoraPage = () => {
             </div>
           </div>
 
+          {/* The YOLO detector and the left/right assignment belong to the
+              both-faces graph. Naming the person replaces both, so showing them
+              would offer settings that go nowhere. */}
+          {!isPhrase && (<>
           <div className="mt-3 flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-2">
             <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Refine</span>
             {(['faces', 'bodies'] as const).map((m) => (
@@ -528,6 +642,7 @@ export const ZImageDualLoraPage = () => {
               {swapSides ? 'Swapped' : 'Swap sides'}
             </button>
           </div>
+          </>)}
 
           <button
             onClick={() => setShowAdvanced((v) => !v)}
@@ -564,7 +679,7 @@ export const ZImageDualLoraPage = () => {
                       <div className="text-sm font-semibold text-white/85">Characters</div>
                       <p className="mt-1 text-[11px] text-white/35">Pick each person's LoRA (above) + gender. <b className="text-white/55">Build Prompts</b> auto-fills the two prompt boxes → from each LoRA's sheet. Or skip it and write the boxes yourself.</p>
                     </div>
-                    <button onClick={composePrompts} className={`${buttonBase} border-white/10 bg-white/[0.04] text-white/70 hover:bg-white/[0.08]`}>
+                    <button onClick={() => (isPhrase ? composeSceneV2() : composePrompts())} className={`${buttonBase} border-white/10 bg-white/[0.04] text-white/70 hover:bg-white/[0.08]`}>
                       <Wand2 className="h-3.5 w-3.5" />
                       Build Prompts
                     </button>
@@ -626,7 +741,7 @@ export const ZImageDualLoraPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  {entryMode === 'generate' ? (
+                  {isPhrase || entryMode === 'generate' ? (
                     <div>
                       <PromptAssistant
                         context="zimage"
@@ -637,7 +752,10 @@ export const ZImageDualLoraPage = () => {
                         accent="sky"
                         placeholder="The whole image with both people — setting, who's where, what they wear. e.g. 'two people on a crowded bus, a woman on the left in a red coat, a man on the right in a suit...'"
                       />
-                      <p className="mt-1 text-[10px] text-white/30">This generates the base image with <span className="text-sky-300/70">Person 1</span>'s LoRA. Describe the full scene here.</p>
+                      <p className="mt-1 text-[10px] text-white/30">
+                        This generates the base image with <span className="text-sky-300/70">Person 1</span>'s LoRA. Describe the full scene here.
+                        {isPhrase && <> Make sure the wording you put in <span className="text-amber-200/70">Repaint who</span> matches someone you describe here.</>}
+                      </p>
                     </div>
                   ) : (
                     <div>
