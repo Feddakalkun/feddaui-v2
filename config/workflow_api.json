@@ -2347,25 +2347,25 @@
         "label": "Feathering"
       },
       "seed": {
-        "node_id": "274",
+        "node_id": "208",
         "input_key": "seed",
         "type": "number",
         "label": "Seed"
       },
       "steps": {
-        "node_id": "274",
+        "node_id": "208",
         "input_key": "steps",
         "type": "number",
         "label": "Steps"
       },
       "cfg": {
-        "node_id": "274",
+        "node_id": "208",
         "input_key": "cfg",
         "type": "number",
         "label": "CFG"
       },
       "denoise": {
-        "node_id": "274",
+        "node_id": "208",
         "input_key": "denoise",
         "type": "number",
         "label": "Denoise"
