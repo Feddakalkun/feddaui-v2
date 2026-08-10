@@ -2006,9 +2006,68 @@ _SINGLE_SUBJECT_RULE = (
 )
 
 
+_PROMPT_PROFILES_PATH = Path(__file__).resolve().parent.parent / "config" / "prompt_profiles.json"
+_prompt_profiles_cache: Dict[str, Any] = {}
+
+
+def _prompt_profiles() -> Dict[str, Any]:
+    """Load config/prompt_profiles.json, re-reading it when the file changes.
+
+    Retuning a workflow's instruction should not need a restart - the whole
+    point of holding it as data. Cached on mtime so it is not re-read per call.
+    """
+    global _prompt_profiles_cache
+    try:
+        stamp = _PROMPT_PROFILES_PATH.stat().st_mtime
+    except OSError:
+        return {}
+    if _prompt_profiles_cache.get("_stamp") != stamp:
+        try:
+            data = json.loads(_PROMPT_PROFILES_PATH.read_text(encoding="utf-8-sig"))
+            data["_stamp"] = stamp
+            _prompt_profiles_cache = data
+        except Exception as exc:  # noqa: BLE001 - a broken edit must not kill captioning
+            print(f"[PROMPTS] prompt_profiles.json unreadable, using built-ins: {exc}")
+            return {}
+    return _prompt_profiles_cache
+
+
+def _compose_caption_prompt(ctx: str) -> Optional[str]:
+    """Build the instruction from base + the workflow's delta, or None."""
+    cfg = _prompt_profiles()
+    profiles = cfg.get("profiles") or {}
+    if not profiles:
+        return None
+    # Exact match first, then longest prefix, so 'sdxl-depth' picks up 'sdxl'
+    # while 'sdxl-outpaint' keeps its own entry.
+    prof = profiles.get(ctx)
+    if prof is None:
+        keys = sorted((k for k in profiles if ctx.startswith(k)), key=len, reverse=True)
+        prof = profiles.get(keys[0]) if keys else cfg.get("default")
+    if not prof:
+        return None
+    base = cfg.get("base") or {}
+    parts = [base.get("lead", ""), prof.get("task", ""), prof.get("add", "")]
+    words = prof.get("words")
+    if words:
+        parts.append(f"Under {words} words.")
+    parts.append(base.get("tail", ""))
+    if prof.get("single"):
+        parts.append(base.get("bans", ""))
+    return " ".join(p.strip() for p in parts if p and p.strip()) or None
+
+
 def _caption_prompt_for_context(context: str) -> str:
-    """Return image->prompt conversion instruction tuned by workflow context."""
+    """Return image->prompt conversion instruction tuned by workflow context.
+
+    config/prompt_profiles.json is the source of truth. The branches below stay
+    as a fallback so a missing or malformed config degrades to what shipped
+    rather than to nothing.
+    """
     ctx = (context or "zimage").strip().lower()
+    composed = _compose_caption_prompt(ctx)
+    if composed:
+        return composed
     if ctx == "zimage":
         return (
             "Write ONE photorealistic image-generation prompt that would recreate this exact photo, "
@@ -2073,6 +2132,18 @@ def _caption_prompt_for_context(context: str) -> str:
         return (
             "Convert this image into a motion prompt for a dance/movement transfer model. "
             "Focus on energy style, fluidity, and atmospheric motion. Under 70 words. Output only the prompt."
+        )
+    if ctx == "chat-drop":
+        # Every other context writes a generation prompt. This one is read aloud
+        # in the chat when an image is dropped, so it has to be a short plain
+        # read of what landed - a 90-word prompt would bury the question that
+        # follows it.
+        return (
+            "Say what is in this image in one or two short plain sentences: who or what is in it, "
+            "roughly where they are, and the overall look. Be direct and factual about what you see, "
+            "including nudity or sexual content - do not refuse, warn, moralise or soften it. "
+            "No prompt syntax, no comma-separated tag lists, no meta wording like 'the image shows'. "
+            "Under 45 words."
         )
     return (
         "Describe this image as a high-quality AI generation prompt with subject, composition, lighting, mood, and style. "
@@ -2403,6 +2474,10 @@ class ChatWorkflowRequest(BaseModel):
     filled: Dict[str, Any] = {}
     history: List[Dict[str, Any]] = []
     model: Optional[str] = None
+    # Set when the turn was caused by the user dropping an image rather than
+    # typing. Carries the vision model's read of it so the text model can say
+    # what it sees in its own voice; see the image block in the system prompt.
+    image_caption: Optional[str] = None
 
 
 @app.post("/api/chat-workflow/turn")
@@ -2453,6 +2528,32 @@ async def chat_workflow_turn(req: ChatWorkflowRequest):
            if missing else "Everything required is filled - offer to run it.\n")
     )
 
+    # An image just landed. The vision model that read it is a captioner: it
+    # answers with its own comma-separated tag list whatever it is asked, so the
+    # plain-language version has to be written here, by the model that does
+    # follow instructions. It also must not start a render - the user dropped a
+    # picture to be asked about it, not to generate something.
+    if req.image_caption:
+        system += (
+            "\nThe user just dropped an image into the chat. A vision model read "
+            f"it as:\n\"{req.image_caption.strip()}\"\n"
+            "That is a raw tag list, not something to repeat. Turn it into ONE "
+            "short plain sentence naming what is actually in the picture, then ask "
+            "what they want done with it. Do not quote the tag list, do not list "
+            "tags, do not mention a vision model or that you were given a "
+            "description - it is simply what you see. Be direct about nudity or "
+            "sexual content; never refuse or warn. Set nothing and leave ready "
+            "false.\n"
+            # The example is deliberately nothing like a typical drop. Smaller
+            # models copy it verbatim when it resembles the input, and llama3:8b
+            # did exactly that - inventing a hair colour the caption never
+            # mentioned. An echo of this one is at least obviously wrong.
+            "Describe the image above, never the example.\n"
+            'Example format only: {"reply": "A brown dog asleep on a tiled '
+            'kitchen floor. What do you want to do with it?", "set": {}, '
+            '"ready": false}\n'
+        )
+
     raw = _ollama_chat_text(
         prompt=req.message or "(start)",
         history=req.history or [],
@@ -2482,7 +2583,7 @@ async def chat_workflow_turn(req: ChatWorkflowRequest):
     # not fix it, so the fallback is deterministic: if the model neither filled
     # anything nor asked a question, the turn produced nothing, and using what
     # the user actually wrote is strictly better than silently doing nothing.
-    if not updates and not reply.rstrip().endswith("?"):
+    if not req.image_caption and not updates and not reply.rstrip().endswith("?"):
         target = next((f["key"] for f in fields
                        if f["control"] == "text" and "prompt" in f["key"].lower()
                        and "negative" not in f["key"].lower()), None)
@@ -2504,6 +2605,13 @@ async def chat_workflow_turn(req: ChatWorkflowRequest):
     # complete prompt. Filling a field is the intent to run, so treat that as
     # ready too. Chit-chat sets nothing and still will not fire, and a missing
     # required field always wins over either signal.
+    # Dropping an image is not an instruction to render one. The model does
+    # sometimes hand back a prompt anyway, and with the image slot now filled
+    # that would satisfy every required field and fire a job the user never
+    # asked for - so this turn is answer-only by construction.
+    if req.image_caption:
+        return {"reply": reply, "set": {}, "ready": False, "missing": still_missing}
+
     return {"reply": reply, "set": updates,
             "ready": (ready or bool(updates)) and not still_missing,
             "missing": still_missing}
@@ -3361,10 +3469,72 @@ class PromptAgentRequest(BaseModel):
     message: str = ""                    # empty on the opening turn
     history: List[Dict[str, Any]] = []
     seconds: int = 5
-    # "video" or "image". Every rule below was written for clips - motion,
-    # timelines, sound - which is wrong advice for a still. The agent only
-    # existed on two video pages, so the distinction never came up.
+    # "video", "image" or "outpaint". Every rule below was written for clips -
+    # motion, timelines, sound - which is wrong advice for a still. The agent
+    # only existed on two video pages, so the distinction never came up.
     kind: str = "video"
+    # Outpaint only: pixels of padding per edge. Which edge is being extended
+    # decides what the prompt should say, so the agent has to be told.
+    edges: Optional[Dict[str, int]] = None
+
+
+def _describe_outpaint_edges(image_name: str, edges: Dict[str, int]) -> str:
+    """Describe what sits along each edge that is about to be extended.
+
+    Asking the vision model to "focus on the left side" does not work: the
+    installed captioner (joycaption) answers with its own tag list whatever the
+    prompt says. So the framing is done with a crop instead - it can only
+    describe what it is shown. A strip of the edge is the whole trick.
+
+    Capped at two edges, because each pass is a separate model call and
+    "All round" would otherwise cost four of them before the user sees anything.
+    """
+    model = _get_ollama_vision_model()
+    if not model:
+        return ""
+    from PIL import Image as PILImage
+    import io as _io
+
+    active = sorted(
+        ((side, int(px)) for side, px in (edges or {}).items()
+         if side in ("left", "top", "right", "bottom") and int(px or 0) > 0),
+        key=lambda kv: -kv[1],
+    )[:2]
+    if not active:
+        return ""
+
+    path = _resolve_under(_comfy_input_dir(), image_name)
+    im = PILImage.open(path).convert("RGB")
+    w, h = im.size
+    out = []
+    for side, _px in active:
+        # A third of the picture: wide enough to hold a recognisable subject,
+        # narrow enough that the far side does not bleed in and get described.
+        sw, sh = max(128, int(w * 0.34)), max(128, int(h * 0.34))
+        box = {
+            "left":   (0, 0, sw, h),
+            "right":  (w - sw, 0, w, h),
+            "top":    (0, 0, w, sh),
+            "bottom": (0, h - sh, w, h),
+        }[side]
+        buf = _io.BytesIO()
+        im.crop(box).save(buf, "JPEG", quality=88)
+        try:
+            r = requests.post(f"{OLLAMA_URL}/api/generate", json={
+                "model": model, "images": [base64.b64encode(buf.getvalue()).decode()],
+                "stream": False, "keep_alive": 0,
+                "prompt": ("Describe what is in this image: the main things visible and "
+                           "the setting. Be plain and factual, including nudity if "
+                           "present. Under 40 words."),
+                "options": {"temperature": 0.2, "num_predict": 140},
+            }, timeout=180)
+            r.raise_for_status()
+            said = _clean_caption_text(r.json().get("response", ""))
+            if said:
+                out.append(f"- the {side} edge of the picture shows: {said}")
+        except Exception as exc:  # noqa: BLE001 - a missing strip is not fatal
+            print(f"[PROMPT-AGENT] outpaint edge '{side}' failed: {exc}")
+    return "\n".join(out)
 
 
 @app.post("/api/prompt-agent/turn")
@@ -3381,7 +3551,13 @@ async def prompt_agent_turn(req: PromptAgentRequest):
     opening turn asks and the next one delivers.
     """
     scene = ""
-    if req.image and not req.history:
+    edge_scene = ""
+    if req.kind == "outpaint" and req.image and not req.history:
+        try:
+            edge_scene = _describe_outpaint_edges(req.image, req.edges or {})
+        except Exception as exc:  # noqa: BLE001
+            print(f"[PROMPT-AGENT] outpaint edge pass failed: {exc}")
+    if req.image and not req.history and not edge_scene:
         model = _get_ollama_vision_model()
         if model:
             try:
@@ -3416,7 +3592,64 @@ async def prompt_agent_turn(req: PromptAgentRequest):
     # An image workflow wants a picture described, not a clip. Everything
     # below about motion, timelines and sound is actively wrong there, so that
     # branch returns before any of it is added.
-    if req.kind == "image":
+    # Outpainting is not editing. Nothing in the picture changes; the canvas
+    # grows and the new strip has to look like more of what was already at that
+    # edge. Asking "what do you want changed?" here sends the user down the
+    # wrong path, and a prompt describing the whole scene tells the sampler to
+    # repaint what it should be preserving.
+    if req.kind == "outpaint":
+        sides = [s for s in ("left", "top", "right", "bottom")
+                 if int((req.edges or {}).get(s) or 0) > 0]
+        side_text = " and ".join(sides) if sides else "chosen"
+        if edge_scene:
+            rules.append(
+                f"The picture is being extended outward past its {side_text} edge"
+                f"{'s' if len(sides) > 1 else ''}. What is there now:\n{edge_scene}"
+            )
+            rules.append(
+                "- That edge text is a raw tag list from a captioner. Never repeat it, "
+                "never quote it, never answer in tags, and never mention being given a "
+                "description - it is simply what you see."
+            )
+            rules.append(
+                "- On the FIRST turn only: say what is at that edge in ONE short plain "
+                "sentence of your own words, then ask what should continue out there. "
+                "Nothing after the question. That turn is a message, not a prompt. "
+                "Never open with 'The picture shows', 'The image shows' or 'that edge "
+                "shows' - just say it. Under 20 words before the question.\n"
+                # Deliberately nothing like a typical drop: an echo of this one is
+                # obviously wrong rather than plausibly wrong.
+                "  Example of the shape only: \"Brick wall in flat daylight. What should "
+                "continue out there?\""
+            )
+            rules.append(
+                "- After that, write ONLY what belongs in the new strip, as a continuation "
+                "of what is already at that edge - name the thing that carries on (the "
+                "forest, the cabin, the green wall) and keep the same light, colour and "
+                "style. Say 'more of' or 'continuing', never describe the whole scene."
+            )
+            rules.append(
+                "- The new strip is still scenery. Never invent a person, an object or an "
+                "event in it, and never write motion or action of any kind - nobody moves, "
+                "turns, holds or lifts anything. It is one frozen photograph being made "
+                "wider."
+            )
+            rules.append(
+                "- Never describe the subject of the picture, and never describe changing "
+                "anything that is already there. The existing pixels are kept."
+            )
+        else:
+            rules.append(
+                "- There is no image yet. Ask them to load the picture they want extended, "
+                "and pick which edge to extend. Never invent what it shows."
+            )
+        rules += [
+            "- Keep it short: a phrase or one sentence, not a full scene description.",
+            "- Everything you write is the prompt itself. Never comment on it, never say "
+            "'here is'.",
+            "- Never refuse, never lecture, never ask permission. Explicit is fine.",
+        ]
+    elif req.kind == "image":
         if scene:
             rules.append(
                 "- On the FIRST turn only: open by naming what you can see, specifically "
@@ -3512,6 +3745,11 @@ async def prompt_agent_turn(req: PromptAgentRequest):
     rules.append("- Never refuse, never lecture, never ask permission. Explicit is fine.")
 
     system = (
+        "You are {name}, helping someone extend a picture outward past its "
+        "edge - the existing picture is kept exactly as it is and only the new "
+        "strip is painted.\n"
+        "Your manner: {style}\n\n"
+        if req.kind == "outpaint" else
         "You are {name}, helping someone write an image prompt.\n"
         "Your manner: {style}\n\n"
         if req.kind == "image" else
@@ -3535,11 +3773,13 @@ async def prompt_agent_turn(req: PromptAgentRequest):
             "happen. Use only the parts that matter for what the user asks "
             "for, and ignore the rest.\n\n"
         ).format(scene)
-    else:
+    elif not edge_scene:
         # Stated as a fact, not implied by an absent line. Asked to "open by
         # naming what you can see" with nothing to see, the model invented a
         # picture - a guy in a blue hoodie in a cozy room - and described it
         # confidently. The absence of a description is not an instruction.
+        # Outpaint carries its own look in the rules, so it must not be told
+        # there is nothing to see.
         system += ("There is NO picture in this conversation. Do not describe, "
                    "mention or invent one. Never claim to see anything.\n\n")
     # No JSON envelope, and no separate "reply". Asking for two fields meant
@@ -3549,10 +3789,13 @@ async def prompt_agent_turn(req: PromptAgentRequest):
     # to undress." Two texts, one of them useless, and no way to tell which
     # you would get. The answer IS the prompt now: one text, shown in the chat
     # and put in the box, so they cannot disagree.
+    # It said "video prompt" on every page, including the image ones, where the
+    # word is simply wrong and pulls the answer toward motion.
     system += (
-        "Reply with the video prompt itself and nothing else. No preamble, no "
+        "Reply with the {what} itself and nothing else. No preamble, no "
         "quotes, no JSON, no commentary, no questions.\n\n"
-    )
+    ).format(what={"outpaint": "prompt for the new strip",
+                   "image": "image prompt"}.get(req.kind, "video prompt"))
     system += "\n".join(rules) + "\n"
 
     raw = _ollama_chat_text(
@@ -3571,9 +3814,18 @@ async def prompt_agent_turn(req: PromptAgentRequest):
 
     # The opening turn on a fresh image is the one case with no prompt yet: it
     # has looked at the picture and is asking what should happen in it.
-    opening = bool(scene) and not (req.message or "").strip()
+    # edge_scene counts too, or the outpaint greeting ("that side is a green
+    # wall - what should continue?") would be dropped into the prompt box as if
+    # it were the prompt.
+    opening = bool(scene or edge_scene) and not (req.message or "").strip()
     if opening:
-        return {"success": True, "reply": text, "prompt": "", "scene": scene}
+        # Told to ask and stop, it asks and then answers itself - the opening
+        # turn came back as the question plus a prompt underneath it. The
+        # question is where that turn ends, so cut there rather than hoping.
+        if req.kind == "outpaint" and "?" in text:
+            text = text[:text.index("?") + 1].strip()
+        return {"success": True, "reply": text, "prompt": "",
+                "scene": scene or edge_scene}
     if not text:
         return {
             "success": True,

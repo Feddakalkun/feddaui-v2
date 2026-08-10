@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
 import {
   ChevronDown, ChevronRight, ImagePlus, Loader2, Play, RotateCcw, Send, Undo2, Upload,
 } from 'lucide-react';
@@ -86,6 +86,10 @@ export const ChatWorkflowPage = ({ workflowId, openId = null, onSaved }: Props) 
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragField, setDragField] = useState<string | null>(null);
+  // Dragging over the whole pane. Counted rather than boolean: dragenter fires
+  // again for every child the cursor crosses and each one answers with a
+  // dragleave, so a plain flag flickers off while the file is still overhead.
+  const [dragDepth, setDragDepth] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [models, setModels] = useState<string[]>([]);
   const [model, setModel] = useState('');
@@ -231,6 +235,7 @@ export const ChatWorkflowPage = ({ workflowId, openId = null, onSaved }: Props) 
     } catch { /* history is a convenience; never break the chat over it */ }
   };
 
+  /** Returns the ComfyUI input filename, or null if it did not land. */
   const upload = useCallback(async (key: string, file: File) => {
     setBusy(true);
     setError(null);
@@ -242,24 +247,105 @@ export const ChatWorkflowPage = ({ workflowId, openId = null, onSaved }: Props) 
       if (!res.ok || !data.success) throw new Error(data.detail || 'Upload failed');
       setValues((v) => ({ ...v, [key]: data.filename }));
       if (key === loopField) setDims(await measure(viewUrl(data.filename, '', 'input')));
+      return data.filename as string;
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      return null;
     } finally {
       setBusy(false);
     }
   }, [loopField]);
 
-  // Paste an image straight into the single image slot.
+  /**
+   * Which slot a loose image goes into.
+   *
+   * `loopField` is deliberately null when a workflow has two image inputs, so
+   * dropping anywhere had nowhere to go on exactly the workflows with the most
+   * slots. This fills the first empty image field instead and falls back to the
+   * first one, so a second drop replaces rather than being refused.
+   */
+  const dropTarget = useMemo(() => {
+    const imgs = fileFields.filter((f) => (f.accept ?? 'image') === 'image');
+    if (!imgs.length) return null;
+    return (imgs.find((f) => !values[f.key]) ?? imgs[0]).key;
+  }, [fileFields, values]);
+
+  /**
+   * Take an image that arrived without being aimed at a slot, then say what it
+   * is and ask what to do with it.
+   *
+   * Landing the file silently was the old behaviour and it read as nothing
+   * happening. Naming what it can see is what proves it looked at *this*
+   * picture, and the question is what makes the next message easy to write.
+   */
+  const acceptImage = useCallback(async (file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    const key = dropTarget;
+    if (!key) {
+      setError('This workflow takes no image.');
+      return;
+    }
+    const landed = await upload(key, file);
+    if (!landed) return;                    // upload() has already said why
+
+    const thinking: Msg = { role: 'agent', text: 'Looking at it…', pending: true };
+    setMessages((m) => [...m, thinking]);
+    const settle = (text: string) => setMessages((m) => {
+      const i = m.indexOf(thinking);
+      if (i < 0) return m;
+      const next = [...m];
+      next[i] = { role: 'agent', text };
+      return next;
+    });
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('context', 'chat-drop');
+      const seen = await fetch(`${BACKEND_API.BASE_URL}/api/ollama/caption`, { method: 'POST', body: form });
+      const vision = await seen.json().catch(() => ({}));
+      if (!seen.ok || !vision.success) throw new Error(vision.detail || 'Could not read the image');
+
+      // The caption goes to the agent rather than into the transcript: the
+      // vision model returns a tag list in its own format no matter what it is
+      // asked, and the agent is the one that speaks here.
+      const res = await fetch(`${BACKEND_API.BASE_URL}/api/chat-workflow/turn`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workflow_id: workflowId,
+          message: '',
+          image_caption: vision.caption,
+          filled: { ...values, [key]: landed },
+          model: model || undefined,
+          history: messages.map((m) => ({
+            role: m.role === 'agent' ? 'assistant' : 'user', content: m.text,
+          })),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.reply) throw new Error(data.detail || 'Agent unavailable — is Ollama running?');
+      // Which slot it took only matters when there is more than one.
+      const slot = fileFields.length > 1
+        ? `${fields.find((f) => f.key === key)?.label || key}: ` : '';
+      settle(`${slot}${data.reply}`);
+    } catch (e) {
+      // The picture is uploaded either way — losing a model must not lose the
+      // image, so this degrades to the plain question.
+      setError(e instanceof Error ? e.message : String(e));
+      settle('Got the image, but I could not look at it. What do you want to do with it?');
+    }
+  }, [dropTarget, upload, fileFields, fields, values, model, messages, workflowId]);
+
+  // Paste anywhere in the window, same handling as a drop.
   useEffect(() => {
-    if (!loopField) return undefined;
     const onPaste = (e: ClipboardEvent) => {
       const item = Array.from(e.clipboardData?.items ?? []).find((i) => i.type.startsWith('image/'));
       const file = item?.getAsFile();
-      if (file) void upload(loopField, file);
+      if (file) void acceptImage(file);
     };
     window.addEventListener('paste', onPaste);
     return () => window.removeEventListener('paste', onPaste);
-  }, [loopField, upload]);
+  }, [acceptImage]);
 
   /**
    * Copy a generated image into ComfyUI's input directory.
@@ -422,8 +508,12 @@ export const ChatWorkflowPage = ({ workflowId, openId = null, onSaved }: Props) 
           onDragOver={(e) => e.preventDefault()}
           onDragLeave={() => setDragField(null)}
           onDrop={(e) => {
+            // Aimed at this slot, so keep it from bubbling to the pane-wide drop
+            // and being uploaded a second time into whatever slot is empty.
             e.preventDefault();
+            e.stopPropagation();
             setDragField(null);
+            setDragDepth(0);
             const file = Array.from(e.dataTransfer.files)[0];
             if (file) void upload(f.key, file);
           }}
@@ -489,8 +579,41 @@ export const ChatWorkflowPage = ({ workflowId, openId = null, onSaved }: Props) 
     );
   };
 
+  const carriesFile = (e: DragEvent) => Array.from(e.dataTransfer.types).includes('Files');
+
   return (
-    <div className="flex h-full min-w-0 flex-1 flex-col bg-[#050506]">
+    <div
+      className="relative flex h-full min-w-0 flex-1 flex-col bg-[#050506]"
+      onDragEnter={(e) => { if (carriesFile(e)) { e.preventDefault(); setDragDepth((d) => d + 1); } }}
+      onDragOver={(e) => { if (carriesFile(e)) e.preventDefault(); }}
+      onDragLeave={(e) => { if (carriesFile(e)) setDragDepth((d) => Math.max(0, d - 1)); }}
+      onDrop={(e) => {
+        if (!carriesFile(e)) return;
+        e.preventDefault();
+        setDragDepth(0);
+        setDragField(null);
+        const file = Array.from(e.dataTransfer.files).find((f) => f.type.startsWith('image/'));
+        if (file) void acceptImage(file);
+      }}
+    >
+      {/* Covers the pane only while a file is overhead, so it never sits between
+          the user and the chat. pointer-events-none keeps the drop on the
+          container underneath, which is what counts the enter/leave pairs. */}
+      {dragDepth > 0 && (
+        <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-xl border-2 border-dashed border-cyan-400/50 bg-cyan-500/[0.07] backdrop-blur-[1px]">
+          <div className="flex flex-col items-center gap-2 text-cyan-100">
+            <ImagePlus className="h-8 w-8" />
+            <span className="text-sm font-semibold">
+              {dropTarget ? 'Drop it anywhere' : 'This workflow takes no image'}
+            </span>
+            {dropTarget && (
+              <span className="text-[11px] text-cyan-100/60">
+                I'll look at it and ask what you want to do
+              </span>
+            )}
+          </div>
+        </div>
+      )}
       <div className="flex items-center gap-2 px-4 py-2.5">
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">
           {name || workflowId}
@@ -533,7 +656,7 @@ export const ChatWorkflowPage = ({ workflowId, openId = null, onSaved }: Props) 
           {messages.length === 0 && fileFields.length > 0 && (
             <div className="flex flex-col items-center gap-3 rounded-2xl bg-white/[0.03] py-16">
               <ImagePlus className="h-7 w-7 text-white/25" />
-              <span className="text-sm text-white/45">Drop or paste an image below to start</span>
+              <span className="text-sm text-white/45">Drop or paste an image anywhere to start</span>
             </div>
           )}
           {messages.map((m, i) => (

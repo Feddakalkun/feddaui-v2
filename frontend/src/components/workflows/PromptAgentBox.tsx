@@ -23,13 +23,16 @@ interface Props {
   /** ComfyUI input filename of the frame being animated, if there is one. */
   image?: string | null;
   seconds?: number;
-  /** 'image' switches the agent off clips: no motion, no timeline, no sound. */
-  kind?: 'video' | 'image';
+  /** 'image' switches the agent off clips: no motion, no timeline, no sound.
+   *  'outpaint' switches it off editing: the picture is kept and continued. */
+  kind?: 'video' | 'image' | 'outpaint';
+  /** Outpaint only: pixels per edge, so the agent reads the side being extended. */
+  edges?: Record<string, number>;
   /** Called with the finished prompt; the page decides where it goes. */
   onPrompt: (prompt: string) => void;
 }
 
-export const PromptAgentBox = ({ workflowId, image, seconds = 5, kind = 'video', onPrompt }: Props) => {
+export const PromptAgentBox = ({ workflowId, image, seconds = 5, kind = 'video', edges, onPrompt }: Props) => {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
@@ -57,6 +60,7 @@ export const PromptAgentBox = ({ workflowId, image, seconds = 5, kind = 'video',
           message,
           seconds,
           kind,
+          edges: kind === 'outpaint' ? edges ?? null : null,
           history: history.map((m) => ({
             role: m.role === 'agent' ? 'assistant' : 'user', content: m.text,
           })),
@@ -77,14 +81,25 @@ export const PromptAgentBox = ({ workflowId, image, seconds = 5, kind = 'video',
   // nothing to say that depends on anything, so asking a model to produce it
   // only bought a round-trip and a chance to invent a room full of bookshelves.
   // With an image the opening turn is worth the call - it has to look first.
+  // Which edges are being extended, as a stable string. The object is rebuilt
+  // on every render, so depending on it directly would re-read the image
+  // continuously; and switching Left to Right has to re-read, because the whole
+  // answer depends on which side it looked at.
+  const edgeSig = kind === 'outpaint'
+    ? (['left', 'top', 'right', 'bottom'] as const)
+        .map((s) => `${s}${edges?.[s] ?? 0}`).join(',')
+    : '';
+
   useEffect(() => {
-    const key = image ?? '__no-image__';
+    const key = `${image ?? '__no-image__'}|${edgeSig}`;
     if (openedFor.current === key) return;
     openedFor.current = key;
     if (!image) {
       setMessages([{
         role: 'agent',
-        text: kind === 'image'
+        text: kind === 'outpaint'
+          ? "Load the picture you want extended and pick an edge — I'll read that side and write what should continue out there."
+          : kind === 'image'
           ? "I'm your prompt agent. Give me a couple of keywords and I'll write the picture for you."
           : "I'm your prompt agent. Give me a couple of keywords and I'll write the scene for you.",
       }]);
@@ -93,7 +108,7 @@ export const PromptAgentBox = ({ workflowId, image, seconds = 5, kind = 'video',
     setMessages([]);
     void turn('', []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [image]);
+  }, [image, edgeSig]);
 
   // The backend answers 503 "No local Ollama text model available." for this
   // case specifically, so it can be told apart from Ollama being down.
@@ -158,7 +173,7 @@ export const PromptAgentBox = ({ workflowId, image, seconds = 5, kind = 'video',
       <div ref={scroller} className="custom-scrollbar min-h-[120px] flex-1 space-y-2 overflow-y-auto px-3 pb-2">
         {messages.length === 0 && !busy && (
           <p className="text-[11px] leading-relaxed text-white/30">
-            {image ? 'Reading your image…' : ''}
+            {image ? (kind === 'outpaint' ? 'Reading that edge…' : 'Reading your image…') : ''}
           </p>
         )}
         {messages.map((m, i) => (
@@ -208,7 +223,11 @@ export const PromptAgentBox = ({ workflowId, image, seconds = 5, kind = 'video',
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
           }}
           rows={1}
-          placeholder={image ? 'What should happen?' : 'red devil girl, laughing…'}
+          placeholder={
+            kind === 'outpaint'
+              ? (image ? 'What continues out there?' : 'load an image first…')
+              : image ? 'What should happen?' : 'red devil girl, laughing…'
+          }
           className="max-h-24 flex-1 resize-none rounded-lg border border-white/10 bg-black/35 px-2.5 py-1.5 text-[12px] text-zinc-100 outline-none transition focus:border-white/25"
         />
         <button
