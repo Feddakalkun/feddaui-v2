@@ -123,6 +123,24 @@ interface SimpleImageCockpitProps {
   /** Finished image, kept in the panel after the run so the result stays visible. */
   resultImage?: string | null;
 
+  /**
+   * Outpaint: how far past each edge to extend, in pixels.
+   *
+   * Without these the page was a txt2img cockpit with the prompt relabelled -
+   * the only settings that decide what outpainting *does* were missing, so the
+   * graph's baked-in 512-to-the-left was the only thing it could ever produce.
+   */
+  showOutpaintSettings?: boolean;
+  outpaintLeft?: number;
+  setOutpaintLeft?: (value: number) => void;
+  outpaintTop?: number;
+  setOutpaintTop?: (value: number) => void;
+  outpaintRight?: number;
+  setOutpaintRight?: (value: number) => void;
+  outpaintBottom?: number;
+  setOutpaintBottom?: (value: number) => void;
+  outpaintFeather?: number;
+  setOutpaintFeather?: (value: number) => void;
   showMaskSettings?: boolean;
   maskFace?: boolean;
   setMaskFace?: (value: boolean) => void;
@@ -211,6 +229,18 @@ export function SimpleImageCockpit({
   previewUrl = null,
   hasOutput = false,
   resultImage = null,
+
+  showOutpaintSettings = false,
+  outpaintLeft = 0,
+  setOutpaintLeft,
+  outpaintTop = 0,
+  setOutpaintTop,
+  outpaintRight = 0,
+  setOutpaintRight,
+  outpaintBottom = 0,
+  setOutpaintBottom,
+  outpaintFeather = 60,
+  setOutpaintFeather,
 
   showMaskSettings = false,
   maskFace = true,
@@ -401,7 +431,11 @@ export function SimpleImageCockpit({
               and sound effects for a still. */}
           <PromptAgentBox
             workflowId={workflowId ?? ''}
-            kind="image"
+            kind={showOutpaintSettings ? 'outpaint' : 'image'}
+            edges={showOutpaintSettings ? {
+              left: outpaintLeft, top: outpaintTop,
+              right: outpaintRight, bottom: outpaintBottom,
+            } : undefined}
             image={uploadedImage ? uploadedImageName ?? null : null}
             onPrompt={setPrompt}
           />
@@ -462,6 +496,86 @@ export function SimpleImageCockpit({
                 placeholder={characterPromptPlaceholder ?? 'Identity phrase'}
                 className="w-full rounded-xl fedda-input px-3 py-2 text-[12px] font-semibold text-white/70 focus:border-white/20"
               />
+            </div>
+          )}
+
+          {showOutpaintSettings && (
+            <div className="cockpit-panel">
+              <div className="cockpit-panel-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span>Extend edges</span>
+                <span style={{ opacity: 0.55 }}>
+                  {uploadedImage
+                    ? `${width + outpaintLeft + outpaintRight}×${height + outpaintTop + outpaintBottom}`
+                    : 'upload a source image'}
+                </span>
+              </div>
+
+              {/* Presets first: the common cases are "make it wider" and "make it
+                  taller", and typing four numbers to say that is a chore. */}
+              <div className="cockpit-aspect-grid" style={{ marginBottom: 8 }}>
+                {([
+                  { label: 'Left', box: [512, 0, 0, 0] },
+                  { label: 'Right', box: [0, 0, 512, 0] },
+                  { label: 'Wider', box: [256, 0, 256, 0] },
+                  { label: 'Taller', box: [0, 256, 0, 256] },
+                  { label: 'All round', box: [256, 256, 256, 256] },
+                ] as Array<{ label: string; box: [number, number, number, number] }>).map(({ label, box }) => {
+                  const active = outpaintLeft === box[0] && outpaintTop === box[1]
+                    && outpaintRight === box[2] && outpaintBottom === box[3];
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      title={`left ${box[0]} · top ${box[1]} · right ${box[2]} · bottom ${box[3]}`}
+                      onClick={() => {
+                        setOutpaintLeft?.(box[0]);
+                        setOutpaintTop?.(box[1]);
+                        setOutpaintRight?.(box[2]);
+                        setOutpaintBottom?.(box[3]);
+                      }}
+                      className={active ? 'is-active' : ''}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="cockpit-number-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+                {([
+                  { key: 'L', value: outpaintLeft, setter: setOutpaintLeft },
+                  { key: 'T', value: outpaintTop, setter: setOutpaintTop },
+                  { key: 'R', value: outpaintRight, setter: setOutpaintRight },
+                  { key: 'B', value: outpaintBottom, setter: setOutpaintBottom },
+                ]).map(({ key, value, setter }) => (
+                  <label key={key}>
+                    <span>{key}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      step={64}
+                      value={value}
+                      onChange={(event) => setter?.(Math.max(0, Number(event.target.value) || 0))}
+                    />
+                  </label>
+                ))}
+              </div>
+
+              <div className="cockpit-panel-head" style={{ marginTop: 8 }}>
+                <span>Blend</span>
+                <span>{outpaintFeather}px</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={200}
+                step={4}
+                value={outpaintFeather}
+                onChange={(event) => setOutpaintFeather?.(Number(event.target.value))}
+              />
+              <div className="cockpit-size-locked" style={{ marginTop: 6 }}>
+                How far the new area fades into the original. Too low leaves a seam.
+              </div>
             </div>
           )}
 
@@ -584,7 +698,11 @@ export function SimpleImageCockpit({
                   ratio chips here would just fight the upload. */}
               {requireImageUpload ? (
                 <div className="cockpit-size-locked">
-                  {uploadedImage ? 'Matches the source image' : 'Set by the source image'}
+                  {showOutpaintSettings
+                    ? (uploadedImage
+                        ? 'Source size — the result grows by what you extend'
+                        : 'Set by the source image')
+                    : (uploadedImage ? 'Matches the source image' : 'Set by the source image')}
                 </div>
               ) : (
               <div className="cockpit-aspect-grid">
@@ -601,14 +719,27 @@ export function SimpleImageCockpit({
                 ))}
               </div>
               )}
+              {/* Outpaint has no width/height input in its graph - the canvas is
+                  the source plus the padding. Editable boxes here changed
+                  nothing at all, so they are read-only in that mode. */}
               <div className="cockpit-number-grid">
                 <label>
                   <span>W</span>
-                  <input type="number" value={width} onChange={(event) => setWidth(Number(event.target.value))} />
+                  <input
+                    type="number"
+                    value={width}
+                    readOnly={showOutpaintSettings}
+                    onChange={(event) => setWidth(Number(event.target.value))}
+                  />
                 </label>
                 <label>
                   <span>H</span>
-                  <input type="number" value={height} onChange={(event) => setHeight(Number(event.target.value))} />
+                  <input
+                    type="number"
+                    value={height}
+                    readOnly={showOutpaintSettings}
+                    onChange={(event) => setHeight(Number(event.target.value))}
+                  />
                 </label>
               </div>
             </div>

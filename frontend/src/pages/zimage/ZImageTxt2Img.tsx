@@ -72,6 +72,8 @@ interface Txt2ImgPageConfig {
   characterPromptPlaceholder?: string;
   promptPresets?: SimpleImagePromptPreset[];
 
+  /** Outpaint: show the extend-edges panel and send left/top/right/bottom. */
+  showOutpaintSettings?: boolean;
   showMaskSettings?: boolean;
   maskFace?: boolean;
   setMaskFace?: (value: boolean) => void;
@@ -167,6 +169,7 @@ export const Txt2ImgPage = ({
   characterPromptPlaceholder,
   promptPresets = [],
 
+  showOutpaintSettings = false,
   showMaskSettings = false,
   maskFace: propMaskFace,
   setMaskFace: propSetMaskFace,
@@ -201,6 +204,14 @@ export const Txt2ImgPage = ({
   const [characterPrompt, setCharacterPrompt] = usePersistentState(key('character_prompt'), '');
   const [width, setWidth] = usePersistentState(key('width_v2'), 1920);
   const [height, setHeight] = usePersistentState(key('height_v2'), 1088);
+
+  // Outpaint padding, in pixels per edge. Symmetric widening is the common case,
+  // so that is the default rather than the graph's left-only 512.
+  const [outpaintLeft, setOutpaintLeft] = usePersistentState(key('outpaint_left'), 256);
+  const [outpaintTop, setOutpaintTop] = usePersistentState(key('outpaint_top'), 0);
+  const [outpaintRight, setOutpaintRight] = usePersistentState(key('outpaint_right'), 256);
+  const [outpaintBottom, setOutpaintBottom] = usePersistentState(key('outpaint_bottom'), 0);
+  const [outpaintFeather, setOutpaintFeather] = usePersistentState(key('outpaint_feather'), 60);
   const [steps, setSteps] = usePersistentState(key('steps'), defaultSteps);
   const [cfg, setCfg] = usePersistentState(key('cfg'), defaultCfg);
   const [strength, setStrength] = usePersistentState(key('strength'), defaultStrength);
@@ -586,6 +597,14 @@ export const Txt2ImgPage = ({
 
       if (enableLoras && activeLoras.length > 0) params.loras = activeLoras;
 
+      if (showOutpaintSettings) {
+        params.left = outpaintLeft;
+        params.top = outpaintTop;
+        params.right = outpaintRight;
+        params.bottom = outpaintBottom;
+        params.feathering = outpaintFeather;
+      }
+
       if (showMaskSettings) {
         params.mask_face = maskFace;
         params.mask_hair = maskHair;
@@ -952,6 +971,18 @@ export const Txt2ImgPage = ({
         onGenerate={promptMode === 'multiple' && parsedBatchPrompts.length > 1 ? handleBatchStart : handleGenerate}
         onCancel={handleCancel}
         resultImage={currentImage}
+
+        showOutpaintSettings={showOutpaintSettings}
+        outpaintLeft={outpaintLeft}
+        setOutpaintLeft={setOutpaintLeft}
+        outpaintTop={outpaintTop}
+        setOutpaintTop={setOutpaintTop}
+        outpaintRight={outpaintRight}
+        setOutpaintRight={setOutpaintRight}
+        outpaintBottom={outpaintBottom}
+        setOutpaintBottom={setOutpaintBottom}
+        outpaintFeather={outpaintFeather}
+        setOutpaintFeather={setOutpaintFeather}
 
         showMaskSettings={showMaskSettings}
         maskFace={maskFace}

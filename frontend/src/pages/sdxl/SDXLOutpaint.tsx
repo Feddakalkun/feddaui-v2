@@ -30,6 +30,7 @@ export const SDXLOutpaint = () => {
       showCfgControl
       minCfg={1}
       maxCfg={15}
+      showOutpaintSettings
       characterPromptLabel="Outpaint Prompt"
       characterPromptPlaceholder="Describe what to extend the image with (e.g. continue the scene, add background)"
     />

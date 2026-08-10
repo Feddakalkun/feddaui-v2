@@ -86,6 +86,7 @@
       ],
       "workflows": [
         "z-image-dual-lora",
+        "z-image-dual-lora-v2",
         "z-image-2loras-v2",
         "z-image-dual-lora-upload",
         "z-image-dual-base",
@@ -96,7 +97,11 @@
       "custom_nodes": [
         "comfyui_controlnet_aux",
         "ComfyUI-Impact-Pack",
-        "ComfyUI-Impact-Subpack"
+        "ComfyUI-Impact-Subpack",
+        "ComfyUI-Florence2",
+        "ComfyUI-segment-anything-2",
+        "ComfyUI_essentials",
+        "was-node-suite-comfyui"
       ],
       "models": [
         "Z-Image-Turbo-Fun-Controlnet-Union.safetensors"
@@ -132,6 +137,7 @@
         "ComfyUI_LayerStyle_Advance",
         "ComfyUI-Lotus",
         "ComfyUI-Inpaint-CropAndStitch",
+        "comfyui-inpaint-nodes",
         "ComfyUI-KJNodes",
         "ComfyUI-Styles_CSV_Loader",
         "ComfyUI-segment-anything-2",
@@ -140,7 +146,9 @@
       "models": [
         "controlnet-union-sdxl-1.0.safetensors",
         "realism-sdxl.safetensors",
-        "lotus-depth-g-v2-0.safetensors"
+        "lotus-depth-g-v2-0.safetensors",
+        "fooocus_inpaint_head.pth",
+        "inpaint_v26.fooocus.patch"
       ],
       "notes": "SDXL inpaint, outpaint, and ControlNet depth/openpose workflows."
     },

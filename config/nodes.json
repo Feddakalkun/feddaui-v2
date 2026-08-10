@@ -145,6 +145,12 @@
     "note": "InpaintCropImproved + InpaintStitchImproved. See https://github.com/lquesada/ComfyUI-Inpaint-CropAndStitch"
   },
   {
+    "name": "comfyui-inpaint-nodes",
+    "url": "https://github.com/Acly/comfyui-inpaint-nodes.git",
+    "folder": "comfyui-inpaint-nodes",
+    "note": "Fooocus inpaint/outpaint nodes: INPAINT_LoadFooocusInpaint, INPAINT_ApplyFooocusInpaint, INPAINT_VAEEncodeInpaintConditioning, INPAINT_MaskedFill, INPAINT_MaskedBlur. Needed by sdxl_outpaint; distinct from ComfyUI-Inpaint-CropAndStitch."
+  },
+  {
     "name": "ComfyUI-Frame-Interpolation",
     "url": "https://github.com/Fannovel16/ComfyUI-Frame-Interpolation.git",
     "folder": "ComfyUI-Frame-Interpolation",
