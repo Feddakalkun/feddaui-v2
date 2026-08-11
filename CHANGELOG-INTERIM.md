@@ -1461,3 +1461,46 @@ present, footer reporting the build time; thumbnail endpoint measured cold and
 warm; traversal blocked. `npx vite build` clean.
 
 **Not verified:** no prompt has been picked and generated from through the UI.
+
+## 2026-08-11 — the memory is now used, which was the whole point
+
+**Changed:** `agent_memory.recall()` and `as_prompt_block()`; `_memory_block()`
+in `server.py`, wired into the image-edit agent and the prompt agent.
+
+**Selection, not injection.** The old code put the whole memory list in the
+prompt — fine at one entry, wrong at 200. Two kinds of relevance, treated
+differently:
+
+- **standing preferences** apply whatever is being asked, so any preference seen
+  more than once is always included. They are instructions, not trivia.
+- **everything else** is ranked by cosine against what the user just said, with a
+  0.45 floor. Below that the match is noise, and filling a prompt with unrelated
+  facts is how a memory system starts making an agent *worse*.
+
+Selection is in now, while the list is still small enough to read and check. A
+memory system that only works while it is small is not one.
+
+**It discriminates, which is the part worth proving:**
+
+| message | memories selected |
+|---|---|
+| "make her hair blue" | 8 — the standing preference plus portrait prompts |
+| "generate the rabbit ear girl again" | 12 — **the ×43 rabbit prompt surfaces** |
+| "how do I export a video" | **2** — standing preferences only, nothing dragged in |
+
+The third row is the one that matters. An unrelated question pulls in nothing
+unrelated.
+
+**Verified in the real prompt:** capturing the prompt agent's system instruction
+shows the block present, with the ×43 prompt in it, under a line telling the
+model to use it and never recite it back. That is the "you wanna generate that
+again?" case — the agent can now see that a prompt was run forty-three times.
+
+**Fails soft on purpose.** `_memory_block` returns an empty string on any error:
+a turn that fails because it could not remember is worse than one that simply
+does not remember.
+
+**Still imperfect:** "The user asked for an image of Hello Kitty" scored above
+the floor for a rabbit query. One weak match in twelve is tolerable; a relevance
+pass over the extracted episodes would fix the cause, which is that several of
+them should never have been stored as memories.

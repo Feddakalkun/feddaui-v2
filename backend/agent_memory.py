@@ -260,6 +260,58 @@ def derive_from_library(lib: Dict[str, Any], min_runs: int = 4) -> List[Dict[str
     return out
 
 
+def recall(path: Path, query: str = "", limit: int = 12,
+           ollama_url: str = "") -> List[Dict[str, Any]]:
+    """The memories worth putting in front of the model for this message.
+
+    Two kinds of relevance, and they are not the same thing:
+
+      * standing preferences apply whatever is being asked, so the ones seen
+        more than once are always included - they are instructions, not trivia;
+      * everything else is ranked against what the user just said, which is what
+        the vectors are for. Without them, fall back to how often each was seen.
+
+    All 25 would fit in a prompt today. They will not at 200, and a memory system
+    that only works while it is small is not one - so selection happens now,
+    while it can be checked against a list small enough to read.
+    """
+    data = load(path)
+    rows = data["memories"]
+    if not rows:
+        return []
+
+    standing = [m for m in rows if m.get("kind") == "preference" and int(m.get("seen", 1)) > 1]
+    rest = [m for m in rows if m not in standing]
+
+    qvec = embed([query], ollama_url)[:1] if (query.strip() and ollama_url) else []
+    if qvec and qvec[0]:
+        scored = [(cosine(m.get("vec") or [], qvec[0]), m) for m in rest]
+        scored.sort(key=lambda p: -p[0])
+        # Below this the match is noise, and filling the prompt with unrelated
+        # facts is how a memory system starts making an agent worse.
+        picked = [m for score, m in scored if score >= 0.45]
+    else:
+        picked = sorted(rest, key=lambda m: (-int(m.get("seen", 1)), -float(m.get("created", 0))))
+
+    out = standing + picked
+    return out[:limit]
+
+
+def as_prompt_block(memories: List[Dict[str, Any]]) -> str:
+    """Render for a system prompt, grouped so the kinds read differently."""
+    if not memories:
+        return ""
+    order = {"preference": 0, "fact": 1, "entity": 2, "episode": 3}
+    rows = sorted(memories, key=lambda m: order.get(m.get("kind", "fact"), 9))
+    lines = []
+    for m in rows:
+        mark = {"preference": "prefers", "fact": "fact", "entity": "returns to",
+                "episode": "earlier"}.get(m.get("kind", "fact"), "fact")
+        lines.append(f"- ({mark}) {m['text']}")
+    return ("What you know about this user, from earlier sessions. Use it when it "
+            "helps and never recite it back:\n" + "\n".join(lines) + "\n\n")
+
+
 def transcript(messages: List[Dict[str, Any]], limit_chars: int = 12000) -> str:
     """Flatten a stored conversation into something a model can read.
 

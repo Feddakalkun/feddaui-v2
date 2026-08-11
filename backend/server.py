@@ -559,6 +559,23 @@ async def agent_memory_derive(min_runs: int = 4):
     return {"success": True, "derived": len(found), **stats}
 
 
+def _memory_block(query: str = "") -> str:
+    """Memories relevant to this message, rendered for a system prompt.
+
+    Fails to an empty string: an agent has to keep working when the store is
+    missing or the embedder is down. A turn that errors because it could not
+    remember anything is worse than one that simply does not remember.
+    """
+    import agent_memory as _am
+
+    try:
+        picked = _am.recall(AGENT_MEMORY_FILE, query, limit=12, ollama_url=OLLAMA_URL)
+        return _am.as_prompt_block(picked)
+    except Exception as exc:  # noqa: BLE001
+        print(f"[MEMORY] recall failed, continuing without: {exc}")
+        return ""
+
+
 class MemoryExtractRequest(BaseModel):
     session_id: Optional[str] = None      # one session, or every one when absent
     limit: int = 25                       # cap a full sweep
@@ -3605,8 +3622,10 @@ async def chat_edit_turn(req: ChatEditRequest):
         "inside FEDDA. You are chatting with the user about an image you are "
         "editing together, and you can perform one edit per turn.\n"
         f"Your manner: {persona.get('style', '')}\n\n"
-        + (("What you remember about how this user likes to work:\n"
-            + "\n".join(f"- {m}" for m in memory) + "\n\n") if memory else "")
+        # The old flat list held one line after months and went in whole.
+        # This selects against what was just said, so the block stays useful
+        # at 200 memories instead of only at one.
+        + _memory_block(user_message)
         + "Reply with a single JSON object and nothing else:\n"
         '{"reply": "<short friendly line to the user>", '
         '"edit": "<literal Qwen edit instruction, or null>", '
@@ -4531,6 +4550,7 @@ async def prompt_agent_turn(req: PromptAgentRequest):
     # still page answered "a teenage girl" with "An adolescent girl." Nothing had
     # asked for more, and the persona itself says "Short lines".
     system += "\n".join(rules) + "\n\n"
+    system += _memory_block(req.message or "")
     system += (
         "Reply with the {what} itself and nothing else. No preamble, no "
         "quotes, no JSON, no commentary, no questions.\n\n"
