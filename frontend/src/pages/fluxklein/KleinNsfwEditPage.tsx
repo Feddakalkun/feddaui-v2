@@ -12,9 +12,14 @@ import { WorkflowPage } from '../../components/layout/WorkflowPage';
  * CLIPTextEncodes - those take their text through Text Concatenate, which also
  * mixes in two Load Styles CSV entries the graph carries.
  *
- * Not surfaced: the Power Lora Loader (rgthree) on node 1275. The app's `loras`
- * input type is written for LoraLoaderModelOnly, and pointing it at a different
- * node class would be a control that silently does nothing.
+ * The Power Lora Loader (rgthree) on node 1275 sits on the Z-Image side: its
+ * model comes from z_image_turbo and it feeds the refine sampler, not the Klein
+ * edit. So these are Z-Image LoRAs; Klein ones would be the wrong shape.
+ *
+ * I first left it unwired, on the reasoning that the `loras` input type was
+ * written for LoraLoaderModelOnly. That was wrong - workflow_service dispatches
+ * on class_type and has a dedicated rgthree branch, and sdxl-inpaint-automask
+ * already registers a Power Lora node exactly this way.
  */
 export const KleinNsfwEditPage = () => (
   <WorkflowPage
@@ -35,6 +40,11 @@ export const KleinNsfwEditPage = () => (
       rows: 4,
     }}
     promptBuilder={{ kind: 'image' }}
+    loraArrayKey="loras"
+    loras={[
+      { key: 'refine1', label: 'Refine LoRA', match: ['zimage', 'z-image', 'ZImage'] },
+      { key: 'refine2', label: 'Refine LoRA 2', match: ['zimage', 'z-image', 'ZImage'] },
+    ]}
     settings={[
       { kind: 'slider', key: 'steps', label: 'Steps', min: 2, max: 20, defaultValue: 5 },
       { kind: 'seed', key: 'seed' },

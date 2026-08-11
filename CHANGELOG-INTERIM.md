@@ -908,3 +908,43 @@ is worth doing only while the feature is hours old — which it is.
 **Also learned:** `tts-inworld-1-5-max` rejects mp3 but accepts wav. Output
 formats are per-model. The app sends wav everywhere so nothing hits it, but a
 format picker would have to read each model's own list.
+
+## 2026-08-11 — correction: the Power Lora node should have been wired
+
+**Changed:** `loras` registered against node 1275 for `klein-nsfw-edit`, and a
+two-slot LoRA picker on `KleinNsfwEditPage`.
+
+**I got this wrong yesterday's-way.** When registering the graph I checked two
+existing `type: "loras"` registrations, found `LoraLoaderModelOnly` behind both,
+and concluded the input type was written for that class — so I deliberately left
+the Power Lora Loader (rgthree) unwired and wrote that reasoning into the page
+comment and the changelog.
+
+Two samples, and I generalised from them. `workflow_service.py:208` dispatches on
+`class_type` and has a **dedicated rgthree branch** that fills `lora_N` slots.
+`sdxl-inpaint-automask` has registered a Power Lora node exactly this way all
+along — its label even says so. The user spotted it and named why it was easy to
+miss: the node ships with no LoRAs enabled, so it reads as inert.
+
+**Which LoRAs belong there:** node 1275 takes its model from
+`z_image_turbo_bf16` and feeds `ModelSamplingAuraFlow` on the refine sampler —
+not the Klein edit. So they are **Z-Image** LoRAs. Klein ones would be the wrong
+dimensions, the same failure the flux2klein prefix filter exists to prevent.
+Labelled "Refine LoRAs (Z-Image)" and matched on `zimage`/`z-image` so the picker
+cannot offer the wrong family.
+
+**The other three graphs, checked properly this time:**
+- `KLEIN-NSFW-v2` has **no** LoRA node of any kind — nothing to wire without
+  editing the graph.
+- `KLEIN-9B-FACESWAP` node 24 and `firered-v2` node 151 are `LoraLoaderModelOnly`
+  holding the bfs-head and the Lightning speed LoRA. Those are load-bearing parts
+  of what the workflow *is*; pointing a user slot at them would swap out the head
+  LoRA on a head-swap workflow. Their strength stays exposed, their identity does
+  not.
+
+**Verified:** `audit_wiring.py` clean on the new input; `npx vite build` clean.
+Not verified: no run has actually injected a LoRA through this node.
+
+**The lesson worth keeping:** two samples are not a survey. The question was
+"what does the backend do with this type", and the answer was one grep away in
+the code that consumes it — not in two examples of how it happens to be used.

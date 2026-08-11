@@ -4319,6 +4319,11 @@
         "type": "number",
         "label": "CFG"
       },
+      "loras": {
+        "node_id": "1275",
+        "type": "loras",
+        "label": "Refine LoRAs (Z-Image)"
+      },
       "shift": {
         "node_id": "1278",
         "input_key": "shift",
