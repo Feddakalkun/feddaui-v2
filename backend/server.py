@@ -3398,12 +3398,81 @@ async def ollama_generate_prompt(req: OllamaPromptRequest):
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
+class VisionProviderRequest(BaseModel):
+    provider: Optional[str] = None        # "ollama" or "venice"
+    venice_model: Optional[str] = None
+
+
+@app.get("/api/settings/vision-provider")
+async def get_vision_provider():
+    data = load_settings()
+    return {
+        "success": True,
+        "provider": (data.get("vision_provider") or "ollama").strip() or "ollama",
+        "venice_model": (data.get("venice_vision_model") or "").strip()
+                        or venice_service.DEFAULT_VISION_MODEL,
+        "venice_configured": bool((data.get("venice_api_key") or "").strip()),
+    }
+
+
+@app.post("/api/settings/vision-provider")
+async def set_vision_provider(req: VisionProviderRequest):
+    """Which captioner reads an image. Local stays the default, deliberately.
+
+    Venice is an option, not a replacement: it costs money per call and the app
+    must keep working without it.
+    """
+    data = load_settings()
+    if req.provider is not None:
+        choice = req.provider.strip().lower()
+        if choice not in ("ollama", "venice"):
+            raise HTTPException(status_code=400, detail="provider must be 'ollama' or 'venice'")
+        data["vision_provider"] = choice
+    if req.venice_model is not None:
+        data["venice_vision_model"] = req.venice_model.strip()
+    save_settings(data)
+    return await get_vision_provider()
+
+
 @app.post("/api/ollama/caption")
 async def ollama_caption_image(file: UploadFile = File(...), context: str = Form("zimage")):
-    """Caption an uploaded image using an Ollama vision model."""
+    """Caption an uploaded image with whichever vision provider is selected.
+
+    The path still says ollama because the frontend calls it by that name; the
+    provider is a setting. Ollama is the default and stays it - Venice charges
+    per call, so it is opt-in.
+
+    Why Venice is worth offering at all: joycaption, the preferred local
+    captioner, ignores its prompt entirely, which makes
+    `_caption_prompt_for_context` and every profile in prompt_profiles.json inert
+    while it is selected. A model that reads its instruction makes those real.
+
+    A Venice failure is reported as a Venice failure. Falling back to the local
+    model silently would hide a paid path that stopped working, and would leave
+    the user wondering why the captions changed character.
+    """
     import base64, uuid as _uuid
 
     img_bytes = await file.read()
+
+    settings = load_settings()
+    if (settings.get("vision_provider") or "ollama").strip().lower() == "venice":
+        try:
+            text, used = venice_service.caption(
+                (settings.get("venice_api_key") or "").strip(),
+                base64.b64encode(img_bytes).decode(),
+                _caption_prompt_for_context(context),
+                (settings.get("venice_vision_model") or "").strip(),
+                file.content_type or "image/png",
+            )
+            return {"success": True, "caption": _clean_caption_text(text),
+                    "model": f"{used} (venice)"}
+        except venice_service.VeniceError as exc:
+            raise HTTPException(
+                status_code=502,
+                detail=f"Venice captioning failed ({exc.kind}): {exc.detail} "
+                       f"Switch the vision provider back to local in Ollama Models.")
+
     model = _get_ollama_vision_model()
     if not model:
         try:

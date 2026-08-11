@@ -662,3 +662,52 @@ the DOM before doubting the code.
 
 **Not verified:** no image was generated — that spends credit against a $2.01
 balance, and it is the user's to spend.
+
+## 2026-08-11 — Venice step 3: vision as a choice, with local staying the default
+
+**Changed:** `venice_service.caption()`; `/api/settings/vision-provider` (GET and
+POST) and the provider branch in `/api/ollama/caption`; the captioning control on
+`OllamaModelsPage.tsx`.
+
+**Why this one mattered.** `CLAUDE.md` records that joycaption ignores its
+prompt, which means `_caption_prompt_for_context` and every profile in
+`prompt_profiles.json` are inert whenever it is the selected captioner — the
+workarounds in `server.py` (crop the image to steer it, have the text model
+rewrite the tag list) exist because of that. A vision model that reads its
+instruction is what makes those profiles real. That is a repair, not a feature.
+
+**The user's constraint, and how it is honoured:** *"jeg skal ikke la venice
+styre appen."* Local is the default and stays it. Venice is opt-in per install,
+the Venice button is disabled until a key exists, and **a Venice failure is
+reported as a Venice failure** — 502 naming the error kind and telling the user
+how to switch back. A silent fallback to local would hide a paid path that
+stopped working and leave the captions quietly changing character.
+
+**Model default: `venice-uncensored-1-2`.** Chosen for three reasons, not one.
+Uncensored, because that is precisely why joycaption was picked locally and a
+captioner that refuses is useless here. Cheapest of the uncensored vision models
+at $0.20/M input. And it does not reason — the reasoning models return
+`content: null` with the text in `reasoning_content`, which would hand back an
+empty caption. `caption()` raises `empty_answer` naming that case rather than
+returning nothing. The picker lists only models whose `supportsVision` is true —
+64 of them — so it cannot be set to something that fails on use.
+
+**Verified against live Venice, same image through both paths:**
+- local: `user-v4/joycaption-beta:latest` → *"photorealistic digital art of a
+  woman in sharp focus wearing a pink fur coat…"* — its own house style
+- Venice: `venice-uncensored-1-2 (venice)` → a description that followed the
+  instruction it was given
+- an earlier direct test asked for "under 60 words, output only the prompt" and
+  got 33 words, no preamble, including the text rendered in the image
+- the setting flips both ways and was left on `ollama`
+- `npx vite build` clean
+
+**Needs a backend restart before the UI works.** The control renders but the
+Venice button stays disabled and `/api/settings/vision-provider` answers 404,
+because the running process predates the endpoint. `server.py` has no reload.
+The in-process tests above used the fresh module, which is why they passed.
+
+**Not verified:** no caption was produced through the browser UI, only through
+the endpoint. And nothing measures whether Venice captions produce better
+generations than joycaption ones — only that they follow the instruction, which
+joycaption demonstrably does not.

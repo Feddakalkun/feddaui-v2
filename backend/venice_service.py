@@ -143,6 +143,56 @@ def chat_stream(key: str, payload: Dict[str, Any]):
             yield chunk
 
 
+# Uncensored is the point: joycaption was picked locally because it describes
+# explicit imagery, and a captioner that refuses is useless here. This one also
+# does not reason, so `content` is actually populated rather than left null with
+# the text in `reasoning_content`. Cheapest of the uncensored vision models at
+# $0.20/M input.
+DEFAULT_VISION_MODEL = "venice-uncensored-1-2"
+
+
+def caption(key: str, image_b64: str, instruction: str,
+            model: str = "", mime: str = "image/png") -> Tuple[str, str]:
+    """Describe an image, following the instruction it is given.
+
+    This is the reason the key had to leave the browser. joycaption ignores its
+    prompt - `CLAUDE.md` says so, and the workarounds are in this file - which
+    means `_caption_prompt_for_context` and every profile in
+    prompt_profiles.json have no effect while it is the selected captioner. A
+    model that reads its instruction makes those profiles real.
+
+    Returns (text, model_used) so the caller can say which one answered.
+    """
+    used = (model or "").strip() or DEFAULT_VISION_MODEL
+    payload = {
+        "model": used,
+        "messages": [{
+            "role": "user",
+            "content": [
+                {"type": "text", "text": instruction},
+                {"type": "image_url",
+                 "image_url": {"url": f"data:{mime};base64,{image_b64}"}},
+            ],
+        }],
+        "max_tokens": 400,
+        "temperature": 0.2,
+    }
+    data = call(key, "POST", "/chat/completions", payload, timeout=TIMEOUT_SLOW)
+    choice = ((data.get("choices") or [{}])[0].get("message") or {})
+    text = (choice.get("content") or "").strip()
+    if not text:
+        # A reasoning model can spend the whole budget thinking and return null
+        # content. Saying so beats handing back an empty caption that looks like
+        # the picture had nothing in it.
+        if (choice.get("reasoning_content") or "").strip():
+            raise VeniceError(
+                "empty_answer",
+                f"{used} reasoned but never wrote a caption. Pick a non-reasoning "
+                f"vision model, such as {DEFAULT_VISION_MODEL}.")
+        raise VeniceError("empty_answer", f"{used} returned an empty caption.")
+    return text, used
+
+
 def image_generate(key: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     return call(key, "POST", "/image/generate", payload, timeout=TIMEOUT_SLOW)
 

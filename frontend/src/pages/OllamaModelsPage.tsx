@@ -30,6 +30,15 @@ export const OllamaModelsPage = () => {
   const [effText, setEffText] = useState<string | null>(null);
   const [effVision, setEffVision] = useState<string | null>(null);
 
+  // Which service reads an image. Local is the default and stays it: Venice
+  // charges per call, so it is opt-in and the app has to work without it.
+  // It is offered at all because joycaption ignores its prompt, which makes
+  // every profile in prompt_profiles.json inert on the caption path.
+  const [visionProvider, setVisionProvider] = useState<'ollama' | 'venice'>('ollama');
+  const [veniceVisionModel, setVeniceVisionModel] = useState('');
+  const [veniceConfigured, setVeniceConfigured] = useState(false);
+  const [veniceVisionOptions, setVeniceVisionOptions] = useState<string[]>([]);
+
   const loadDefaults = () => {
     fetch(`${BACKEND_API.BASE_URL}/api/settings/ollama-defaults`)
       .then((r) => r.json())
@@ -41,6 +50,49 @@ export const OllamaModelsPage = () => {
       .catch(() => {});
   };
   useEffect(loadDefaults, []);
+
+  useEffect(() => {
+    fetch(`${BACKEND_API.BASE_URL}/api/settings/vision-provider`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d.success) return;
+        setVisionProvider(d.provider === 'venice' ? 'venice' : 'ollama');
+        setVeniceVisionModel(d.venice_model || '');
+        setVeniceConfigured(!!d.venice_configured);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Only the models that can actually see. Offering the rest would be a control
+  // that fails on use rather than one that cannot be set wrong.
+  useEffect(() => {
+    if (!veniceConfigured) return;
+    fetch(`${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.VENICE_MODELS}?type=text`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.success === false) return;
+        const ids = (d?.data || [])
+          .filter((m: any) => m?.model_spec?.capabilities?.supportsVision)
+          .map((m: any) => String(m.id));
+        if (ids.length) setVeniceVisionOptions(ids);
+      })
+      .catch(() => {});
+  }, [veniceConfigured]);
+
+  const saveVisionProvider = async (body: Record<string, string>) => {
+    try {
+      const r = await fetch(`${BACKEND_API.BASE_URL}/api/settings/vision-provider`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const d = await r.json();
+      if (d.success) {
+        setVisionProvider(d.provider === 'venice' ? 'venice' : 'ollama');
+        setVeniceVisionModel(d.venice_model || '');
+      }
+    } catch { /* backend offline */ }
+  };
 
   const setDefault = async (kind: 'text' | 'vision', name: string) => {
     const body = kind === 'text' ? { text_model: name } : { vision_model: name };
@@ -86,8 +138,15 @@ export const OllamaModelsPage = () => {
           </span>
           <span className="flex items-center gap-2 text-white/70">
             <ScanEye className="h-3.5 w-3.5 text-cyan-300" />
-            Vision uses: <b className="text-cyan-200">{effVision || 'none installed'}</b>
-            {prefVision ? <span className="text-white/35">(your pick)</span> : <span className="text-white/35">(auto)</span>}
+            Vision uses:{' '}
+            {visionProvider === 'venice' ? (
+              <b className="text-sky-300">{veniceVisionModel} (Venice)</b>
+            ) : (
+              <>
+                <b className="text-cyan-200">{effVision || 'none installed'}</b>
+                {prefVision ? <span className="text-white/35">(your pick)</span> : <span className="text-white/35">(auto)</span>}
+              </>
+            )}
           </span>
           {(prefText || prefVision) && (
             <button
@@ -97,6 +156,44 @@ export const OllamaModelsPage = () => {
               Reset to auto
             </button>
           )}
+        </div>
+
+        <div className="rounded-lg border border-white/10 bg-[#0d0f16] p-4">
+          <div className="flex flex-wrap items-center gap-3 text-xs">
+            <span className="font-semibold uppercase tracking-[1px] text-white/50">Image captioning</span>
+            <div className="flex overflow-hidden rounded-lg border border-white/10">
+              {(['ollama', 'venice'] as const).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => { if (p !== visionProvider) void saveVisionProvider({ provider: p }); }}
+                  disabled={p === 'venice' && !veniceConfigured}
+                  className={`px-3 py-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-35 ${
+                    visionProvider === p ? 'bg-cyan-500/20 text-cyan-200' : 'text-white/50 hover:text-white/80'
+                  }`}
+                >
+                  {p === 'ollama' ? 'Local (Ollama)' : 'Venice'}
+                </button>
+              ))}
+            </div>
+            {visionProvider === 'venice' && (
+              <select
+                value={veniceVisionModel}
+                onChange={(e) => void saveVisionProvider({ venice_model: e.target.value })}
+                className="rounded-lg border border-white/10 bg-black px-2 py-1.5 text-white/80"
+              >
+                {(veniceVisionOptions.length ? veniceVisionOptions : [veniceVisionModel]).map((id) => (
+                  <option key={id} value={id}>{id}</option>
+                ))}
+              </select>
+            )}
+          </div>
+          <p className="mt-2 text-[11px] leading-relaxed text-white/40">
+            {!veniceConfigured
+              ? 'Venice needs an API key - set one in the top bar to enable it.'
+              : visionProvider === 'venice'
+                ? 'Venice reads the instruction it is given, so the per-workflow caption profiles apply. It costs credit per image, and a failure is reported rather than quietly falling back to local.'
+                : 'Local costs nothing and works offline. Note that joycaption ignores its prompt, so the per-workflow caption profiles have no effect while it is the chosen model.'}
+          </p>
         </div>
 
         <section className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
