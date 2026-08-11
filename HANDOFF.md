@@ -146,10 +146,14 @@ Nine commits, `37e5792..6e6ba83`. Newest first.
 
 ### Known, deliberately not fixed
 
-- **`Fedda_hub_v2.0\repo`** (i.e. `H:\Fedda-Hub\Fedda_hub_v2.0\repo`) is an old
-  second clone, last measured **192 commits ahead and 189 behind**. The user's
-  decision is to leave it alone. Work in `H:\Fedda-Hub\290726\app`. Never
-  bulk-copy between them; they diverge on base and line endings.
+- **`Fedda_hub_v2.0\repo`** (i.e. `H:\Fedda-Hub\Fedda_hub_v2.0\repo`) is the
+  repository as it stood **before the clean-slate reset** — an unrelated history
+  (2026-07-03 to 07-24) pointing at the same remote. This entry previously said
+  "192 ahead and 189 behind" and that leaving it alone was the user's decision.
+  Both were wrong: git prints those numbers for two trees with no common
+  ancestor, and the user had never been told the folder existed. Its push URL was
+  disabled on 2026-08-11 after he asked. Work in `H:\Fedda-Hub\290726\app`; never
+  bulk-copy between them.
 
 ---
 

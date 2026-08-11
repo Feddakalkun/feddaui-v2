@@ -478,3 +478,38 @@ It changes nothing here — checked afterwards: neither pack contains a shell
 script, a Makefile or anything else that CRLF breaks, and the two packs vendored
 before mine are stored exactly the same way. But the claim as written was wrong,
 and the next person should not rely on it.
+
+## 2026-08-11 — the second clone: what it actually is, and its push URL disabled
+
+**Changed:** nothing in the app. `git remote set-url --push origin
+DISABLED-old-clone-do-not-push` in `H:\Fedda-Hub\Fedda_hub_v2.0\repo`, at the
+user's request. `CLAUDE.md` and `HANDOFF.md` corrected.
+
+**Why:** the user asked what that folder is and whether it could do damage. He
+had never been told it existed — which means `HANDOFF.md`'s claim that leaving it
+alone was "the user's decision" was attributing a decision to him he never made.
+I had repeated that claim without checking it.
+
+**What it actually is:** the repository as it stood before the clean-slate reset.
+`git merge-base` between it and `origin/main` returns **nothing** — the histories
+are unrelated. Its runs 2026-07-03 ("v2.0 clean baseline") to 2026-07-24; the
+current one begins 2026-07-29 ("Fix model downloads end-to-end"). So on about
+29 July a fresh history was force-pushed over `main`, and this folder is the tree
+from before. "192 ahead, 189 behind" is what git prints for two unrelated trees;
+it reads like a diverged branch and is not one.
+
+**The risk, precisely:** a normal `push` is rejected, and `pull` refuses to merge
+unrelated histories. Both fail safely. **`push --force` does not.** It would put
+the July tree on `origin/main`, and since `update.bat` runs `git reset --hard
+origin/main`, every install downgrades three weeks on its next update. One
+command, and the push URL and credentials were both in place. That is now closed:
+push fails immediately with a message naming the reason, fetch still works.
+
+**Verified:** `git push --dry-run` from that folder fails with "'DISABLED-old-
+clone-do-not-push' does not appear to be a git repository". Nothing in the app
+references the folder — every hit on `Fedda_hub_v2.0` in the tree is the GitHub
+URL, in `update_code.ps1`, `runpod_boot.sh` and the installer.
+
+**Not investigated:** whether those 192 pre-reset commits hold work that never
+made it across the reset. The folder also has two untracked files
+(`backend/run_zimage_task.py`, `backend/server_backup.py`). Left alone.

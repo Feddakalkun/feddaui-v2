@@ -29,9 +29,21 @@ against the backend-served build.
 ## Two clones exist
 
 `H:\Fedda-Hub\290726\app` is what runs and what is synced with GitHub.
-`H:\Fedda-Hub\Fedda_hub_v2.0\repo` is an old clone of the same repository, last
-measured 192 commits ahead and 189 behind. Never bulk-copy between them: they
-diverge on base and on line endings. Work here.
+
+`H:\Fedda-Hub\Fedda_hub_v2.0\repo` is the repository as it was **before the
+clean-slate reset**. It points at the same GitHub remote, but the two histories
+share **no common ancestor** — `git merge-base` returns nothing. Its history runs
+2026-07-03 to 2026-07-24; the current one begins 2026-07-29. Git reports "192
+ahead, 189 behind", which reads like a diverged branch and is not: they are two
+unrelated trees sharing a remote URL.
+
+Nothing in the app references that folder. It is inert unless someone runs git in
+it, and the only dangerous command is `push --force`, which would replace
+`origin/main` with the July tree — and `update.bat` does `git reset --hard
+origin/main` on every install, so that is a downgrade of every user at once. Its
+push URL was therefore disabled on 2026-08-11 (`remote set-url --push origin
+DISABLED-old-clone-do-not-push`); fetch still works. Never bulk-copy between the
+two: they differ on base and on line endings.
 
 ## The recurring defect
 
