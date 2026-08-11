@@ -35,7 +35,7 @@ export const SIDEBAR_SECTIONS: NavSection[] = [
         subitems: [
           { id: 'z-image-txt2img', label: 'Z-Image Txt2Img' },
           { id: 'z-image-dual-lora', label: 'Z-Image Dual LoRA' },
-          { id: 'flux-txt2img', label: 'FLUX2-KLEIN' },
+          { id: 'flux-uncensored-txt2img', label: 'FLUX2-KLEIN' },
           { id: 'qwen-image-ref', label: 'Qwen Reference' },
           { id: 'qwen-multi-angle', label: 'Qwen Multi Angle' },
           { id: 'sdxl-controlnet-depth', label: 'ControlNet Depth' },
@@ -77,7 +77,7 @@ const collectedTabIds = SIDEBAR_SECTIONS.flatMap((section) =>
   section.items.flatMap((item) => [item.id, ...(item.subitems ? collectNodeIds(item.subitems) : [])]),
 );
 
-export const VALID_TABS = new Set<string>([...collectedTabIds, 'z-image', 'flux', 'qwen', 'ltx']);
+export const VALID_TABS = new Set<string>([...collectedTabIds, 'z-image', 'qwen', 'ltx']);
 
 export const PAGE_META: Record<string, PageMeta> = {
   image: { label: 'Image Studio', description: 'Generate and edit images with ComfyUI workflows.', Icon: Sparkles },

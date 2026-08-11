@@ -31,9 +31,7 @@ const IMG_NEGATIVE = 'blurry, low quality, deformed, extra limbs, watermark, tex
 // to belong to this family (null = the workflow has no LoRA support). size = send width/height.
 const MODELS: Array<{ id: string; label: string; loraToken: string | null; size: boolean; steps: number; cfg: number }> = [
   { id: 'z-image', label: 'Z-Image', loraToken: 'zimage', size: true, steps: 11, cfg: 1.0 },
-  { id: 'flux2klein-txt2img', label: 'FLUX2 Klein', loraToken: 'flux', size: false, steps: 20, cfg: 1.0 },
   { id: 'qwen-txt2img', label: 'Qwen', loraToken: 'qwen', size: true, steps: 8, cfg: 1.0 },
-  { id: 'chroma1-hd-txt2img', label: 'Chroma HD', loraToken: null, size: true, steps: 26, cfg: 4.0 },
   { id: 'sdxl-txt2img', label: 'SDXL', loraToken: 'sdxl', size: true, steps: 25, cfg: 6.0 },
 ];
 

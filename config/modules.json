@@ -189,29 +189,6 @@
       "notes": "Qwen image editing, Rapid AIO v23, reference-image generation, and multi-angle views."
     },
     {
-      "id": "chroma-image",
-      "label": "Chroma Image",
-      "pack": "booster",
-      "area": "image",
-      "enabled": true,
-      "tabs": [
-        "chroma",
-        "chroma-txt2img"
-      ],
-      "workflows": [
-        "chroma1-hd-txt2img"
-      ],
-      "custom_nodes": [
-        "ComfyUI-Studio-nodes"
-      ],
-      "models": [
-        "Chroma1-HD.safetensors",
-        "flan-t5-xxl_float8_e4m3fn_scaled_stochastic.safetensors",
-        "ae.safetensors"
-      ],
-      "notes": "Chroma1-HD base plus native Comfy comparison graph with softer defaults."
-    },
-    {
       "id": "firered-image",
       "label": "FireRed Image Edit",
       "pack": "booster",
@@ -326,19 +303,18 @@
       "area": "image",
       "enabled": true,
       "tabs": [
-        "flux",
-        "flux-txt2img",
+        "flux-uncensored-txt2img",
         "flux-headswap",
         "klein-inpaint"
       ],
       "workflows": [
-        "flux2klein-txt2img",
         "flux-headswap",
         "klein-inpaint",
         "flux2klein-uncensored-txt2img"
       ],
       "custom_nodes": [
         "rgthree-comfy",
+        "ComfyUI-Pixaroma",
         "ComfyUI-Styles_CSV_Loader",
         "ComfyUI_essentials",
         "ComfyUI-segment-anything-2",

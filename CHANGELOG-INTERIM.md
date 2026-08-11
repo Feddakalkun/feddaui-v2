@@ -214,3 +214,64 @@ profile and this match entry comes back out.
 **Still needs:** the backend restart from the previous entry. This file re-reads
 on mtime, but it is `_agent_profile()` in `server.py` that reads it, and that
 function does not exist in the running process yet.
+
+## 2026-08-11 — removed Chroma1-HD and FLUX2-KLEIN txt2img; registered two node packs
+
+**Changed:** deleted `chroma1-hd-txt2img` and `flux2klein-txt2img` outright — the
+user's call, chosen over hiding or de-registering. Gone: both `workflow_api.json`
+entries, both graph files (`chroma/chroma1-hd-txt2img-api.json`,
+`fluxklein/FLUX2-klein-9b-txt2imgv2api.json`), both pages
+(`pages/chroma/`, `pages/flux/`, directories removed), both cards, both
+`registry.ts` entries, four `workflowPageRegistry` keys, the `chroma-image`
+module, the `chroma` prompt profile, the `chroma` member of `PromptContext`, both
+`ScailStudioPage` entries, both `ModelOverview` mappings, and the stale
+`flux2klein-txt2img9b` entry in `api.ts` that pointed at no workflow at all.
+
+**Why:** "fjerne noen workflows jeg aldri kommer til å bruke" — Chroma is unused,
+and FLUX2-KLEIN txt2img never worked for the user, who generates with
+`flux2klein-uncensored-txt2img` instead.
+
+**Two follow-on decisions, both taken deliberately:**
+- The sidebar slot in `navigation.ts` was repointed from `flux-txt2img` to
+  `flux-uncensored-txt2img` rather than deleted — the user said outright that is
+  the page they use. `'flux'` was also dropped from `VALID_TABS`; it was a bare
+  alias for the page that is now gone.
+- The `flux-klein` module's `tabs` listed `flux` and `flux-txt2img` but never
+  `flux-uncensored-txt2img`, although it has always owned that workflow. Fixed
+  while removing the other two.
+
+**`ComfyUI-Pixaroma` and `ComfyUI-iTools` are now in `nodes.json`.** The user
+installed both to finish KLEIN. Pixaroma resolved `klein-inpaint`'s missing
+`PixaromaCompare` (audit: 8 missing node classes → 7), and `flux-klein` now
+declares it — it never did, which is the same defect that kept `sdxl-outpaint`
+from running: the graph needs a pack the manifest does not name, so a fresh
+install would not get it. iTools is registered but unused so far: only
+`V2/KLEIN-9B-FACESWAP.json` needs it (`iToolsCompareImage`), and that graph is
+not registered yet.
+
+**Verified:** `npx vite build` clean in 18.10s. `audit_wiring.py`: still 0
+dangling, 0 not-an-input, the same 3 known ideogram findings; missing models
+21 → 20; missing node classes 8 → 7. Orphan graphs 24 → 28, which is **not** from
+this change — `git status` shows the user added four untracked graph files (three
+in `V2/`, plus `firered/firered-v2.json`).
+
+**Not verified:** nothing was opened in the app. The removal is by construction —
+every reference found by a full-tree grep was accounted for — but no page was
+loaded to confirm the home screen and sidebar look right.
+
+**Left alone, needs a decision:** the four untracked graph files are **not
+committed**. Three are `V2/KLEIN-*` and this repository is public; adding graphs
+the user has not asked to publish is not mine to decide. They are also
+unregistered, so they cannot run yet.
+
+**Two mistakes made and corrected before commit**, recorded because the shapes
+recur:
+- A brace-matching cut that scanned *forward* for `{` worked for
+  `"chroma": {` but not for `"id": "chroma-image"`, where the enclosing brace is
+  on an earlier line. It wrote a corrupt `modules.json` before validating.
+  Restored from git; array elements now scan backwards, object values forwards.
+- `str.replace(old, new, 1)` for the Pixaroma insert hit the *first* module whose
+  `custom_nodes` opens with rgthree + Styles_CSV_Loader, which is `z-image-core`,
+  not `flux-klein`. Both modules matched the anchor. Fixed by slicing the
+  `flux-klein` element first and replacing only inside it. Any anchored edit to
+  these config files needs to be scoped to the element, not the file.

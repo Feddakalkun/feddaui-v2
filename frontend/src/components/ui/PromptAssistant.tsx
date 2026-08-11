@@ -25,7 +25,6 @@ export type PromptContext =
   | 'wan-scene' | 'wan-i2v' | 'wan-story'
   | 'hunyuan-i2v'
   | 'flux2-klein'
-  | 'chroma'
   | 'qwen'
   | 'firered'
   | 'ideogram'

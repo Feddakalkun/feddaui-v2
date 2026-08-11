@@ -12,7 +12,8 @@
     "Contexts come from PromptContext in frontend/src/components/ui/PromptAssistant.tsx.",
     "Six of them (wan-story, flux2-klein, chroma, qwen, firered, minimax-h3) had no",
     "branch in the old chain and silently used the generic fallback even though",
-    "pages pass them; they have real profiles now.",
+    "pages pass them; they have real profiles now. Chroma went with its workflow",
+    "when that was deleted on 2026-08-11.",
     "",
     "Note: a captioner like joycaption largely ignores these instructions and",
     "answers in its own tag-list style. They still steer llava/qwen-vl and the",
@@ -126,15 +127,6 @@
       "task": "Describe this image as a FLUX prompt: one flowing natural-language description of the finished picture. Cover the subject, wardrobe and materials, the setting, the composition and camera framing, and the direction and colour of the light.",
       "add": "Write prose, not comma-separated tags - FLUX reads sentences. No weights, no parentheses, no 'masterpiece'-style quality padding.",
       "words": 90,
-      "single": true
-    },
-
-    "chroma": {
-      "match": ["chroma"],
-      "agent": "Chroma follows colours and materials closely, so name them outright: the exact colour, the fabric, the surface. No quality padding.",
-      "task": "Describe this image as a Chroma prompt: the subject, wardrobe, setting, composition and lighting of the finished picture, in plain flowing language.",
-      "add": "Say colours and materials explicitly; Chroma follows them closely. No quality padding.",
-      "words": 85,
       "single": true
     },
 

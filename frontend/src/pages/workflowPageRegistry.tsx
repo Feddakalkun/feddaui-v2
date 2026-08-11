@@ -1,7 +1,5 @@
 import type { ComponentType } from 'react';
 import { ZImageTxt2Img } from './zimage/ZImageTxt2Img';
-import { FluxTxt2Img } from './flux/FluxTxt2Img';
-import { ChromaTxt2Img } from './chroma/ChromaTxt2Img';
 import { FireRedImageEditPage } from './firered/FireRedImageEditPage';
 import { QwenImageReferencePage } from './qwen/QwenImageReferencePage';
 import { QwenTxt2Img } from './qwen/QwenTxt2Img';
@@ -45,10 +43,6 @@ export const IMAGE_WORKFLOW_PAGES: Record<string, ComponentType> = {
   'z-image-txt2img': ZImageTxt2Img,
   'z-image-dual-lora': ZImageDualLoraPage,
   'z-image-2loras-v2': ZImage2LorasPage,
-  'chroma': ChromaTxt2Img,
-  'chroma-txt2img': ChromaTxt2Img,
-  'flux': FluxTxt2Img,
-  'flux-txt2img': FluxTxt2Img,
   'flux-uncensored-txt2img': FluxKleinUncensoredTxt2Img,
   'flux-headswap': FluxHeadSwapPage,
   'klein-inpaint': KleinInpaintPage,

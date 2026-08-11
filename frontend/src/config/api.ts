@@ -111,7 +111,6 @@ export const MODELS = {
         { id: 'qwen-angle', label: 'MULTIANGLE', icon: 'Box', category: 'QWEN' },
     ],
     FLUX2KLEIN: [
-        { id: 'flux2klein-txt2img9b', label: 'TXT2IMG 9B', icon: 'Sparkles', category: 'FLUX2KLEIN' },
         { id: 'flux2klein-image-edit', label: 'IMAGE EDIT', icon: 'Image', category: 'FLUX2KLEIN' },
         { id: 'flux2klein-2-referenceimg', label: '2 REFERENCE IMG', icon: 'Layers', category: 'FLUX2KLEIN' },
         { id: 'flux2klein-multiangle', label: 'MULTIANGLE', icon: 'Box', category: 'FLUX2KLEIN' },

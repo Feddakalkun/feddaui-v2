@@ -33,8 +33,6 @@ type Row = {
  * App.tsx bounces unknown tabs to the default page, which is worse than no link.
  */
 const TAB_ALIASES: Record<string, string> = {
-  'chroma1-hd-txt2img': 'chroma',
-  'flux2klein-txt2img': 'flux',
   'krea2-turbo-txt2img-gguf': 'krea2-turbo-txt2img',
   'ltx-ai2v-noupscale': 'ltx-ai2v',
   'ltx-img2vid-gguf': 'ltx-img2vid',
