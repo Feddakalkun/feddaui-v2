@@ -209,6 +209,10 @@ export function VenicePage() {
   const [editModels, setEditModels] = useState<string[]>([]);
   const [editModel, setEditModel] = useState('');
   const [chatSessionId, setChatSessionId] = useState<string | null>(null);
+  // Chats were being saved already, but with nothing to open them from - one
+  // rolling session that silently replaced itself. The store keeps as many as
+  // you like; it only ever lacked a list.
+  const [sessions, setSessions] = useState<Array<{ id: string; title: string; updated: string; count: number }>>([]);
   const chatLoaded = useRef(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     { role: 'assistant', content: "Hello! I'm your Venice Agent. I can chat, search the web, understand images, and help with creative tasks. Switch to Image tab to generate directly, or ask me here!" }
@@ -293,12 +297,46 @@ export function VenicePage() {
     setAttachedImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  const clearChat = () => {
+  const loadSessions = () => {
+    fetch(`${BACKEND_API.BASE_URL}/api/chat-edit/sessions`)
+      .then((r) => r.json())
+      .then((d) => setSessions((d?.sessions || []).filter((x: any) => x.workflow_id === 'venice-chat')))
+      .catch(() => {});
+  };
+
+  const openSession = async (id: string) => {
+    try {
+      const full = await (await fetch(
+        `${BACKEND_API.BASE_URL}/api/chat-edit/sessions/${encodeURIComponent(id)}`)).json();
+      if (Array.isArray(full?.messages)) {
+        setChatMessages(full.messages);
+        setChatSessionId(full.id);
+        setAttachedImages([]);
+      }
+    } catch { toast('Could not open that chat', 'error'); }
+  };
+
+  const deleteSession = async (id: string) => {
+    try {
+      await fetch(`${BACKEND_API.BASE_URL}/api/chat-edit/sessions/${encodeURIComponent(id)}`,
+        { method: 'DELETE' });
+      if (id === chatSessionId) { setChatSessionId(null); }
+      loadSessions();
+    } catch { toast('Could not delete that chat', 'error'); }
+  };
+
+  /** Starts a fresh thread. The one on screen is already saved, so nothing is
+   *  lost - which is the difference between this and the old Clear Chat. */
+  const newChat = () => {
+    setChatSessionId(null);
     setChatMessages([
-      { role: 'assistant', content: "Chat cleared. How can I help you today?" }
+      { role: 'assistant', content: "New chat. What are we making?" }
     ]);
     setAttachedImages([]);
+    loadSessions();
   };
+
+  const clearChat = newChat;
 
   useEffect(() => {
     fetch(`${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.VENICE_CHARACTERS}?limit=80`)
@@ -335,6 +373,7 @@ export function VenicePage() {
       // Only after a restore attempt, or the save below would immediately
       // overwrite the stored thread with the greeting.
       chatLoaded.current = true;
+      loadSessions();
     })();
   }, []);
 
@@ -358,7 +397,7 @@ export function VenicePage() {
         }),
       })
         .then((r) => r.json())
-        .then((d) => { if (d?.id && !chatSessionId) setChatSessionId(d.id); })
+        .then((d) => { if (d?.id && !chatSessionId) setChatSessionId(d.id); loadSessions(); })
         .catch(() => {});
     }, 800);
     return () => window.clearTimeout(id);
@@ -728,8 +767,12 @@ Current context: User is requesting images of Elara at the safari camp, now spec
     }
   };
 
+  // The chat earns the whole window: a conversation with a session list and an
+  // image strip in it was being squeezed into 1100px, with the controls wrapping
+  // into vertical slivers. The image tab is a form and stays narrow.
   return (
-    <div className="h-full overflow-y-auto custom-scrollbar p-6 max-w-[1100px] mx-auto">
+    <div className={`h-full overflow-y-auto custom-scrollbar p-6 mx-auto ${
+      activeTab === 'chat' ? 'max-w-[1800px]' : 'max-w-[1100px]'}`}>
       <FeddaPanel className="overflow-hidden">
         {/* Shared Header + Tabs */}
         <div className="border-b border-white/10 px-6 py-4 bg-black/20">
@@ -953,7 +996,7 @@ Current context: User is requesting images of Elara at the safari camp, now spec
 
           {activeTab === 'chat' && (
             <div
-              className={`max-w-4xl mx-auto rounded-2xl transition-colors ${
+              className={`w-full rounded-2xl transition-colors ${
                 isChatDragOver ? 'ring-2 ring-violet-400/70 ring-offset-2 ring-offset-[#07080d]' : ''
               }`}
               onDragOver={(e) => { e.preventDefault(); setIsChatDragOver(true); }}
@@ -967,19 +1010,22 @@ Current context: User is requesting images of Elara at the safari camp, now spec
               {/* CHAT UI - adapted from previous full page */}
               <div className="space-y-4">
                 {/* Chat Header Controls */}
-                <div className="flex items-center justify-between text-sm">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                   <div className="flex items-center gap-3">
+                    {/* The 429 note used to sit here as a sentence and wrapped
+                        into a one-word-per-line column. It belongs on the thing
+                        it is about. */}
                     <select
                       value={chatModel}
                       onChange={(e) => setChatModel(e.target.value)}
+                      title="If you hit overload (429), switch models or retry in a minute."
                       className="rounded-lg fedda-input px-3 py-1.5 text-sm focus:border-violet-500/40"
                     >
                       {VENICE_CHAT_MODELS.map(m => (
                         <option key={m.id} value={m.id}>{m.label}</option>
                       ))}
                     </select>
-                    <div className="text-[10px] text-amber-400/70 mt-1">If you hit overload (429), switch models or retry in a minute.</div>
-                    <label className="flex items-center gap-1.5 text-white/60 cursor-pointer text-xs">
+                    <label className="flex items-center gap-1.5 text-white/60 cursor-pointer text-xs whitespace-nowrap">
                       <input
                         type="checkbox"
                         checked={enableWebSearch}
@@ -989,7 +1035,8 @@ Current context: User is requesting images of Elara at the safari camp, now spec
                       <Globe className="h-3.5 w-3.5" /> Web Search
                     </label>
                   </div>
-                  <label className="flex items-center gap-1.5 text-[11px] text-white/45">
+                  <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <label className="flex items-center gap-1.5 text-[11px] text-white/45 whitespace-nowrap">
                     Character
                     <select
                       value={characterSlug}
@@ -1017,13 +1064,57 @@ Current context: User is requesting images of Elara at the safari camp, now spec
                       ))}
                     </select>
                   </label>
-                  <FeddaButton size="sm" variant="ghost" onClick={clearChat} className="gap-1.5">
-                    <Trash2 className="h-3.5 w-3.5" /> Clear Chat
+                  <FeddaButton size="sm" variant="ghost" onClick={newChat} className="gap-1.5 whitespace-nowrap">
+                    <Trash2 className="h-3.5 w-3.5" /> New chat
                   </FeddaButton>
+                  </div>
                 </div>
 
+                <div className="grid gap-4 lg:grid-cols-[240px_1fr]">
+                  {/* Saved chats. They were already being written to the store;
+                      there was simply no way to reach one. */}
+                  <aside className="hidden lg:flex max-h-[min(70vh,780px)] flex-col gap-1 overflow-y-auto rounded-2xl border border-white/10 bg-black/30 p-2 custom-scrollbar">
+                    <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[1px] text-white/35">
+                      Saved chats {sessions.length > 0 && `(${sessions.length})`}
+                    </div>
+                    {sessions.length === 0 && (
+                      <p className="px-2 py-2 text-[11px] leading-relaxed text-white/30">
+                        Chats are saved as you talk. This one will appear here once you send something.
+                      </p>
+                    )}
+                    {sessions.map((sess) => (
+                      <div
+                        key={sess.id}
+                        className={`group flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] transition ${
+                          sess.id === chatSessionId ? 'bg-violet-500/15 text-violet-100' : 'text-white/55 hover:bg-white/5'
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => void openSession(sess.id)}
+                          className="min-w-0 flex-1 text-left"
+                          title={sess.title}
+                        >
+                          <span className="block truncate">{sess.title || 'Untitled'}</span>
+                          <span className="block text-[9px] text-white/25">
+                            {sess.count} messages · {(sess.updated || '').slice(0, 10)}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void deleteSession(sess.id)}
+                          title="Delete this chat"
+                          className="opacity-0 transition group-hover:opacity-100 hover:text-red-300"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </aside>
+
+                <div className="min-w-0">
                 {/* Messages */}
-                <div className="h-[420px] overflow-y-auto p-4 space-y-5 bg-black/30 rounded-2xl border border-white/10 custom-scrollbar">
+                <div className="h-[min(70vh,780px)] overflow-y-auto p-4 space-y-5 bg-black/30 rounded-2xl border border-white/10 custom-scrollbar">
                   {chatMessages.map((msg, idx) => (
                     <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${msg.role === 'user' ? 'bg-white/10' : 'bg-white/5 border border-white/10'}`}>
@@ -1112,6 +1203,8 @@ Current context: User is requesting images of Elara at the safari camp, now spec
                     </FeddaButton>
                   </div>
                   <div className="text-[10px] text-white/40 mt-1.5 px-1">The agent supports tools including image generation (Kimi K2.5 can call generate_image). Generated images appear inline. Use the Image tab for advanced controls.</div>
+                </div>
+                </div>
                 </div>
               </div>
             </div>

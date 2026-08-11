@@ -1258,3 +1258,42 @@ back OK, answering "The background color of the image is pink."
 **Worth noting for the next test:** my first check of the fix still failed, on a
 1×1 pixel PNG I had used as a stand-in. Venice rejects that as an image. The
 shape was right; the test image was not.
+
+## 2026-08-11 — the Venice chat gets the window, and the saved chats get a door
+
+**Changed:** layout, header and a sessions sidebar in `VenicePage.tsx`.
+
+**Three complaints, all fair:**
+
+**"For simpelt, utnytt bredden."** The page was `max-w-[1100px]`, the chat inside
+it `max-w-4xl` — so on a wide monitor a conversation with an image strip in it
+sat in a narrow column with dead space either side. The chat tab now takes
+`max-w-[1800px]`; the image tab is a form and stays narrow. The message area
+went from a fixed `420px` to `min(70vh, 780px)`.
+
+**"Hvor er characters?"** It was there — squeezed between a wrapping paragraph
+and a wrapping button. The 429 note ("If you hit overload, switch models…") was a
+full sentence sitting in a flex row, and at the user's window width it wrapped
+into a one-word-per-line column that pushed everything else sideways. It is now
+the model select's tooltip, which is what it is about, and the right-hand
+controls are a group that stays on one line.
+
+**"Hvor er lagrede chatter?"** Saved since this morning, with nothing to open
+them from — one rolling session that silently replaced itself. There is now a
+sidebar: every Venice chat with its title, message count and date; click to open,
+hover to delete, and **New chat** starts a fresh thread rather than wiping the
+current one, since the current one is already saved. That was the honest problem
+with "Clear Chat": it read like discarding, and now nothing is discarded.
+
+**Verified in the running app** by measuring the DOM: grid `240px 922px`, sidebar
+present and reporting **"Saved chats (2)"** with a real title from the user's own
+testing, message pane 504px, and Character and Edit model both in the header
+without wrapping. `npx vite build` clean.
+
+**One self-inflicted build break on the way:** the explanatory comment was
+written as `{/* … */}` immediately inside `return (`, which makes two root
+children — "Expected ) but found className". Moved above the return as a plain
+comment.
+
+**Not done:** the sidebar is `hidden lg:flex`, so below 1024px the saved chats
+have no surface at all. Fine for a desktop app on a 3090, worth knowing.
