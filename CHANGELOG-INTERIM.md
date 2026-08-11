@@ -275,3 +275,68 @@ recur:
   not `flux-klein`. Both modules matched the anchor. Fixed by slicing the
   `flux-klein` element first and replacing only inside it. Any anchored edit to
   these config files needs to be scoped to the element, not the file.
+
+## 2026-08-11 — Qwen Multi Angle: the UI now speaks the node's language
+
+**Changed:** `frontend/src/pages/qwen/QwenMultiAnglesPage.tsx` only.
+
+**Why:** the user asked for a good job on the angle selection, pointing at the
+node's own widget. Reading `ComfyUI/custom_nodes/ComfyUI-qwenmultiangle/nodes.py`
+showed the page and the node disagreed about what the controls mean. The node
+converts the three numbers into the phrase it appends to the prompt
+(`<sks> front view low-angle shot medium shot`), so a label that disagrees with
+its thresholds is a false statement about what is about to be generated.
+
+**What was wrong, all of it silent:**
+- Zoom preset **"Wide" (8) produces a close-up.** The node calls anything ≥6 a
+  close-up. The label was the opposite of the effect.
+- **"Close" (3) and "Medium" (5) were the same shot** — both fall in the node's
+  2–6 "medium shot" band. Four zoom presets, two distinct outcomes.
+- **`ZOOM_MIN = 3` made "wide shot" unreachable.** The node needs <2 for it, so
+  one of its three distances could not be selected at all.
+- **"Worm" (−55) was outside the node's range.** It clamps to −30, so Worm and
+  Low produced identical output. A dead control.
+- The vertical slider allowed −60..60 where the node accepts **−30..60**.
+- Six horizontal presets against the node's **eight 45° sectors**; the two that
+  could not be expressed were back-left and back-right quarter view — the ones
+  the graph's own baked shots (135° and 225°) use.
+- Two of the six default shots (`v: 28` and `v: -28`, both `h: 0`) were the same
+  camera position at different tilts, on a page whose purpose is different
+  positions.
+
+**What it does now:**
+- `horizontalPhrase` / `verticalPhrase` / `zoomPhrase` are `nodes.py:133-165`
+  transcribed, and `nodePhrase()` composes the exact string the node will emit.
+  Each shot card shows that string in mono, so the user reads what the node will
+  actually say rather than three numbers.
+- Presets are one per bucket the node distinguishes: 8 horizontal, 4 vertical,
+  3 zoom. No two presets can mean the same thing any more.
+- Ranges are the node's: h 0-360, v −30..60, zoom 0-10.
+- Internal representation switched from −180..180 to the node's 0-360, and
+  `toWorkflowHorizontalAngle` is gone. Saved shots wrap through `wrapDegrees`,
+  so a stored −45 becomes 315 — the same physical angle, no migration needed. A
+  stored v below −30 now clamps to −30, which is what the node was doing to it
+  anyway.
+- Default shots are six distinct sectors.
+
+**Verified:**
+- A sweep of every legal value — 361 horizontal, 91 vertical, 101 zoom — through
+  both the node's chain (parsed out of `nodes.py`) and the page's (parsed out of
+  the TSX): **0 mismatches**, and all 8/4/3 buckets reachable from the page.
+  Every preset lands in a distinct bucket; the six defaults in six sectors.
+- `npx vite build` clean.
+- Opened `localhost:5173/#/tab/qwen-multi-angle` in a browser. Shot 1 renders
+  `<sks> front view eye-level shot medium shot` with the overlay reading
+  FRONT / EYE / MEDIUM. That check found one wart of my own: default zoom 5 hit
+  no preset, so the dropdown read "Custom". Defaults are 4 now, which is the
+  preset value for the same bucket.
+
+**Not verified:** no generation was run. The wiring was already sound — the page
+sends one value per shot and the audit has always passed on this workflow — so
+what changed is which numbers the user can pick and what they are told those
+numbers mean, not how they reach ComfyUI.
+
+**Worth knowing:** the three phrase functions must be kept in step with
+`nodes.py`. If that node retunes a threshold, every label on this page silently
+becomes wrong again. The comment above them says so; the sweep script that
+proves it is throwaway, so a future change means re-deriving it.

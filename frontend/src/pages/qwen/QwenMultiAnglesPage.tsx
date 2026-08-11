@@ -12,8 +12,19 @@ import { useComfyExecution } from '../../contexts/ComfyExecutionContext';
 import { comfyService } from '../../services/comfyService';
 
 const MAX_SHOTS = 6;
-const ZOOM_MIN = 3;
-const ZOOM_MAX = 8;
+// Ranges and vocabulary below mirror ComfyUI-qwenmultiangle/nodes.py. That node
+// turns these three numbers into the phrase it puts in the prompt, so a label
+// here that disagrees with its thresholds misleads about what will be generated
+// - and several did. Zoom 8 was labelled "Wide" and yields a close-up; "Close"
+// (3) and "Medium" (5) both yield "medium shot"; "Worm" (-55) sat outside the
+// node's range, was clamped to -30, and came out identical to "Low". Zoom below
+// 2 is the only way to reach "wide shot" and ZOOM_MIN = 3 made it unreachable.
+const ZOOM_MIN = 0;
+const ZOOM_MAX = 10;
+const V_MIN = -30;
+const V_MAX = 60;
+const H_MIN = 0;
+const H_MAX = 360;
 
 type CameraShot = {
   label: string;
@@ -22,76 +33,126 @@ type CameraShot = {
   z: number;
 };
 
+// One per sector. The old set spent shots 4 and 5 on tilt alone, so two of the
+// six came back from the same camera position.
 const DEFAULT_SHOTS: CameraShot[] = [
-  { label: 'Shot 1', h: 0, v: 0, z: 5 },
-  { label: 'Shot 2', h: -45, v: 0, z: 5 },
-  { label: 'Shot 3', h: 45, v: 0, z: 5 },
-  { label: 'Shot 4', h: 0, v: 28, z: 5 },
-  { label: 'Shot 5', h: 0, v: -28, z: 5 },
-  { label: 'Shot 6', h: 180, v: 0, z: 5 },
+  { label: 'Shot 1', h: 0, v: 0, z: 4 },
+  { label: 'Shot 2', h: 315, v: 0, z: 4 },
+  { label: 'Shot 3', h: 45, v: 0, z: 4 },
+  { label: 'Shot 4', h: 270, v: 0, z: 4 },
+  { label: 'Shot 5', h: 90, v: 0, z: 4 },
+  { label: 'Shot 6', h: 180, v: 0, z: 4 },
 ];
 
+// The eight 45-degree sectors the node names. The old six could not express
+// back-left or back-right quarter views at all - the two the graph's own baked
+// shots (135 and 225) use.
 const H_PRESETS = [
   { label: 'Front', value: 0 },
-  { label: 'Left 30', value: -30 },
-  { label: 'Right 30', value: 30 },
-  { label: 'Left profile', value: -90 },
-  { label: 'Right profile', value: 90 },
+  { label: 'Front-right quarter', value: 45 },
+  { label: 'Right side', value: 90 },
+  { label: 'Back-right quarter', value: 135 },
   { label: 'Back', value: 180 },
+  { label: 'Back-left quarter', value: 225 },
+  { label: 'Left side', value: 270 },
+  { label: 'Front-left quarter', value: 315 },
 ];
 
 const V_PRESETS = [
-  { label: 'Eye', value: 0 },
-  { label: 'High', value: 30 },
-  { label: 'Low', value: -30 },
-  { label: 'Top', value: 55 },
-  { label: 'Worm', value: -55 },
+  { label: 'Low angle', value: -30 },
+  { label: 'Eye level', value: 0 },
+  { label: 'Elevated', value: 30 },
+  { label: 'High angle', value: 55 },
 ];
 
 const Z_PRESETS = [
-  { label: 'Close', value: 3 },
-  { label: 'Medium', value: 5 },
-  { label: 'Full', value: 7 },
-  { label: 'Wide', value: 8 },
+  { label: 'Wide shot', value: 1 },
+  { label: 'Medium shot', value: 4 },
+  { label: 'Close-up', value: 8 },
 ];
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-function normalizeDegrees(value: number): number {
-  let out = value;
-  while (out > 180) out -= 360;
-  while (out < -180) out += 360;
-  return out;
+// The page held -180..180 and converted at submit. The node speaks 0-360, its
+// sector names are stated in 0-360, and the graph's baked shots are 135 and 225,
+// so the conversion only made the two disagree. Existing saved shots come back
+// through here and are wrapped, so a stored -45 becomes 315.
+function wrapDegrees(value: number): number {
+  const out = value % 360;
+  return out < 0 ? out + 360 : out;
 }
 
-function toWorkflowHorizontalAngle(angle: number): number {
-  const normalized = normalizeDegrees(angle);
-  return normalized < 0 ? normalized + 360 : normalized;
+// These three if-chains are nodes.py:133-165 transcribed. Keep them in step with
+// it: if the node retunes a threshold, every label on this page is wrong until
+// they are updated together.
+function horizontalPhrase(angle: number): string {
+  const h = wrapDegrees(Math.round(angle));
+  if (h < 22.5 || h >= 337.5) return 'front view';
+  if (h < 67.5) return 'front-right quarter view';
+  if (h < 112.5) return 'right side view';
+  if (h < 157.5) return 'back-right quarter view';
+  if (h < 202.5) return 'back view';
+  if (h < 247.5) return 'back-left quarter view';
+  if (h < 292.5) return 'left side view';
+  return 'front-left quarter view';
 }
+
+function verticalPhrase(angle: number): string {
+  const v = clamp(Math.round(angle), V_MIN, V_MAX);
+  if (v < -15) return 'low-angle shot';
+  if (v < 15) return 'eye-level shot';
+  if (v < 45) return 'elevated shot';
+  return 'high-angle shot';
+}
+
+function zoomPhrase(distance: number): string {
+  const z = clamp(distance, ZOOM_MIN, ZOOM_MAX);
+  if (z < 2) return 'wide shot';
+  if (z < 6) return 'medium shot';
+  return 'close-up';
+}
+
+/** Exactly what the node will put in the prompt for this shot. */
+function nodePhrase(shot: CameraShot): string {
+  return `<sks> ${horizontalPhrase(shot.h)} ${verticalPhrase(shot.v)} ${zoomPhrase(shot.z)}`;
+}
+
+// Short forms for the preview overlay, where the full phrase does not fit.
+const SHORT: Record<string, string> = {
+  'front view': 'Front',
+  'front-right quarter view': 'Front-R',
+  'right side view': 'Right',
+  'back-right quarter view': 'Back-R',
+  'back view': 'Back',
+  'back-left quarter view': 'Back-L',
+  'left side view': 'Left',
+  'front-left quarter view': 'Front-L',
+  'low-angle shot': 'Low',
+  'eye-level shot': 'Eye',
+  'elevated shot': 'Elevated',
+  'high-angle shot': 'High',
+  'wide shot': 'Wide',
+  'medium shot': 'Medium',
+  'close-up': 'Close',
+};
 
 function cameraDirectionLabel(angle: number): string {
-  const normalized = normalizeDegrees(angle);
-  const abs = Math.abs(normalized);
-  if (abs <= 12) return 'Front';
-  if (abs >= 168) return 'Back';
-  if (normalized < 0) return `Left ${abs}deg`;
-  return `Right ${abs}deg`;
+  return SHORT[horizontalPhrase(angle)];
 }
 
 function cameraTiltLabel(angle: number): string {
-  if (Math.abs(angle) <= 5) return 'Eye level';
-  return angle > 0 ? `High ${angle}deg` : `Low ${Math.abs(angle)}deg`;
+  return SHORT[verticalPhrase(angle)];
 }
 
 function sanitizeShots(shots: CameraShot[]): CameraShot[] {
   const source = Array.isArray(shots) && shots.length ? shots : DEFAULT_SHOTS.slice(0, 1);
   return source.slice(0, MAX_SHOTS).map((shot, index) => ({
     label: shot.label || `Shot ${index + 1}`,
-    h: normalizeDegrees(Number(shot.h) || 0),
-    v: clamp(Number(shot.v) || 0, -60, 60),
-    z: clamp(Number(shot.z) || 5, ZOOM_MIN, ZOOM_MAX),
+    h: wrapDegrees(Number(shot.h) || 0),
+    v: clamp(Number(shot.v) || 0, V_MIN, V_MAX),
+    z: clamp(Number(shot.z) || 4, ZOOM_MIN, ZOOM_MAX),
   }));
 }
 
@@ -120,7 +181,7 @@ function CameraOrbitPreview({
   const orbitY = Math.cos(hRad);
   const x = cx + orbitX * rx;
   const y = cy + orbitY * ry;
-  const yArc = cy - ((shot.v + 60) / 120) * 76;
+  const yArc = cy - ((shot.v - V_MIN) / (V_MAX - V_MIN)) * 76;
   const zoomArm = 26 + ((shot.z - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN)) * 42;
   const armX = x + orbitX * zoomArm;
   const armY = y + orbitY * zoomArm * 0.35;
@@ -141,13 +202,13 @@ function CameraOrbitPreview({
     if (axis === 'x') {
       const dx = (point.x - cx) / rx;
       const dy = (point.y - cy) / ry;
-      const angle = Math.round(normalizeDegrees((Math.atan2(dx, dy) * 180) / Math.PI));
+      const angle = Math.round(wrapDegrees((Math.atan2(dx, dy) * 180) / Math.PI));
       onChange({ h: angle });
       return;
     }
     if (axis === 'y') {
       const t = clamp((cy - point.y) / 76, 0, 1);
-      onChange({ v: Math.round(t * 120 - 60) });
+      onChange({ v: Math.round(V_MIN + t * (V_MAX - V_MIN)) });
       return;
     }
     const distance = Math.hypot(point.x - x, (point.y - y) / 0.35);
@@ -173,7 +234,7 @@ function CameraOrbitPreview({
   return (
     <div className="relative mt-3 overflow-hidden rounded-lg border border-white/10 bg-black/55">
       <div className="pointer-events-none absolute left-2 top-2 z-10 rounded border border-white/10 bg-black/70 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-200">
-        {directionLabel} / {tiltLabel} / Z {shot.z.toFixed(1)}
+        {directionLabel} / {tiltLabel} / {SHORT[zoomPhrase(shot.z)]}
       </div>
       <svg viewBox="0 0 300 186" className="h-36 w-full" role="img" aria-label="Camera angle preview">
         <defs>
@@ -305,8 +366,8 @@ export const QwenMultiAnglesPage = () => {
       next[index] = {
         ...next[index],
         ...patch,
-        h: patch.h !== undefined ? normalizeDegrees(patch.h) : next[index].h,
-        v: patch.v !== undefined ? clamp(patch.v, -60, 60) : next[index].v,
+        h: patch.h !== undefined ? wrapDegrees(patch.h) : next[index].h,
+        v: patch.v !== undefined ? clamp(patch.v, V_MIN, V_MAX) : next[index].v,
         z: patch.z !== undefined ? clamp(patch.z, ZOOM_MIN, ZOOM_MAX) : next[index].z,
       };
       return next;
@@ -415,8 +476,8 @@ export const QwenMultiAnglesPage = () => {
           client_id: comfyService.clientId,
           image: uploadedImageName,
           horizontal_angle: isMultiShot
-            ? shotPayload.map((shot) => toWorkflowHorizontalAngle(shot.h))
-            : toWorkflowHorizontalAngle(activeShots[0].h),
+            ? shotPayload.map((shot) => shot.h)
+            : activeShots[0].h,
           vertical_angle: isMultiShot ? shotPayload.map((shot) => shot.v) : activeShots[0].v,
           zoom: isMultiShot ? shotPayload.map((shot) => shot.z) : activeShots[0].z,
           default_prompts: isMultiShot ? shotPayload.map(() => defaultPrompts) : defaultPrompts,
@@ -569,8 +630,10 @@ export const QwenMultiAnglesPage = () => {
                   <div className="mb-3 flex items-center justify-between">
                     <div>
                       <div className="text-xs font-semibold text-zinc-100">{shot.label}</div>
-                  <div className="mt-1 text-[10px] text-zinc-500">
-                    {cameraDirectionLabel(shot.h)} / {cameraTiltLabel(shot.v)} / Zoom {shot.z.toFixed(1)}
+                  {/* What the node will actually put in the prompt. Showing the
+                      numbers alone hid that two presets could mean the same thing. */}
+                  <div className="mt-1 font-mono text-[10px] text-zinc-400">
+                    {nodePhrase(shot)}
                   </div>
                     </div>
                     {activeShots.length > 1 && (
@@ -634,8 +697,8 @@ export const QwenMultiAnglesPage = () => {
                       <span>X</span>
                       <input
                         type="range"
-                        min={-180}
-                        max={180}
+                        min={H_MIN}
+                        max={H_MAX}
                         step={1}
                         value={shot.h}
                         onChange={(e) => setShot(idx, { h: Number(e.target.value) })}
@@ -644,8 +707,8 @@ export const QwenMultiAnglesPage = () => {
                       <input
                         type="number"
                         value={shot.h}
-                        min={-180}
-                        max={180}
+                        min={H_MIN}
+                        max={H_MAX}
                         onChange={(e) => setShot(idx, { h: Number(e.target.value) })}
                         className="rounded border border-white/10 bg-black px-1.5 py-1 text-center text-[10px] text-zinc-300"
                       />
@@ -654,8 +717,8 @@ export const QwenMultiAnglesPage = () => {
                       <span>Y</span>
                       <input
                         type="range"
-                        min={-60}
-                        max={60}
+                        min={V_MIN}
+                        max={V_MAX}
                         step={1}
                         value={shot.v}
                         onChange={(e) => setShot(idx, { v: Number(e.target.value) })}
@@ -664,8 +727,8 @@ export const QwenMultiAnglesPage = () => {
                       <input
                         type="number"
                         value={shot.v}
-                        min={-60}
-                        max={60}
+                        min={V_MIN}
+                        max={V_MAX}
                         onChange={(e) => setShot(idx, { v: Number(e.target.value) })}
                         className="rounded border border-white/10 bg-black px-1.5 py-1 text-center text-[10px] text-zinc-300"
                       />
