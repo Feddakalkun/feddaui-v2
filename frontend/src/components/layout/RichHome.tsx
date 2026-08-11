@@ -166,6 +166,19 @@ function AutomationCard({ module, onSelect }: { module?: FeddaModule; onSelect: 
   );
 }
 
+/** Whole-row column counts, so the bottom row stays one row as cards come and
+ *  go. Literal strings: Tailwind scans source text and would not emit a class
+ *  built at runtime. Past six the row wraps, and `auto-rows-fr` makes the rows
+ *  share the height instead of overlapping. */
+const BOTTOM_COLS: Record<number, string> = {
+  1: 'lg:grid-cols-1',
+  2: 'lg:grid-cols-2',
+  3: 'lg:grid-cols-3',
+  4: 'lg:grid-cols-4',
+  5: 'lg:grid-cols-5',
+  6: 'lg:grid-cols-6',
+};
+
 export const RichHome = ({ onSelect }: RichHomeProps) => {
   const { availableModules } = useModules();
   const allCards = availableModules.filter((module) => module.card && (module.area === 'home' || module.area === 'system') && !module.hidden);
@@ -174,6 +187,7 @@ export const RichHome = ({ onSelect }: RichHomeProps) => {
   const cards = allCards.filter((module) => module.id !== 'chat-edit');
   const topCards = cards.slice(0, 2);
   const bottomCards = cards.slice(2);
+  const bottomCols = BOTTOM_COLS[Math.min(bottomCards.length, 6)] ?? 'lg:grid-cols-4';
   const automations = availableModules.filter((module) => module.area === 'automation' && !module.hidden);
   // Pad to 4 slots (undefined = "coming soon" placeholder)
   const automationSlots: (FeddaModule | undefined)[] = [...automations, undefined, undefined, undefined, undefined].slice(0, 4);
@@ -221,7 +235,7 @@ export const RichHome = ({ onSelect }: RichHomeProps) => {
             <HomeCard key={module.id} module={module} onSelect={onSelect} />
           ))}
         </div>
-        <div className="grid min-h-[104px] w-full flex-[2] gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className={`grid min-h-[104px] w-full flex-[2] auto-rows-fr gap-3 sm:grid-cols-2 ${bottomCols}`}>
           {bottomCards.map((module) => (
             <HomeCard key={module.id} module={module} onSelect={onSelect} />
           ))}

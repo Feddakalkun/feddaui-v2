@@ -711,3 +711,23 @@ The in-process tests above used the fresh module, which is why they passed.
 the endpoint. And nothing measures whether Venice captions produce better
 generations than joycaption ones — only that they follow the instruction, which
 joycaption demonstrably does not.
+
+## 2026-08-11 — home screen: the bottom row follows the card count
+
+**Changed:** `frontend/src/components/layout/RichHome.tsx`.
+
+**Why:** my own regression. The bottom row was `lg:grid-cols-4` while it holds
+however many cards are not hidden. Unhiding the Venice module made it five: the
+fifth wrapped to a second row, and because that row carries a height floor and
+flexes rather than growing, the two rows drew on top of each other. The user saw
+Voice Studio overlapping Gallery.
+
+**Fix:** the column count now follows the number of cards, from a lookup of
+literal class strings — Tailwind scans source text and would not emit a class
+assembled at runtime. Past six the row wraps, and `auto-rows-fr` makes wrapped
+rows share the height instead of overlapping. So the next card added or removed
+reflows instead of breaking.
+
+**Verified in the running app** by measuring the DOM: the bottom grid reports 5
+children in 5 columns on one row, every card 148px tall; the top grid 2 in 2.
+`npx vite build` clean.
