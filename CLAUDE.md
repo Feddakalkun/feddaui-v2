@@ -115,3 +115,11 @@ Run `npx vite build`.
 `num_predict` on the text model is a ceiling of 320. At 120 it cut prompts off
 mid-sentence, which Ollama reports as `done_reason: "length"` — worth checking
 if output ever looks truncated again.
+
+## Handover
+
+`HANDOFF.md` is what was in flight when the
+previous session ended: recent changes, open decisions, and the traps that
+cost time. `CHANGELOG-INTERIM.md` is a running log to append to
+while the project changes hands - it is what carries work across a handover,
+because commit messages explain a change but not the sequence.
