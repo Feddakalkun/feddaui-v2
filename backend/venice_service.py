@@ -319,6 +319,56 @@ def speech(key: str, text: str, voice: str = "", model: str = "",
     return resp.content, used_model, used_voice
 
 
+# Cloning is only offered by these two, and the handle it returns is not
+# permanent: Venice expires it after seven days. For tts-minimax-speech-02-hd
+# every successful use resets that window, for tts-chatterbox-hd it does not.
+# A stored voice therefore has a shelf life, and anything that presents it as
+# saved-forever will one day fail with a voice the user believes exists.
+VOICE_CLONE_MODELS = ["tts-chatterbox-hd", "tts-minimax-speech-02-hd"]
+VOICE_HANDLE_TTL_DAYS = 7
+
+
+def clone_voice(key: str, sample: bytes, filename: str, model: str = "") -> Dict[str, Any]:
+    """Turn an audio sample into a voice handle usable by `speech`.
+
+    Multipart rather than JSON, so the Content-Type header must be left to
+    requests - setting it by hand loses the boundary and Venice rejects the body.
+
+    Returns {'id': 'vv_...', 'model': ...}. The handle only works with the model
+    it was created for.
+    """
+    if not (key or "").strip():
+        raise VeniceError("no_key", "No Venice API key is set. Add one in the top bar.")
+    if not sample:
+        raise VeniceError("failed", "The voice sample is empty.")
+    used = (model or "").strip() or VOICE_CLONE_MODELS[0]
+    if used not in VOICE_CLONE_MODELS:
+        raise VeniceError("failed",
+                          f"{used} cannot clone voices. Use one of: "
+                          + ", ".join(VOICE_CLONE_MODELS))
+    try:
+        resp = requests.post(
+            f"{BASE}/audio/voices",
+            headers={"Authorization": f"Bearer {key}"},
+            files={"file": (filename or "sample.wav", sample)},
+            data={"model": used},
+            timeout=TIMEOUT_SLOW,
+        )
+    except requests.exceptions.Timeout:
+        raise VeniceError("timeout", f"Venice did not answer within {TIMEOUT_SLOW}s.")
+    except requests.exceptions.RequestException as exc:
+        raise VeniceError("unreachable", f"Could not reach Venice: {exc}")
+    if not resp.ok:
+        raise _classify(resp)
+    try:
+        out = resp.json()
+    except ValueError:
+        raise VeniceError("failed", "Venice returned a response that is not JSON.")
+    if not out.get("id"):
+        raise VeniceError("empty_answer", "Venice returned no voice handle.")
+    return out
+
+
 def balance(key: str) -> Dict[str, Any]:
     return call(key, "GET", "/billing/balance")
 

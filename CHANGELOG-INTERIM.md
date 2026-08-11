@@ -1097,3 +1097,41 @@ The user has restarted many times since; checking the running process rather tha
 assuming, `/api/settings/vision-provider` and `/api/venice/edit-models` both
 answer 200. Only the changes made in the last minutes — this default among them —
 are not in the running process yet. Check before repeating that line.
+
+## 2026-08-11 — Venice voice cloning (first of the re-prioritised list)
+
+**Changed:** `venice_service.clone_voice()` + `VOICE_CLONE_MODELS`;
+`/api/venice/clone-voice`, `/api/venice/voices`, `DELETE /api/venice/voices/{id}`;
+a clone box and a clones group in the voice picker on `ZonosTTSPage`.
+
+**The user reordered the list:** `/video/*` and `/audio/transcriptions` to the
+bottom; `/audio/voices`, `/characters/*` and `/embeddings` to the front. This is
+the first of the three.
+
+**The detail that shapes the whole design: a cloned handle expires.** Venice
+keeps it for seven days — and for `tts-minimax-speech-02-hd` every successful use
+resets the window, while `tts-chatterbox-hd` it does not. A stored voice
+therefore has a shelf life, and a list that only grew would offer voices that no
+longer exist and fail on use with no explanation. So the store prunes on read,
+the picker shows **days left** beside each name, and the panel says which model
+resets the window.
+
+**Two smaller things that would have broken it:**
+- Multipart, not JSON. `Content-Type` has to be left to `requests` — setting it
+  by hand drops the boundary and Venice rejects the body.
+- A handle only works with the model it was created for, so selecting a clone in
+  the picker moves the model with it.
+
+The handle alone is unreadable (`vv_aHR0cHM6...`), so a name, the model and the
+creation time are stored beside it in `runtime_settings.json` — gitignored, like
+the key.
+
+**Verified, whole round trip:** cloned from an 875 KB sample →
+`vv_aHR0cHM6...`, stored as "Testklone" with `days_left: 7.0`, generated 313 KB
+of speech **using the handle**, then deleted it. `npx vite build` clean.
+
+**Not verified:** nothing was driven from the browser, and no clone was made from
+a real recording of a person — the sample was one of the TTS voices generated
+earlier today, which is a fair functional test but not a fair quality one.
+
+**Next in the user's order:** `/characters/*`, then `/embeddings`.

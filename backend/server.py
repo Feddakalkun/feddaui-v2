@@ -641,6 +641,75 @@ async def venice_image_edit(req: VeniceEditRequest):
             "saved": [{"filename": name, "subfolder": VENICE_OUTPUT_SUBFOLDER, "url": url}]}
 
 
+def _venice_voices(prune: bool = True) -> List[Dict[str, Any]]:
+    """Stored clone handles, with the dead ones dropped.
+
+    Venice expires a handle after seven days, so a list that only ever grows
+    would offer voices that no longer exist. Pruning on read means the picker
+    cannot show one.
+    """
+    data = load_settings()
+    rows = [v for v in (data.get("venice_voices") or []) if isinstance(v, dict) and v.get("id")]
+    if not prune:
+        return rows
+    cutoff = time.time() - venice_service.VOICE_HANDLE_TTL_DAYS * 86400
+    alive = [v for v in rows if float(v.get("created") or 0) > cutoff]
+    if len(alive) != len(rows):
+        data["venice_voices"] = alive
+        save_settings(data)
+    return alive
+
+
+@app.get("/api/venice/voices")
+async def venice_voices():
+    """Cloned voices, newest first, each with how long it has left."""
+    now = time.time()
+    ttl = venice_service.VOICE_HANDLE_TTL_DAYS * 86400
+    rows = sorted(_venice_voices(), key=lambda v: -float(v.get("created") or 0))
+    return {"success": True, "clone_models": venice_service.VOICE_CLONE_MODELS,
+            "ttl_days": venice_service.VOICE_HANDLE_TTL_DAYS,
+            "voices": [{
+                **v,
+                "days_left": max(0, round((float(v.get("created") or 0) + ttl - now) / 86400, 1)),
+            } for v in rows]}
+
+
+@app.post("/api/venice/clone-voice")
+async def venice_clone_voice(file: UploadFile = File(...), name: str = Form(""),
+                             model: str = Form("")):
+    """Clone a voice from a sample and remember the handle under a readable name.
+
+    The handle alone is useless to a person - `vv_9f3a...` says nothing - so the
+    name and the model it belongs to are stored beside it. The model matters:
+    a handle only works with the one it was created for.
+    """
+    sample = await file.read()
+    try:
+        out = venice_service.clone_voice(
+            _venice_key(), sample, file.filename or "sample.wav", model)
+    except venice_service.VeniceError as exc:
+        return JSONResponse(status_code=200, content=exc.as_dict())
+
+    entry = {
+        "id": out["id"],
+        "model": out.get("model") or model or venice_service.VOICE_CLONE_MODELS[0],
+        "name": (name or "").strip() or f"Cloned voice {time.strftime('%d %b %H:%M')}",
+        "created": time.time(),
+    }
+    data = load_settings()
+    data["venice_voices"] = [entry] + _venice_voices(prune=False)
+    save_settings(data)
+    return {"success": True, **entry, "ttl_days": venice_service.VOICE_HANDLE_TTL_DAYS}
+
+
+@app.delete("/api/venice/voices/{voice_id}")
+async def venice_voice_forget(voice_id: str):
+    data = load_settings()
+    data["venice_voices"] = [v for v in _venice_voices(prune=False) if v.get("id") != voice_id]
+    save_settings(data)
+    return {"success": True}
+
+
 class VeniceSpeechRequest(BaseModel):
     text: str
     voice: str = ""

@@ -26,6 +26,14 @@ export function ZonosTTSPage() {
   // ltx-ai2v read their audio from. Showing the name is what makes it usable
   // there - otherwise the user has produced a file they cannot point at.
   const [veniceFilename, setVeniceFilename] = useState('');
+  // Cloned handles are not permanent - Venice expires them after a week - so
+  // they carry how long they have left rather than sitting in the list looking
+  // like saved voices that will one day just fail.
+  const [veniceClones, setVeniceClones] = useState<Array<{ id: string; name: string; model: string; days_left: number }>>([]);
+  const [cloneModels, setCloneModels] = useState<string[]>([]);
+  const [cloneTtl, setCloneTtl] = useState(7);
+  const [cloneName, setCloneName] = useState('');
+  const [cloning, setCloning] = useState(false);
   const [text, setText] = useState('Hey! Okay so I have to tell you about this — it turned out so much better than I expected.');
   const [edgeVoices, setEdgeVoices] = useState<EdgeVoice[]>([]);
   const [edgeVoice, setEdgeVoice] = useState('en-US-AvaNeural');
@@ -100,6 +108,43 @@ export function ZonosTTSPage() {
       })
       .catch(() => {});
   }, [engine]);
+
+  const loadVeniceClones = () => {
+    fetch('/api/venice/voices')
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d?.success) return;
+        setVeniceClones(d.voices || []);
+        setCloneModels(d.clone_models || []);
+        setCloneTtl(d.ttl_days || 7);
+      })
+      .catch(() => {});
+  };
+  useEffect(() => { if (engine === 'venice') loadVeniceClones(); }, [engine]);
+
+  const cloneVeniceVoice = async (file: File) => {
+    setCloning(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('name', cloneName.trim());
+      // A handle only works with the model it was made for, so the clone is
+      // made for whichever clone-capable model is selected - or the first one.
+      form.append('model', cloneModels.includes(veniceModel) ? veniceModel : (cloneModels[0] || ''));
+      const r = await fetch('/api/venice/clone-voice', { method: 'POST', body: form });
+      const d = await r.json();
+      if (!r.ok || d?.success === false) throw new Error(d?.detail || d?.error || 'Clone failed');
+      setCloneName('');
+      loadVeniceClones();
+      setVeniceModel(d.model);
+      setVeniceVoice(d.id);
+      toast(`Voice cloned - usable for ${d.ttl_days} days`, 'success');
+    } catch (e: any) {
+      toast(e.message || 'Clone failed', 'error');
+    } finally {
+      setCloning(false);
+    }
+  };
 
   const generateVenice = async () => {
     const res = await fetch('/api/venice/speech', {
@@ -280,12 +325,30 @@ export function ZonosTTSPage() {
                   Voice
                   <select
                     value={veniceVoice}
-                    onChange={(e) => setVeniceVoice(e.target.value)}
+                    onChange={(e) => {
+                      const picked = e.target.value;
+                      setVeniceVoice(picked);
+                      // A clone belongs to one model; selecting it has to move
+                      // the model with it or the handle is rejected.
+                      const clone = veniceClones.find((c) => c.id === picked);
+                      if (clone) setVeniceModel(clone.model);
+                    }}
                     className="mt-1 w-full rounded-xl fedda-input p-2.5 text-sm"
                   >
-                    {(veniceModels.find((m) => m.id === veniceModel)?.voices || [veniceVoice]).map((v) => (
-                      <option key={v} value={v}>{v}</option>
-                    ))}
+                    {veniceClones.length > 0 && (
+                      <optgroup label={`Your clones (expire after ${cloneTtl} days)`}>
+                        {veniceClones.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name} — {c.days_left}d left
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    <optgroup label={veniceModel}>
+                      {(veniceModels.find((m) => m.id === veniceModel)?.voices || [veniceVoice]).map((v) => (
+                        <option key={v} value={v}>{v}</option>
+                      ))}
+                    </optgroup>
                   </select>
                 </label>
                 <label className="text-[11px] text-white/50 sm:col-span-2">
@@ -297,6 +360,36 @@ export function ZonosTTSPage() {
                     className="mt-1 w-full rounded-xl fedda-input p-2.5 text-sm"
                   />
                 </label>
+                <div className="sm:col-span-2 rounded-xl border border-white/10 bg-black/25 p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      value={cloneName}
+                      onChange={(e) => setCloneName(e.target.value)}
+                      placeholder="Name for a cloned voice..."
+                      className="min-w-[180px] flex-1 rounded-lg fedda-input px-2.5 py-1.5 text-[12px]"
+                    />
+                    <label className={`cursor-pointer rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-[11px] text-violet-200 transition hover:bg-violet-500/20 ${cloning ? 'pointer-events-none opacity-50' : ''}`}>
+                      {cloning ? 'Cloning…' : 'Clone from clip'}
+                      <input
+                        type="file"
+                        accept="audio/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) void cloneVeniceVoice(f);
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                  </div>
+                  <p className="mt-2 text-[11px] leading-relaxed text-white/40">
+                    Clone with {cloneModels.join(' or ') || 'a clone-capable model'} — a clean sample of one
+                    speaker. Venice expires the handle after {cloneTtl} days;
+                    tts-minimax-speech-02-hd resets that window each time you use it,
+                    tts-chatterbox-hd does not.
+                  </p>
+                </div>
+
                 {veniceFilename && (
                   <p className="sm:col-span-2 rounded-lg border border-sky-500/25 bg-sky-500/10 px-3 py-2 text-[11px] text-sky-200">
                     Saved to ComfyUI input as <b>{veniceFilename}</b> - select it as the audio
