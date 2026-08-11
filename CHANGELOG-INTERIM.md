@@ -187,3 +187,30 @@ direction, and `zimage`'s "do NOT invent facts not clearly visible" would have
 been actively harmful); and deduplicating the rule list programmatically —
 the wordings differ slightly, so the redundant lines were removed from the
 branch tails instead, leaving the shared tail as the single source.
+
+## 2026-08-11 — Krea2 follows Z-Image in the agent, as it already did in captions
+
+**Changed:** `config/prompt_profiles.json`. Added `"krea2"` to the `zimage`
+profile's `match`, and reworded that profile's `agent` line from "Z-Image is
+photographic" to "This is a photographic model".
+
+**Why:** the user chose this over giving Krea2 its own profile. The caption path
+had already made the same call — `Krea2Txt2Img.tsx:13` passes
+`promptContext="zimage"` — but the agent lookup keys on `workflow_id`, not on the
+context name, so `krea2-turbo-txt2img-gguf` matched nothing and those pages got
+no model-specific steering. The two paths now agree. The rewording follows from
+the match: one profile serving two model families should not name one of them.
+
+**Verified:** `_agent_profile()` on `krea2-turbo-txt2img`,
+`krea2-turbo-txt2img-gguf`, `z-image` and `chroma1-hd-txt2img` — the three
+Z-Image-family ids resolve to the photographic line, Chroma still resolves to its
+own. Line endings unchanged (0 LF-only lines).
+
+**Not verified:** whether Z-Image's instruction is actually right for Krea2.
+Nobody has measured that; this inherits the caption path's assumption rather than
+testing it. If Krea2 turns out to want something different, it needs its own
+profile and this match entry comes back out.
+
+**Still needs:** the backend restart from the previous entry. This file re-reads
+on mtime, but it is `_agent_profile()` in `server.py` that reads it, and that
+function does not exist in the running process yet.

@@ -39,8 +39,8 @@
 
   "profiles": {
     "zimage": {
-      "match": ["z-image"],
-      "agent": "Z-Image is photographic. Write it as a straight photograph - concrete, physical description, no art-style vocabulary and no quality padding like 'masterpiece' or '8k'.",
+      "match": ["z-image", "krea2"],
+      "agent": "This is a photographic model. Write it as a straight photograph - concrete, physical description, no art-style vocabulary and no quality padding like 'masterpiece' or '8k'.",
       "task": "Write ONE photorealistic image-generation prompt that would recreate this exact photo, grounded ONLY in what is clearly visible. FOCUS: describe only the one or two people who are in sharp foreground focus - the clear subjects of the shot, largest and closest to the camera. If two people are in focus, describe BOTH and state each one's position (e.g. 'a woman on the left', 'a man on the right'). IGNORE every other person: anyone blurred, seated behind, in the background, passing by, or part of a crowd - do not mention them at all. For each focal subject include: apparent age and gender, face and expression, visible makeup/face paint, hair, wardrobe and materials, and pose. Then describe the setting, composition and camera framing, and the lighting direction and colour.",
       "add": "Do NOT invent facts not clearly visible (no unseen actions, locations, relationships or body posture). Do NOT mention fisheye, ultra-wide or lens distortion unless clearly visible. No meta wording like 'the image shows'.",
       "words": 110,
