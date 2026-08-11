@@ -484,6 +484,56 @@ async def venice_styles():
     return _venice(venice_service.image_styles, _venice_key())
 
 
+PROMPT_LIBRARY_FILE = CONFIG_DIR / "prompt_library.json"
+
+
+@app.get("/api/prompt-library")
+async def prompt_library_list(q: str = "", limit: int = 200, offset: int = 0):
+    """The prompts that actually produced images, newest first.
+
+    Read from the cached file. Rebuilding opens several hundred PNGs, which is
+    not something a page load should do.
+    """
+    try:
+        data = json.loads(PROMPT_LIBRARY_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {"success": True, "prompts": [], "total": 0, "built": None,
+                "hint": "Not built yet - POST /api/prompt-library/rebuild"}
+    rows = data.get("prompts") or []
+    needle = (q or "").strip().lower()
+    if needle:
+        rows = [r for r in rows
+                if needle in str(r.get("positive", "")).lower()
+                or needle in str(r.get("model", "")).lower()
+                or needle in str(r.get("prefix", "")).lower()]
+    return {"success": True, "total": len(rows), "built": data.get("generated_at"),
+            "source": data.get("source"), "prompts": rows[offset:offset + limit]}
+
+
+@app.post("/api/prompt-library/rebuild")
+async def prompt_library_rebuild():
+    """Rescan the output folder and rewrite the library.
+
+    The old file was scraped in February from Python generator scripts and held
+    their docstrings rather than prompts, in directories that no longer exist.
+    This reads ComfyUI's own metadata instead, so every entry is a prompt that
+    made an image somebody kept.
+    """
+    import prompt_library as _pl
+
+    try:
+        built = _pl.build(OUTPUT_DIR)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=f"Rebuild failed: {exc}")
+    PROMPT_LIBRARY_FILE.parent.mkdir(parents=True, exist_ok=True)
+    PROMPT_LIBRARY_FILE.write_text(
+        json.dumps(built, ensure_ascii=False, indent=1), encoding="utf-8")
+    return {"success": True, "total": built["total_prompts"],
+            "images_seen": built["images_seen"],
+            "images_with_metadata": built["images_with_metadata"],
+            "built": built["generated_at"]}
+
+
 @app.get("/api/venice/characters")
 async def venice_characters(search: str = "", limit: int = 60, adult: Optional[bool] = None):
     """Trimmed to what a picker needs - the raw rows carry stats, timestamps and

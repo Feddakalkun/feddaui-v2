@@ -1173,3 +1173,47 @@ use for.
 
 **Not verified:** the picker was not driven from the browser, and no chat has
 been held in character through the UI.
+
+## 2026-08-11 — the prompt library is real: built from what was actually generated
+
+**Changed:** new `backend/prompt_library.py`; `GET /api/prompt-library` and
+`POST /api/prompt-library/rebuild`.
+
+**Why the old one had to go rather than be re-run.** The user picked the prompt
+library for semantic search, on my suggestion. Checking it first — which I should
+have done before suggesting it — showed it was not a library at all:
+
+- **gitignored** (`.gitignore:97`), so it shipped to nobody
+- **referenced by no code**, backend or frontend
+- **generated 2026-02-28** by scanning three directories that no longer exist
+- and it scraped the wrong thing: `positive` held the *docstrings of Python
+  generator scripts* — "GOLD STANDARD DUCOVERY … 2loras.json API structure with
+  ALL required parameters" — not prompts. 917 of 1339 entries were "general".
+
+Rebuilding it the same way would have reproduced the noise.
+
+**ComfyUI writes the whole API graph into every PNG it saves** — 445 of the 450
+images in `output/` carry one. That is the real record: every prompt there
+produced an image someone chose to keep, with its own negative, its model and the
+workflow that ran it. Nothing is scraped or guessed, and each entry keeps the
+image it came from, because a prompt library you cannot look at is a text file.
+
+**Result: 1339 entries of script documentation → 142 real prompts**, 1080 kB →
+119 kB. Duplicates collapse with a count, so a head-swap prompt run eight times
+is one row that says so.
+
+**One extraction bug found and fixed by measuring rather than eyeballing.** The
+first build gave 33 of 143 entries a negative *identical to the positive*.
+Following every link back from a conditioning node let an empty negative encoder
+wander out through `clip` or `image` and return with the positive text. The walk
+now follows only text-bearing inputs, and a negative equal to its positive is
+dropped outright. **33 → 0**, with 79 entries keeping a real negative.
+
+**Verified:** rebuild through the endpoint reports 450 images seen, 445 with
+metadata, 142 prompts. Search works: `?q=beach` returns the cowgirl-on-a-horse
+prompt.
+
+**Not done yet — this is the data, not the feature.** Nothing in the UI reads it.
+The next step is a surface: the useful one is where prompts are written, so a
+library button on the prompt box that searches and inserts. Semantic search over
+it — the original request — comes after that, and only then is worth its cost.
