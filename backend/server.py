@@ -537,6 +537,26 @@ async def agent_memory_forget(memory_id: str):
     return {"success": True, "removed": before - len(data["memories"])}
 
 
+@app.post("/api/agent-memory/derive")
+async def agent_memory_derive(min_runs: int = 4):
+    """Memories taken straight from the prompt library, no model involved.
+
+    That a prompt ran 43 times is recorded, not recalled. Deriving it is free,
+    instant and cannot be hallucinated - which is most of what "you wanna
+    generate that again?" actually needs.
+    """
+    import agent_memory as _am
+
+    try:
+        lib = json.loads(PROMPT_LIBRARY_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        raise HTTPException(status_code=404,
+                            detail="No prompt library yet - POST /api/prompt-library/rebuild")
+    found = _am.derive_from_library(lib, min_runs=min_runs)
+    stats = _am.add_many(AGENT_MEMORY_FILE, found, source="prompt-library")
+    return {"success": True, "derived": len(found), **stats}
+
+
 class MemoryExtractRequest(BaseModel):
     session_id: Optional[str] = None      # one session, or every one when absent
     limit: int = 25                       # cap a full sweep

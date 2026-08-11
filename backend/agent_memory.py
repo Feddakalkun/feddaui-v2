@@ -134,6 +134,65 @@ def add_many(path: Path, items: Iterable[Dict[str, Any]], source: str = "",
     return {"added": added, "repeated": repeated, "total": len(data["memories"])}
 
 
+# Words that only appear in a negative prompt. A handful of these with no
+# sentence around them is a list of things to avoid, not something the user
+# wanted - and one such entry sits in the library because the extractor picked
+# the wrong side of a graph whose sampler links did not resolve.
+_NEGATIVE_MARKERS = {
+    "blurry", "worst", "lowres", "artifacts", "deformed", "watermark", "jpeg",
+    "airbrushed", "plastic", "oily", "mutated", "extra", "disfigured", "ugly",
+    "低", "bad", "poorly", "cropped", "duplicate", "grainy",
+}
+
+
+def looks_negative(text: str) -> bool:
+    words = set(_norm(text).split())
+    hits = len(words & _NEGATIVE_MARKERS)
+    # Comma-separated with no verb reads as a tag list rather than a request.
+    dense = text.count(",") >= 4 and " the " not in f" {text.lower()} "
+    return hits >= 3 and dense
+
+
+def derive_from_library(lib: Dict[str, Any], min_runs: int = 4) -> List[Dict[str, str]]:
+    """Turn the prompt library into memories, without asking a model anything.
+
+    "You wanna generate that again?" does not need a model to have remembered
+    it. The library already records that a prompt ran 43 times, which model it
+    used and when - facts, not recollections. Deriving them costs nothing and
+    they cannot be hallucinated.
+    """
+    from collections import Counter
+
+    rows = [r for r in (lib.get("prompts") or []) if r.get("positive")]
+    if not rows:
+        return []
+    out: List[Dict[str, str]] = []
+
+    for r in sorted(rows, key=lambda r: -int(r.get("count", 1))):
+        runs = int(r.get("count", 1))
+        if runs < min_runs:
+            break
+        text = " ".join(str(r["positive"]).split())
+        if looks_negative(text):
+            continue
+        gist = text[:110] + ("…" if len(text) > 110 else "")
+        out.append({"kind": "entity",
+                    "text": f'The user has generated this {runs} times: "{gist}"'})
+
+    models = Counter(r["model"] for r in rows if r.get("model"))
+    if models:
+        top = models.most_common(3)
+        named = ", ".join(f"{m.replace('.safetensors', '')} ({n})" for m, n in top)
+        out.append({"kind": "preference",
+                    "text": f"The user generates most often with {named}, "
+                            f"counted across {len(rows)} distinct prompts."})
+
+    out.append({"kind": "fact",
+                "text": f"The user's prompt library holds {len(rows)} distinct prompts "
+                        f"taken from {lib.get('images_with_metadata', 0)} generated images."})
+    return out
+
+
 def transcript(messages: List[Dict[str, Any]], limit_chars: int = 12000) -> str:
     """Flatten a stored conversation into something a model can read.
 
