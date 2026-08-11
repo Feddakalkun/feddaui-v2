@@ -393,12 +393,24 @@ You can generate multiple images (up to 4) in one call using the num_images para
 Current context: User is requesting images of Elara at the safari camp, now specifying "sunset setting". Use rich, cinematic, detailed prompts.`;
 
     let apiMessages = newMessages.map((msg) => {
-      if (msg.images && msg.images.length > 0) {
+      // Only a user turn may carry image parts. An assistant message with
+      // image_url content is rejected outright - "Invalid request parameters" -
+      // and the images on an assistant turn are ours to display, not context to
+      // hand back.
+      //
+      // And only images Venice can actually read: a data: url or an absolute
+      // one. Generated images became /comfy/view?... paths when they moved to
+      // disk, and Venice answers "Supplied image did not pass validation
+      // checks" for those, since it cannot fetch a path on this machine.
+      const sendable = msg.role === 'user'
+        ? (msg.images || []).filter((u) => u.startsWith('data:') || /^https?:\/\//i.test(u))
+        : [];
+      if (sendable.length > 0) {
         return {
           role: msg.role,
           content: [
             { type: 'text', text: msg.content },
-            ...msg.images.map(img => ({ type: 'image_url', image_url: { url: img } }))
+            ...sendable.map(img => ({ type: 'image_url', image_url: { url: img } }))
           ]
         };
       }

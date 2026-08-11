@@ -1217,3 +1217,44 @@ prompt.
 The next step is a surface: the useful one is where prompts are written, so a
 library button on the prompt box that searches and inserts. Semantic search over
 it — the original request — comes after that, and only then is worth its cost.
+
+## 2026-08-11 — "Invalid request parameters" in the Venice chat: two causes, one mine
+
+**Changed:** the message serialisation in `VenicePage.tsx`.
+
+**Reported:** the user gets `Invalid request parameters` often in the Venice
+chat. Reproduced against the live API rather than guessed, one shape at a time:
+
+| what was sent | Venice |
+|---|---|
+| text only | OK |
+| **assistant message with `image_url` content** | **"Invalid request parameters"** |
+| user message with a **relative** image url | "Supplied image did not pass validation checks" |
+| empty `content` | OK |
+
+**Cause 1, longstanding.** The mapping applied `msg.images` to *every* role, so
+as soon as the agent generated or edited an image, the assistant turn carrying it
+went back up as multimodal content. An assistant message cannot hold image parts,
+so every following turn in that conversation failed. That is why it happened
+"often" rather than once — one generated image poisoned the rest of the chat.
+
+**Cause 2, mine, from today.** Moving generated images to disk made their urls
+`/comfy/view?filename=…`. Venice cannot fetch a path on this machine, so any such
+url reaching a *user* turn fails validation. Before today they were base64 data
+urls, which worked.
+
+**And my chat-persistence change made both worse:** the bad history used to die
+on reload, and now it is restored, so the error repeated on every turn until the
+chat was cleared.
+
+**Fix:** image parts are sent only on user turns, and only for urls Venice can
+read — a `data:` url or an absolute `http(s)` one. Assistant images stay in the
+UI, which is all they were ever for.
+
+**Verified:** the shape the page now sends — a user turn with a real attached
+image, an assistant turn that generated one, then a follow-up question — comes
+back OK, answering "The background color of the image is pink."
+
+**Worth noting for the next test:** my first check of the fix still failed, on a
+1×1 pixel PNG I had used as a stand-in. Venice rejects that as an image. The
+shape was right; the test image was not.
