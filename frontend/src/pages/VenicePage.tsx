@@ -194,20 +194,65 @@ export function VenicePage() {
   }, [chatMessages]);
 
 
-  const handleImageAttach = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      toast('Please select an image file', 'error');
+  /**
+   * Every route an image can take into the chat ends here: the button, a drop,
+   * or a paste.
+   *
+   * Dropping a file from the desktop onto the old chat put its `file:///C:/...`
+   * path into the textarea as text, and the agent then explained at length that
+   * it cannot read local paths - which is true and useless. The bytes were right
+   * there in the drop event; nothing was reading them.
+   */
+  const addImageFiles = (files: FileList | File[] | null | undefined) => {
+    const list = Array.from(files || []).filter(f => f.type.startsWith('image/'));
+    if (!list.length) {
+      if (files && Array.from(files).length) toast('Only image files can be attached', 'error');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      setAttachedImages(prev => [...prev, base64]);
-    };
-    reader.readAsDataURL(file);
+    for (const file of list) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        if (base64) setAttachedImages(prev => [...prev, base64]);
+      };
+      reader.readAsDataURL(file);
+    }
+    toast(list.length === 1 ? 'Image attached' : `${list.length} images attached`, 'success');
+  };
+
+  const handleImageAttach = (e: React.ChangeEvent<HTMLInputElement>) => {
+    addImageFiles(e.target.files);
     e.target.value = '';
+  };
+
+  const [isChatDragOver, setIsChatDragOver] = useState(false);
+
+  const handleChatDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsChatDragOver(false);
+    const dropped = e.dataTransfer?.files;
+    if (dropped && dropped.length) { addImageFiles(dropped); return; }
+    // Dragging an image out of another browser tab gives a URL, not a file.
+    const url = e.dataTransfer?.getData('text/uri-list') || e.dataTransfer?.getData('text/plain') || '';
+    if (/^https?:\/\//i.test(url)) {
+      setAttachedImages(prev => [...prev, url]);
+      toast('Image attached', 'success');
+    } else if (url.startsWith('file://')) {
+      // The browser will not hand a page the bytes behind a file:// URL, and the
+      // model cannot fetch one either. Say so here rather than letting the agent
+      // discover it three paragraphs into an answer.
+      toast('Drop the file itself rather than its path - a file:// link cannot be read', 'error');
+    }
+  };
+
+  // Screenshots arrive on the clipboard, not as files, and that is how most
+  // people hand an image to a chat.
+  const handleChatPaste = (e: React.ClipboardEvent) => {
+    const files = e.clipboardData?.files;
+    if (files && files.length) {
+      e.preventDefault();
+      addImageFiles(files);
+    }
   };
 
   const removeAttachedImage = (index: number) => {
@@ -728,7 +773,18 @@ Current context: User is requesting images of Elara at the safari camp, now spec
           )}
 
           {activeTab === 'chat' && (
-            <div className="max-w-4xl mx-auto">
+            <div
+              className={`max-w-4xl mx-auto rounded-2xl transition-colors ${
+                isChatDragOver ? 'ring-2 ring-violet-400/70 ring-offset-2 ring-offset-[#07080d]' : ''
+              }`}
+              onDragOver={(e) => { e.preventDefault(); setIsChatDragOver(true); }}
+              onDragEnter={(e) => { e.preventDefault(); setIsChatDragOver(true); }}
+              onDragLeave={(e) => {
+                // Leaving for a child element still fires here; ignore those.
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsChatDragOver(false);
+              }}
+              onDrop={handleChatDrop}
+            >
               {/* CHAT UI - adapted from previous full page */}
               <div className="space-y-4">
                 {/* Chat Header Controls */}
@@ -823,7 +879,7 @@ Current context: User is requesting images of Elara at the safari camp, now spec
                     <button
                       onClick={() => chatFileInputRef.current?.click()}
                       className="h-10 w-10 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 flex items-center justify-center transition"
-                      title="Attach image for vision"
+                      title="Attach an image - you can also drop one anywhere here, or paste"
                     >
                       <ImageIcon className="h-4 w-4" />
                     </button>
@@ -833,7 +889,8 @@ Current context: User is requesting images of Elara at the safari camp, now spec
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
                       onKeyDown={handleChatKeyDown}
-                      placeholder="Ask the agent... (e.g. Generate a cyberpunk landscape and describe it)"
+                      onPaste={handleChatPaste}
+                      placeholder="Ask the agent, or drop and paste images straight in..."
                       className="flex-1 resize-y min-h-[44px] max-h-32 rounded-2xl fedda-input p-3 text-sm focus:border-violet-500/40"
                       rows={1}
                     />

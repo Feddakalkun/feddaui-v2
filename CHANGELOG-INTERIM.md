@@ -731,3 +731,54 @@ reflows instead of breaking.
 **Verified in the running app** by measuring the DOM: the bottom grid reports 5
 children in 5 columns on one row, every card 148px tall; the top grid 2 in 2.
 `npx vite build` clean.
+
+## 2026-08-11 — Venice chat: drop and paste images
+
+**Changed:** `frontend/src/pages/VenicePage.tsx`.
+
+**Why:** the user dropped a file from the desktop onto the chat and got its
+`file:///C:/Users/...` path as text. The agent then explained at length that it
+cannot read local paths — true, and useless, because the bytes were in the drop
+event and nothing was reading them.
+
+**What it does now:** one `addImageFiles()` handles every route in — the attach
+button, a drop anywhere on the chat panel, or a paste, which is how a screenshot
+arrives. Multiple files at once. The panel shows a ring while a drag is over it,
+and `dragleave` ignores moves onto child elements, which otherwise made the
+highlight flicker.
+
+Two cases worth naming. Dragging an image out of another browser tab hands over a
+URL rather than a file, so an `http(s)` drop is attached as a URL. And a
+`file://` drop — which a page can never read the bytes behind — now says so
+immediately instead of letting the agent discover it three paragraphs into an
+answer.
+
+**Verified:** `npx vite build` clean. Not verified: no actual drag was performed
+— the browser pane will not composite, so this could not be exercised by hand.
+
+## 2026-08-11 — how much of the Venice API is actually wired
+
+Asked whether everything is pulled in. It is not: **6 of 45 endpoints**, up from
+3 before today. In use: `/models`, `/chat/completions`, `/image/generate`,
+`/image/styles`, `/billing/balance`, `/api_keys/rate_limits`.
+
+Whole families are untouched, and these are the ones that would matter here:
+
+- **`/audio/*`** (7) — speech, transcription, voices. The app has `zonos-tts` and
+  a lipsync family that needs audio from somewhere.
+- **`/video/*`** (5) — an async queue with quote/retrieve. The entire video side
+  is local and slow on one 3090.
+- **`/image/*`** (4 unused) — edit, multi-edit, upscale, background-remove. Local
+  equivalents exist; these are cloud fallbacks for when the GPU is busy.
+- **`/augment/*`** (3) — web search, scrape, text parsing. Could feed the prompt
+  agent real reference material.
+- **`/characters/*`** (3) — a character catalogue, against the app's own
+  `personas.json` and the empty `companion` module.
+- **`/embeddings`** — would let the prompt library and LoRA matching search by
+  meaning.
+- **`/billing/usage*`** (3) — spend history, which a paid product eventually wants.
+
+Deliberately left alone: `/x402/*` and `/crypto/*` (wallet top-ups and JSON-RPC
+proxying — nothing here needs them), `/api_keys` mutations (creating and deleting
+keys from inside the app is a capability worth not having), and `/responses`,
+which the spec marks Alpha.
