@@ -1297,3 +1297,63 @@ comment.
 
 **Not done:** the sidebar is `hidden lg:flex`, so below 1024px the saved chats
 have no surface at all. Fine for a desktop app on a 3090, worth knowing.
+
+## 2026-08-11 — agent memory: extraction that is allowed to fire
+
+**Changed:** new `backend/agent_memory.py`; `GET /api/agent-memory`,
+`POST /api/agent-memory/extract`, `DELETE /api/agent-memory/{id}`.
+
+**Why there was one memory after months.** The user asked how far the agent's
+memory could go — it had stored exactly one thing about him. The cause was not
+the model. Memory existed on **one** surface, the image-edit agent, and its
+instruction said, in as many words:
+
+> "Only for a LASTING preference … never for one-off requests … **Almost every
+> turn is null.**"
+
+It did precisely as told. The schema also allowed a single string per turn, so
+even a willing model could offer one fact at a time. The cap was 30 and never
+came near binding.
+
+**What replaces it.** Extraction now reads a **whole conversation** rather than a
+turn, may return several items, and sorts them into four kinds — preference,
+fact, entity, episode — because "prefers cool rim light" and "his character is
+Saira, leader of The Strategyc" are not recalled the same way. Pinned to
+`mistral-nemo:12b` (installed, 7.1 GB, and its context is 1,024,000 tokens, so
+the window was never the constraint either).
+
+**It runs over stored sessions, not live turns, and that is the point.** A 12B
+model occupies ~7 GB; the app sets `keep_alive: 0` because ComfyUI wants the
+card. Paying that load per message to learn nothing most of the time is the worst
+trade available. The sweep holds the model open across the batch and releases it
+on the last session: **11 conversations in 52 seconds, one load**.
+
+**Result: 1 → 17 memories**, then 15 after merging near-duplicates. Real ones
+include "The user is Norwegian", "prefers visible pores and natural skin texture"
+(seen twice) and "prefers realistic images over stylized" (seen three times).
+
+**The defect the first run exposed, and how far the fix goes.** Exact-text dedupe
+let rewordings through: *"prefers visible pores and natural skin texture in
+images"* and *"prefers images with visible pores and natural skin texture"* were
+stored as two memories. Added a Jaccard match over content words with stopwords
+stripped, which merged them and folded the repeats into a `seen` count. It does
+**not** catch everything — two denim-jacket episodes differ by "modify an image
+by removing" versus "the AI to remove", which scores 0.6 against a 0.7 threshold.
+Lowering the threshold would overfit fifteen examples. Semantic dedupe is the
+honest fix, and `/embeddings` is already the next item on the user's list.
+
+**Honest about the rest of the output:**
+- Several "episodes" are one-off requests with little recall value — the thing
+  the old prompt was over-correcting against. Worth a relevance pass later.
+- Categories slip: "The user asked for an image of Hello Kitty" is filed `fact`.
+- It stored two **local desktop filenames**. Factually correct, useless as
+  memory, and worth a rule before this ships to anyone.
+
+**Where the other 35 come from.** Eleven sessions totalling 2,946 characters is
+thin material — the ceiling here is the corpus, not the extractor. The app
+already holds far more: the prompt library (142 prompts with repeat counts and
+dates), the Venice chats, and the workflow runs. Those are the next inputs.
+
+**Verified:** the old single memory was migrated rather than dropped; the sweep
+read 11 sessions and added 16; the store reports 15 after merge with counts per
+kind. Nothing is in the UI yet.

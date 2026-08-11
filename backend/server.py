@@ -484,6 +484,109 @@ async def venice_styles():
     return _venice(venice_service.image_styles, _venice_key())
 
 
+AGENT_MEMORY_FILE = CONFIG_DIR / "agent_memory.json"
+
+
+def _memory_extract(convo: str, known: List[str], keep_alive: int = 0) -> List[Dict[str, str]]:
+    """One extraction pass over one conversation.
+
+    Pinned to mistral-nemo rather than the user's chosen text model: this is a
+    long-context reading job, and the model that writes prompts is picked for
+    something else. `keep_alive` is held open while a batch runs, so a run over
+    ten sessions loads 7 GB once instead of ten times - the app otherwise sets it
+    to 0 because ComfyUI wants the card back.
+    """
+    import agent_memory as _am
+
+    payload = {
+        "model": _am.EXTRACT_MODEL,
+        "prompt": _am.build_prompt(convo, known),
+        "stream": False,
+        "keep_alive": keep_alive,
+        "options": {"temperature": 0.2, "num_predict": 900, "num_ctx": 16384},
+    }
+    r = requests.post(f"{OLLAMA_URL}/api/generate", json=payload, timeout=600)
+    r.raise_for_status()
+    return _am.parse(r.json().get("response", ""))
+
+
+@app.get("/api/agent-memory")
+async def agent_memory_list(kind: str = ""):
+    import agent_memory as _am
+
+    data = _am.load(AGENT_MEMORY_FILE)
+    rows = data["memories"]
+    if kind:
+        rows = [m for m in rows if m.get("kind") == kind]
+    rows = sorted(rows, key=lambda m: (-int(m.get("seen", 1)), -float(m.get("created", 0))))
+    counts: Dict[str, int] = {}
+    for m in data["memories"]:
+        counts[m.get("kind", "fact")] = counts.get(m.get("kind", "fact"), 0) + 1
+    return {"success": True, "total": len(data["memories"]), "by_kind": counts,
+            "model": _am.EXTRACT_MODEL, "memories": rows}
+
+
+@app.delete("/api/agent-memory/{memory_id}")
+async def agent_memory_forget(memory_id: str):
+    import agent_memory as _am
+
+    data = _am.load(AGENT_MEMORY_FILE)
+    before = len(data["memories"])
+    data["memories"] = [m for m in data["memories"] if m.get("id") != memory_id]
+    _am.save(AGENT_MEMORY_FILE, data)
+    return {"success": True, "removed": before - len(data["memories"])}
+
+
+class MemoryExtractRequest(BaseModel):
+    session_id: Optional[str] = None      # one session, or every one when absent
+    limit: int = 25                       # cap a full sweep
+
+
+@app.post("/api/agent-memory/extract")
+async def agent_memory_extract(req: MemoryExtractRequest):
+    """Read saved conversations and remember what they reveal.
+
+    Runs over stored sessions rather than live turns, which is what makes a
+    12B model affordable here: it sees the whole arc, and the card is only
+    occupied once per batch.
+    """
+    import agent_memory as _am
+
+    sessions = _chat_sessions()
+    if req.session_id:
+        sessions = [s for s in sessions if s.get("id") == req.session_id]
+        if not sessions:
+            raise HTTPException(status_code=404, detail="no such chat")
+    sessions = sessions[:max(1, req.limit)]
+
+    known = [m["text"] for m in _am.load(AGENT_MEMORY_FILE)["memories"]]
+    report: List[Dict[str, Any]] = []
+    total_added = 0
+    for i, sess in enumerate(sessions):
+        convo = _am.transcript(sess.get("messages") or [])
+        if len(convo) < 80:               # nothing said worth reading
+            report.append({"id": sess.get("id"), "skipped": "too short"})
+            continue
+        try:
+            # Hold the model for the batch, release it on the last one.
+            hold = 0 if i == len(sessions) - 1 else 600
+            found = _memory_extract(convo, known, keep_alive=hold)
+        except Exception as exc:  # noqa: BLE001 - one bad session must not stop the sweep
+            report.append({"id": sess.get("id"), "error": str(exc)[:120]})
+            continue
+        stats = _am.add_many(AGENT_MEMORY_FILE, found,
+                             source=sess.get("workflow_id") or "chat",
+                             session_id=str(sess.get("id") or ""))
+        known = [m["text"] for m in _am.load(AGENT_MEMORY_FILE)["memories"]]
+        total_added += stats["added"]
+        report.append({"id": sess.get("id"), "title": sess.get("title"),
+                       "found": len(found), **stats})
+
+    data = _am.load(AGENT_MEMORY_FILE)
+    return {"success": True, "sessions_read": len(sessions), "added": total_added,
+            "total": len(data["memories"]), "sessions": report}
+
+
 PROMPT_LIBRARY_FILE = CONFIG_DIR / "prompt_library.json"
 
 
