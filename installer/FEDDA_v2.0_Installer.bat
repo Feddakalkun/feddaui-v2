@@ -163,8 +163,38 @@ echo      keeps getting better over time.
 echo.
 echo   ------------------------------------------------------------
 echo.
-echo   Press any key to continue...
-pause >nul
+:: A screen is not consent. `pause` returns immediately when stdin is
+:: empty - piped, redirected, run from a script or a service - so every
+:: one of these notices, this one included, used to scroll past unread.
+:: Found by accident: a probe with no stdin ran the whole front-of-house
+:: and started installing.
+::
+:: Typing is required instead. With no stdin the variable stays empty and
+:: the install refuses, which is the correct answer: terms nobody read
+:: have not been accepted. There is deliberately no environment variable
+:: to bypass this - that would rebuild the hole.
+:ASK_AGREE
+set "AGREE="
+set /p "AGREE=Type  I AGREE  to accept these terms, or N to cancel: "
+if /i "%AGREE%"=="N" goto DECLINED
+if /i "%AGREE%"=="I AGREE" goto AGREED
+if not defined AGREE goto DECLINED
+echo   Please type  I AGREE  exactly, or N to cancel.
+goto ASK_AGREE
+
+:DECLINED
+echo.
+echo   ------------------------------------------------------------
+echo   The terms were not accepted, so nothing has been installed.
+echo.
+echo   If you are running this from a script or a pipe, run it in a
+echo   console instead - these terms have to be read by a person.
+echo   ------------------------------------------------------------
+echo.
+pause
+exit /b 1
+
+:AGREED
 
 :SHOW_INFO
 cls

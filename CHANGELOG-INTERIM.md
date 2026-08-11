@@ -1571,3 +1571,63 @@ has never been executed — this machine has both tools, so that branch is unvis
 
 **Left alone:** the running copy at `H:\Fedda-Hub\290726\FEDDA_v2.0_Installer.bat`
 is now older than the repository's. Copying it over is the user's call.
+
+## 2026-08-11 — the disclaimer is a gate now, not a screen
+
+**Changed:** `installer/FEDDA_v2.0_Installer.bat` (and the running copy).
+
+**Found by accident during a clean-install test.** A probe with no stdin ran the
+whole front-of-house — welcome, requirements, **disclaimer**, info — without
+stopping, and started installing. `pause` returns immediately when stdin is
+empty: piped, redirected, run from a script or a service. So the notice that
+covers adults-only, consent and content involving minors could scroll past
+entirely unread, and did.
+
+**Fix:** the disclaimer now requires typing `I AGREE`. With no stdin the variable
+stays empty and the installer **refuses** — which is the correct answer, because
+terms nobody read have not been accepted. Anything else re-prompts once and then
+declines. There is deliberately no environment variable to bypass it; that would
+rebuild the hole.
+
+The other three screens still use `pause`. They are informational, and skipping
+them costs nothing.
+
+**Verified**, the gate driven through every case in isolation:
+
+| input | result |
+|---|---|
+| empty stdin | DECLINED |
+| `I AGREE` | AGREED |
+| `i agree` | AGREED |
+| `N` | DECLINED |
+| anything else | re-prompt, then DECLINED |
+
+And end to end: running the real installer with `< nul` prints "The terms were
+not accepted, so nothing has been installed" and exits 1, with nothing written.
+
+**Note for anyone scripting this:** the accept path cannot be driven through a
+pipe at all, because the `pause` screens ahead of it consume the piped input
+before `set /p` is reached. That is a consequence rather than a design, but it is
+the right one — consent through a pipe is not consent.
+
+## 2026-08-11 — clean-install test: the portable branch works
+
+Run from `H:\Fedda-Hub\compare` with Git and Node hidden from PATH for that
+session only (`test-without-git-node.bat`, which filters PATH in PowerShell —
+the same loop written in cmd silently matched nothing and hid node but not git,
+which is the worst kind of test: one that looks real).
+
+**The branch that had never been executed, executed:**
+- `portable-files/git/cmd/git.exe` downloaded and extracted
+- `portable-files/node/node.exe` likewise
+- the repository **cloned using the portable git**, HEAD at `921e774`
+- `logs/install.log` written
+- and it got further: `python_embeded/`, `ComfyUI/` and **`uv.exe`** all present
+
+So portable Git, portable Node, the embedded Python fetch, the ComfyUI clone and
+the uv download all work on a machine that has neither tool on PATH.
+
+**Not verified:** the run was killed during the inner install, so the twelve
+`Venv-Pip` calls through uv were started but not finished, and whether Pixaroma
+and iTools install from the vendored copies rather than cloning is still unknown.
+The test folder is cleaned and ready for a full run.
