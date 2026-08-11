@@ -225,12 +225,6 @@
         ],
         "type": "number",
         "label": "Detail LoRA Strength"
-      },
-      "detail_denoise": {
-        "node_id": "25",
-        "input_key": "denoise",
-        "type": "number",
-        "label": "Change Strength"
       }
     }
   },
@@ -3645,8 +3639,8 @@
         "label": "Source Image"
       },
       "prompt": {
-        "node_id": "171",
-        "input_key": "text",
+        "node_id": "165",
+        "input_key": "string",
         "type": "string",
         "label": "Prompt"
       },

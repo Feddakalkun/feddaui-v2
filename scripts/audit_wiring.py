@@ -47,6 +47,8 @@ MODEL_KEY = re.compile(
     r"gligen|model|upscale_model|sam|bbox|segm|detector|ipadapter|instantid)?_?name$"
     r"|^(ckpt_name|lora_name|vae_name|unet_name|clip_name|model_name)$")
 UPLOAD_NODES = {"LoadImageMask", "VHS_LoadVideo", "LoadAudio", "ImageFromBatch"}
+# Mirrors _SKIP_TYPES in backend/server.py - keep in step with it.
+SKIP_TYPES = {"loras", "object", "nsfw_toggle"}
 
 
 def sep_key(value: str) -> str:
@@ -168,7 +170,14 @@ def main() -> int:
             continue
 
         for name, spec in (entry.get("inputs") or {}).items():
-            key = spec.get("input_key")
+            # server.py's _SKIP_TYPES: these never go through node_id/input_key
+            # at all - LoRA stacks and slot objects are injected by dedicated
+            # code, and nsfw toggles by their own path. Checking them against
+            # the generic mechanism reported 25 bugs that were not bugs.
+            if spec.get("type") in SKIP_TYPES:
+                continue
+            # Both spellings exist in the config.
+            keys = spec.get("input_keys") or [spec.get("input_key")]
             ids = spec.get("node_ids") or [spec.get("node_id")]
             for nid in ids:
                 node = graph.get(str(nid))
@@ -176,13 +185,14 @@ def main() -> int:
                     dangling.append(f"{wid}.{name} -> node {nid} missing")
                     continue
                 inputs = node.get("inputs") or {}
-                if key not in inputs:
-                    not_input.append(
-                        f"{wid}.{name} -> {nid}({node.get('class_type')}) has no input '{key}'")
-                elif isinstance(inputs[key], list):
-                    linked.append(
-                        f"{wid}.{name} -> {nid}({node.get('class_type')}).{key} is fed by "
-                        f"node {inputs[key][0]}, so a UI value cannot reach it")
+                for key in keys:
+                    if key not in inputs:
+                        not_input.append(
+                            f"{wid}.{name} -> {nid}({node.get('class_type')}) has no input '{key}'")
+                    elif isinstance(inputs[key], list):
+                        linked.append(
+                            f"{wid}.{name} -> {nid}({node.get('class_type')}).{key} is fed by "
+                            f"node {inputs[key][0]}, so a UI value cannot reach it")
 
         if oi:
             for nid, node in graph.items():
