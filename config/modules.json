@@ -195,9 +195,11 @@
       "area": "image",
       "enabled": true,
       "tabs": [
+        "firered-v2",
         "firered-image-edit"
       ],
       "workflows": [
+        "firered-v2",
         "firered-image-edit"
       ],
       "custom_nodes": [
@@ -304,15 +306,29 @@
       "enabled": true,
       "tabs": [
         "flux-uncensored-txt2img",
+        "klein-nsfw-v2",
+        "klein-nsfw-edit",
+        "klein-9b-faceswap",
         "flux-headswap",
         "klein-inpaint"
       ],
       "workflows": [
+        "klein-nsfw-v2",
+        "klein-nsfw-edit",
+        "klein-9b-faceswap",
         "flux-headswap",
         "klein-inpaint",
         "flux2klein-uncensored-txt2img"
       ],
       "custom_nodes": [
+        "ComfyUI-Easy-Use",
+        "ComfyUI-KJNodes",
+        "ComfyUI-Studio-nodes",
+        "ComfyUI_LayerStyle",
+        "comfy-image-saver",
+        "comfyui-itools",
+        "comfyui-various",
+        "was-node-suite-comfyui",
         "rgthree-comfy",
         "ComfyUI-Pixaroma",
         "ComfyUI-Styles_CSV_Loader",

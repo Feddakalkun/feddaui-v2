@@ -26,6 +26,10 @@ import { LtxFlfPage } from './ltx/LtxFlfPage';
 import { LtxMultiFramePage } from './ltx/LtxMultiFramePage';
 import { FluxHeadSwapPage } from './fluxklein/FluxHeadSwapPage';
 import { KleinInpaintPage } from './fluxklein/KleinInpaintPage';
+import { KleinNsfwV2Page } from './fluxklein/KleinNsfwV2Page';
+import { KleinNsfwEditPage } from './fluxklein/KleinNsfwEditPage';
+import { Klein9bFaceSwapPage } from './fluxklein/Klein9bFaceSwapPage';
+import { FireRedV2Page } from './firered/FireRedV2Page';
 import { FluxKleinUncensoredTxt2Img } from './fluxklein/FluxKleinUncensoredTxt2Img';
 import { LivePortraitPage } from './liveportrait/LivePortraitPage';
 import { Wan22VacePage } from './wan22/Wan22VacePage';
@@ -46,6 +50,10 @@ export const IMAGE_WORKFLOW_PAGES: Record<string, ComponentType> = {
   'flux-uncensored-txt2img': FluxKleinUncensoredTxt2Img,
   'flux-headswap': FluxHeadSwapPage,
   'klein-inpaint': KleinInpaintPage,
+  'klein-nsfw-v2': KleinNsfwV2Page,
+  'klein-nsfw-edit': KleinNsfwEditPage,
+  'klein-9b-faceswap': Klein9bFaceSwapPage,
+  'firered-v2': FireRedV2Page,
   'firered-image-edit': FireRedImageEditPage,
   'qwen': QwenTxt2Img,
   'qwen-txt2img': QwenTxt2Img,

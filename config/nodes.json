@@ -1,15 +1,21 @@
 [
   {
+    "name": "comfyui-various",
+    "url": "https://github.com/jamesWalker55/comfyui-various.git",
+    "folder": "comfyui-various",
+    "note": "JWImageContrast \u2014 used by V2/KLEIN-NSFW-EDIT"
+  },
+  {
     "name": "ComfyUI-Pixaroma",
     "url": "https://github.com/pixaroma/ComfyUI-Pixaroma.git",
     "folder": "ComfyUI-Pixaroma",
     "note": "PixaromaCompare \u2014 before/after compare, needed by klein-inpaint"
   },
   {
-    "name": "ComfyUI-iTools",
+    "name": "comfyui-itools",
     "url": "https://github.com/MohammadAboulEla/ComfyUI-iTools.git",
-    "folder": "ComfyUI-iTools",
-    "note": "iToolsCompareImage \u2014 used by V2/KLEIN-9B-FACESWAP, not yet registered"
+    "folder": "comfyui-itools",
+    "note": "iToolsCompareImage \u2014 used by V2/KLEIN-9B-FACESWAP"
   },
   {
     "name": "WhatDreamsCost-ComfyUI",

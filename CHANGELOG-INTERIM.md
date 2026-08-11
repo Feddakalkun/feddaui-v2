@@ -340,3 +340,79 @@ numbers mean, not how they reach ComfyUI.
 `nodes.py`. If that node retunes a threshold, every label on this page silently
 becomes wrong again. The comment above them says so; the sweep script that
 proves it is throwaway, so a future change means re-deriving it.
+
+## 2026-08-11 — registered the four new graphs, and scrubbed them before publishing
+
+**Changed:** `config/workflow_api.json` (+4 entries, 55 → 59), `config/modules.json`
+(ownership + the packs these graphs import), `config/nodes.json`, four new pages
+under `pages/fluxklein/` and `pages/firered/`, plus `registry.ts`,
+`workflowPageRegistry.tsx` and `navigation.ts`. The four graph files themselves
+are now tracked.
+
+| Workflow | Module | Page |
+|---|---|---|
+| `klein-nsfw-v2` | flux-klein | Unfiltered v2 — txt2img |
+| `klein-nsfw-edit` | flux-klein | Unfiltered Edit — Klein edit + Z-Image refine |
+| `klein-9b-faceswap` | flux-klein | Head Swap 9B — base image + face |
+| `firered-v2` | firered-image | FireRed Edit 1.1 — three reference images |
+
+**Why:** the user asked for them to be registered, and confirmed the graph files
+should be committed.
+
+**All 41 input mappings were checked against their graphs before anything was
+written** — the registration script refuses to write if any maps to a missing
+node, a key that is not an input, or an input fed by a link. Three findings came
+out of that check rather than out of a later bug report:
+
+- **`klein-nsfw-v2`'s prompt belongs on the PrimitiveStringMultiline (1212), not
+  the CLIPTextEncode (1219)**, whose `text` comes from a Text Concatenate. The
+  obvious registration would have been inert and the graph would have kept
+  generating its baked prompt. Identical to the z-image-inpaint "sunset" bug.
+- **`firered-v2` carries two step/CFG pairs behind a switch** — 8 steps at CFG 1
+  with the Lightning LoRA, 40 at CFG 4 without, chosen by node 153, which
+  defaults to on. The page exposes the LoRA pair as Steps and CFG. The other
+  pair is registered but deliberately not shown: a control that only takes
+  effect when an invisible switch is flipped is worse than no control.
+- **`aspect_ratio` in KLEIN-NSFW-v2 does nothing.** `AspectRatioImageSize` uses
+  width and height verbatim when both exceed zero, and the graph sets both to
+  1504 — so it renders 1504x1504 while the widget says 16:9. This is the user's
+  graph, not the app, so it is reported rather than changed. Width and height
+  are the live controls and are what the page exposes.
+
+**Packs:** `comfyui-itools` was entered earlier with folder `ComfyUI-iTools`;
+the folder on disk is lowercase. Corrected. `comfyui-various` (JWImageContrast,
+used by KLEIN-NSFW-EDIT) was missing entirely. `flux-klein` now declares all
+eight packs its graphs import, taken from `object_info`'s `python_module` rather
+than guessed. **This matters more than it looked:** the user has since said the
+app is being built for distribution, so a wrong folder name or an undeclared
+pack is a broken install on every machine that is not this one — the same shape
+as the sdxl-outpaint failure.
+
+**Scrubbed before committing**, on the user's instruction never to commit
+personal notes or files. Nothing functional was touched:
+- three `LoadImage` placeholders naming the user's own pictures (including one
+  Topaz-upscaled filename) → `example.png`, which already exists in
+  `ComfyUI/input` and is the convention in five shipped graphs
+- four stale `rgthree_comparer` preview URLs pointing at temp images from runs
+  on this machine
+- two `Show Any` nodes holding download reports from a past execution
+
+**Left in, deliberately:** the baked prompts ("nude naked woman sexy model hq
+4k", "a cowgirls on a horse…"). They are default content rather than leftovers,
+and what a shipped product opens with is a product decision, not a privacy one.
+Worth a look before release — they are the first thing a new user would see.
+
+**Verified:** the mapping check above; `npx vite build` clean; `audit_wiring.py`
+with no new findings and orphan graphs 28 → 24; and two of the four pages opened
+in a browser — FireRed shows its three image slots and Head Swap its base/face
+pair, both with "Models ready for this workflow", which also confirms the
+backend re-reads `workflow_api.json` without a restart.
+
+**Not verified:** none of the four has been run. The wiring is proven against
+the graph, not against a generation.
+
+**Noticed, not fixed:** the already-shipped graphs carry the same kind of
+leftovers — `f5b879fe-d055-46fe-84a4-95c35a77c82e.png`,
+`VeniceAI_l4UhOC_Z4E67KA.0.jpeg`, `2000PX LATENT UPSCALE_00004_.png` and others
+sit in `LoadImage` placeholders where `example.png` or `fedda_placeholder.png` is
+the convention. Harmless locally, untidy in something being distributed.

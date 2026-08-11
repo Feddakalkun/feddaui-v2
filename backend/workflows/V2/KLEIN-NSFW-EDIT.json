@@ -1,0 +1,707 @@
+{
+  "1225": {
+    "inputs": {
+      "download_links": "https://huggingface.co/comfyuistudio/nsfwKLein/resolve/main/nsfwKlein.safetensors diffusion_models\nhttps://huggingface.co/Comfy-Org/flux2-klein-9B/resolve/main/split_files/text_encoders/qwen_3_8b_fp8mixed.safetensors text_encoders\nhttps://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors vae",
+      "auto_download": true,
+      "max_concurrent_downloads": 3,
+      "max_download_speed_mbps": 0,
+      "enable_resume": true,
+      "validate_files": false,
+      "enable_notifications": true,
+      "auto_organize": false,
+      "hf_token": ""
+    },
+    "class_type": "HuggingFaceDownloader",
+    "_meta": {
+      "title": "\ud83e\udd17 HuggingFace Model Downloader Pro"
+    }
+  },
+  "1244": {
+    "inputs": {
+      "text": "",
+      "anything": [
+        "1225",
+        0
+      ]
+    },
+    "class_type": "easy showAnything",
+    "_meta": {
+      "title": "Show Any"
+    }
+  },
+  "1245": {
+    "inputs": {
+      "string": "nude naked woman sexy model hq 4k  "
+    },
+    "class_type": "String Literal",
+    "_meta": {
+      "title": "POSITIVE PROMPT"
+    }
+  },
+  "1246": {
+    "inputs": {
+      "vae_name": "z-image-vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "1247": {
+    "inputs": {
+      "delimiter": ", ",
+      "clean_whitespace": "true",
+      "text_a": [
+        "1249",
+        0
+      ],
+      "text_b": [
+        "1268",
+        1
+      ]
+    },
+    "class_type": "Text Concatenate",
+    "_meta": {
+      "title": "Text Concatenate"
+    }
+  },
+  "1248": {
+    "inputs": {
+      "delimiter": ", ",
+      "clean_whitespace": "true",
+      "text_a": [
+        "1245",
+        0
+      ],
+      "text_b": [
+        "1268",
+        0
+      ]
+    },
+    "class_type": "Text Concatenate",
+    "_meta": {
+      "title": "Text Concatenate"
+    }
+  },
+  "1249": {
+    "inputs": {
+      "string": ""
+    },
+    "class_type": "String Literal",
+    "_meta": {
+      "title": "NEGATIVE PROMPT"
+    }
+  },
+  "1250": {
+    "inputs": {
+      "pixels": [
+        "1267",
+        0
+      ],
+      "vae": [
+        "1246",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE Encode"
+    }
+  },
+  "1251": {
+    "inputs": {
+      "noise": [
+        "1280",
+        0
+      ],
+      "guider": [
+        "1253",
+        0
+      ],
+      "sampler": [
+        "1255",
+        0
+      ],
+      "sigmas": [
+        "1256",
+        0
+      ],
+      "latent_image": [
+        "1258",
+        0
+      ]
+    },
+    "class_type": "SamplerCustomAdvanced",
+    "_meta": {
+      "title": "SamplerCustomAdvanced"
+    }
+  },
+  "1252": {
+    "inputs": {
+      "text": [
+        "1254",
+        0
+      ],
+      "clip": [
+        "1271",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "1253": {
+    "inputs": {
+      "cfg": 1,
+      "model": [
+        "1291",
+        0
+      ],
+      "positive": [
+        "1259",
+        0
+      ],
+      "negative": [
+        "1260",
+        0
+      ]
+    },
+    "class_type": "CFGGuider",
+    "_meta": {
+      "title": "CFGGuider"
+    }
+  },
+  "1254": {
+    "inputs": {
+      "delimiter": ", ",
+      "clean_whitespace": "true",
+      "text_a": [
+        "1292",
+        0
+      ],
+      "text_b": [
+        "1274",
+        0
+      ]
+    },
+    "class_type": "Text Concatenate",
+    "_meta": {
+      "title": "Text Concatenate"
+    }
+  },
+  "1255": {
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "KSamplerSelect"
+    }
+  },
+  "1256": {
+    "inputs": {
+      "steps": [
+        "1276",
+        0
+      ],
+      "width": [
+        "1261",
+        0
+      ],
+      "height": [
+        "1261",
+        1
+      ]
+    },
+    "class_type": "Flux2Scheduler",
+    "_meta": {
+      "title": "Flux2Scheduler"
+    }
+  },
+  "1257": {
+    "inputs": {
+      "conditioning": [
+        "1252",
+        0
+      ]
+    },
+    "class_type": "ConditioningZeroOut",
+    "_meta": {
+      "title": "ConditioningZeroOut"
+    }
+  },
+  "1258": {
+    "inputs": {
+      "width": [
+        "1261",
+        0
+      ],
+      "height": [
+        "1261",
+        1
+      ],
+      "batch_size": 1
+    },
+    "class_type": "EmptyFlux2LatentImage",
+    "_meta": {
+      "title": "Empty Flux 2 Latent"
+    }
+  },
+  "1259": {
+    "inputs": {
+      "conditioning": [
+        "1252",
+        0
+      ],
+      "latent": [
+        "1262",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "ReferenceLatent"
+    }
+  },
+  "1260": {
+    "inputs": {
+      "conditioning": [
+        "1257",
+        0
+      ],
+      "latent": [
+        "1262",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "ReferenceLatent"
+    }
+  },
+  "1261": {
+    "inputs": {
+      "image": [
+        "1273",
+        0
+      ]
+    },
+    "class_type": "GetImageSize+",
+    "_meta": {
+      "title": "\ud83d\udd27 Get Image Size"
+    }
+  },
+  "1262": {
+    "inputs": {
+      "pixels": [
+        "1273",
+        0
+      ],
+      "vae": [
+        "1272",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE Encode"
+    }
+  },
+  "1263": {
+    "inputs": {
+      "text": [
+        "1247",
+        0
+      ],
+      "clip": [
+        "1265",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Negative Prompt)"
+    }
+  },
+  "1264": {
+    "inputs": {
+      "text": [
+        "1248",
+        0
+      ],
+      "clip": [
+        "1265",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "1265": {
+    "inputs": {
+      "clip_name": "qwen_3_4b.safetensors",
+      "type": "lumina2",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "1266": {
+    "inputs": {
+      "samples": [
+        "1281",
+        0
+      ],
+      "vae": [
+        "1246",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "1267": {
+    "inputs": {
+      "width": 2000,
+      "height": 2000,
+      "upscale_method": "lanczos",
+      "keep_proportion": "resize",
+      "pad_color": "0, 0, 0",
+      "crop_position": "center",
+      "divisible_by": 2,
+      "device": "cpu",
+      "image": [
+        "1285",
+        0
+      ]
+    },
+    "class_type": "ImageResizeKJv2",
+    "_meta": {
+      "title": "Resize Image v2"
+    }
+  },
+  "1268": {
+    "inputs": {
+      "styles": "Photography | Fine Art",
+      "csv_file_path": "styles.csv"
+    },
+    "class_type": "Load Styles CSV",
+    "_meta": {
+      "title": "Load Styles CSV"
+    }
+  },
+  "1269": {
+    "inputs": {
+      "factor": 1.12,
+      "image": [
+        "1270",
+        0
+      ]
+    },
+    "class_type": "JWImageContrast",
+    "_meta": {
+      "title": "Image Contrast"
+    }
+  },
+  "1270": {
+    "inputs": {
+      "seed": 774164900512660,
+      "strength": 0.02,
+      "image": [
+        "1266",
+        0
+      ]
+    },
+    "class_type": "ImageAddNoise",
+    "_meta": {
+      "title": "ImageAddNoise"
+    }
+  },
+  "1271": {
+    "inputs": {
+      "clip_name": "qwen_3_8b_fp8mixed.safetensors",
+      "type": "flux2",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "1272": {
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "1273": {
+    "inputs": {
+      "width": 2000,
+      "height": 2000,
+      "upscale_method": "lanczos",
+      "keep_proportion": "resize",
+      "pad_color": "0, 0, 0",
+      "crop_position": "center",
+      "divisible_by": 2,
+      "device": "cpu",
+      "image": [
+        "1282",
+        0
+      ]
+    },
+    "class_type": "ImageResizeKJv2",
+    "_meta": {
+      "title": "Resize Image v2"
+    }
+  },
+  "1274": {
+    "inputs": {
+      "styles": "GGAFD Ultra Skin",
+      "csv_file_path": "styles.csv"
+    },
+    "class_type": "Load Styles CSV",
+    "_meta": {
+      "title": "Load Styles CSV"
+    }
+  },
+  "1275": {
+    "inputs": {
+      "PowerLoraLoaderHeaderWidget": {
+        "type": "PowerLoraLoaderHeaderWidget"
+      },
+      "\u2795 Add Lora": "",
+      "model": [
+        "1277",
+        0
+      ],
+      "clip": [
+        "1265",
+        0
+      ]
+    },
+    "class_type": "Power Lora Loader (rgthree)",
+    "_meta": {
+      "title": "Power Lora Loader (rgthree)"
+    }
+  },
+  "1276": {
+    "inputs": {
+      "value": 5
+    },
+    "class_type": "easy int",
+    "_meta": {
+      "title": "STEPS"
+    }
+  },
+  "1277": {
+    "inputs": {
+      "unet_name": "z_image_turbo_bf16.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model"
+    }
+  },
+  "1278": {
+    "inputs": {
+      "shift": 3,
+      "model": [
+        "1275",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingAuraFlow",
+    "_meta": {
+      "title": "ModelSamplingAuraFlow"
+    }
+  },
+  "1279": {
+    "inputs": {
+      "text": "",
+      "anything": [
+        "1288",
+        0
+      ]
+    },
+    "class_type": "easy showAnything",
+    "_meta": {
+      "title": "Show Any"
+    }
+  },
+  "1280": {
+    "inputs": {
+      "noise_seed": 959737026807560
+    },
+    "class_type": "RandomNoise",
+    "_meta": {
+      "title": "RandomNoise"
+    }
+  },
+  "1281": {
+    "inputs": {
+      "seed": 185348389312341,
+      "steps": 5,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 0.2,
+      "model": [
+        "1278",
+        0
+      ],
+      "positive": [
+        "1264",
+        0
+      ],
+      "negative": [
+        "1263",
+        0
+      ],
+      "latent_image": [
+        "1250",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "1282": {
+    "inputs": {
+      "image": "example.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Image"
+    }
+  },
+  "1283": {
+    "inputs": {
+      "rgthree_comparer": {
+        "images": []
+      },
+      "image_a": [
+        "1285",
+        0
+      ],
+      "image_b": [
+        "1282",
+        0
+      ]
+    },
+    "class_type": "Image Comparer (rgthree)",
+    "_meta": {
+      "title": "Image Comparer (rgthree)"
+    }
+  },
+  "1285": {
+    "inputs": {
+      "samples": [
+        "1251",
+        0
+      ],
+      "vae": [
+        "1272",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "1286": {
+    "inputs": {
+      "filename_prefix": "IMAGE/CONVERTER/0",
+      "images": [
+        "1269",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "1287": {
+    "inputs": {
+      "rgthree_comparer": {
+        "images": []
+      },
+      "image_a": [
+        "1269",
+        0
+      ],
+      "image_b": [
+        "1285",
+        0
+      ]
+    },
+    "class_type": "Image Comparer (rgthree)",
+    "_meta": {
+      "title": "Image Comparer (rgthree)"
+    }
+  },
+  "1288": {
+    "inputs": {
+      "download_links": "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/diffusion_models/z_image_turbo_bf16.safetensors unet\nhttps://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors clip\nhttps://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/vae/ae.safetensors vae z-image-vae.safetensors\nhttps://huggingface.co/alibaba-pai/Z-Image-Turbo-Fun-Controlnet-Union/resolve/main/Z-Image-Turbo-Fun-Controlnet-Union.safetensors model_patches\nhttps://huggingface.co/jingheya/lotus-depth-g-v2-0-disparity/resolve/main/unet/diffusion_pytorch_model.safetensors unet lotus-depth-g-v2-0-disparity.safetensors\nhttps://huggingface.co/stabilityai/sd-vae-ft-mse-original/resolve/main/vae-ft-mse-840000-ema-pruned.safetensors vae\nhttps://huggingface.co/datasets/Gourieff/ReActor/resolve/main/models/detection/bbox/face_yolov8m.pt ultralytics/bbox\nhttps://huggingface.co/datasets/Gourieff/ReActor/resolve/main/models/sams/sam_vit_b_01ec64.pth sams\n\nhttps://huggingface.co/black-forest-labs/FLUX.2-klein-9b-fp8/resolve/main/flux-2-klein-9b-fp8.safetensors diffusion_models\nhttps://huggingface.co/Comfy-Org/flux2-klein-9B/resolve/main/split_files/text_encoders/qwen_3_8b_fp8mixed.safetensors text_encoders\nhttps://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors vae",
+      "auto_download": true,
+      "max_concurrent_downloads": 5,
+      "max_download_speed_mbps": 0,
+      "enable_resume": true,
+      "validate_files": false,
+      "enable_notifications": true,
+      "auto_organize": false,
+      "hf_token": ""
+    },
+    "class_type": "HuggingFaceDownloader",
+    "_meta": {
+      "title": "\ud83e\udd17 HuggingFace Model Downloader Pro"
+    }
+  },
+  "1290": {
+    "inputs": {
+      "filename_prefix": "IMAGE/CONVERTER/0",
+      "images": [
+        "1285",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "1291": {
+    "inputs": {
+      "unet_name": "nsfwKlein.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model"
+    }
+  },
+  "1292": {
+    "inputs": {
+      "value": "nude naked woman "
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Prompt"
+    }
+  }
+}
