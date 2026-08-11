@@ -35,8 +35,13 @@ export const TopSystemStrip = () => {
   const [civitaiLoading, setCivitaiLoading] = useState(true);
   const [civitaiSaving, setCivitaiSaving] = useState(false);
   const { progress: download } = useModelDownload();
-  // Venice key lives in localStorage — the Venice pages call api.venice.ai directly from the browser
-  const [veniceConfigured, setVeniceConfigured] = useState(() => !!localStorage.getItem('venice_api_key'));
+  // The Venice key moved out of localStorage and into runtime_settings.json, so
+  // the backend can use it too - that is what lets a vision model reach the
+  // caption path. Status now reports whether Venice actually accepts it, which
+  // localStorage could never answer.
+  const [veniceConfigured, setVeniceConfigured] = useState(false);
+  const [veniceValid, setVeniceValid] = useState<boolean | null>(null);
+  const [veniceSaving, setVeniceSaving] = useState(false);
 
   // Poll hardware + comfy system stats
   useEffect(() => {
@@ -70,19 +75,30 @@ export const TopSystemStrip = () => {
 
     const loadTokenStatus = async () => {
       try {
-        const [hfResp, civitaiResp] = await Promise.all([
+        const [hfResp, civitaiResp, veniceResp] = await Promise.all([
           fetch(`${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.SETTINGS_HF_TOKEN_STATUS}`, { cache: 'no-store' }),
           fetch(`${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.SETTINGS_CIVITAI_KEY_STATUS}`, { cache: 'no-store' }),
+          fetch(`${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.SETTINGS_VENICE_KEY_STATUS}`, { cache: 'no-store' }),
         ]);
-        const [hfData, civitaiData] = await Promise.all([hfResp.json(), civitaiResp.json()]);
+        const [hfData, civitaiData, veniceData] = await Promise.all([
+          hfResp.json(), civitaiResp.json(), veniceResp.json(),
+        ]);
         if (mounted) {
           setHfConfigured(!!hfData.configured);
           setCivitaiConfigured(!!civitaiData.configured);
+          setVeniceConfigured(!!veniceData.configured);
+          setVeniceValid(veniceData.configured ? !!veniceData.valid : null);
+          // A key saved by an older build still sits in localStorage, where the
+          // backend cannot see it. Move it across once rather than making every
+          // existing user type it in again, then drop it from the browser.
+          const legacy = localStorage.getItem('venice_api_key');
+          if (legacy && !veniceData.configured) void migrateVeniceKey(legacy);
         }
       } catch {
         if (mounted) {
           setHfConfigured(false);
           setCivitaiConfigured(false);
+          setVeniceConfigured(false);
         }
       } finally {
         if (mounted) {
@@ -211,24 +227,64 @@ export const TopSystemStrip = () => {
     }
   };
 
-  const handleVeniceKey = () => {
-    const current = localStorage.getItem('venice_api_key') || '';
+  const saveVeniceKey = async (value: string) => {
+    const res = await fetch(`${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.SETTINGS_VENICE_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ api_key: value }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data?.success) throw new Error(data?.detail || 'Could not save the key');
+    return !!data.configured;
+  };
+
+  // One-time carry-over from the localStorage era. Silent on purpose: the user
+  // set this key already and does not need to be told where it is stored now.
+  const migrateVeniceKey = async (value: string) => {
+    try {
+      const ok = await saveVeniceKey(value);
+      localStorage.removeItem('venice_api_key');
+      setVeniceConfigured(ok);
+      const check = await fetch(
+        `${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.SETTINGS_VENICE_KEY_STATUS}`,
+        { cache: 'no-store' });
+      const state = await check.json();
+      setVeniceValid(state?.configured ? !!state.valid : null);
+    } catch {
+      /* leave it in localStorage so the next load can try again */
+    }
+  };
+
+  const handleVeniceKey = async () => {
+    if (veniceSaving) return;
     const next = window.prompt(
-      current
+      veniceConfigured
         ? 'Paste a new Venice.ai API key to replace the current one. Leave blank to remove it.'
         : 'Paste your Venice.ai API key (from venice.ai account settings).',
       '',
     );
     if (next === null) return;
     const trimmed = next.trim();
-    if (!trimmed) {
-      if (current && !window.confirm('Remove the saved Venice.ai API key?')) return;
+    if (!trimmed && veniceConfigured && !window.confirm('Remove the saved Venice.ai API key?')) return;
+    setVeniceSaving(true);
+    try {
+      const ok = await saveVeniceKey(trimmed);
       localStorage.removeItem('venice_api_key');
-      setVeniceConfigured(false);
-      return;
+      setVeniceConfigured(ok);
+      if (!ok) {
+        setVeniceValid(null);
+      } else {
+        const check = await fetch(
+          `${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.SETTINGS_VENICE_KEY_STATUS}`,
+          { cache: 'no-store' });
+        const state = await check.json();
+        setVeniceValid(!!state?.valid);
+      }
+    } catch (err) {
+      setVeniceValid(false);
+    } finally {
+      setVeniceSaving(false);
     }
-    localStorage.setItem('venice_api_key', trimmed);
-    setVeniceConfigured(true);
   };
 
   const handleCivitaiKey = async () => {

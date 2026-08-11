@@ -3,7 +3,33 @@ import { FeddaButton, FeddaPanel } from '../components/ui/FeddaPrimitives';
 import { useToast } from '../components/ui/Toast';
 import { Lightbox } from '../components/ui/Lightbox';
 import { triggerMediaDownload } from '../utils/mediaStore';
+import { BACKEND_API } from '../config/api';
 import { Sparkles, Download, ImageIcon, Loader2, AlertCircle, Hash, Sliders, Send, Trash2, Globe, Settings } from 'lucide-react';
+
+/**
+ * Every Venice call goes through the backend now.
+ *
+ * The key used to sit in localStorage and this page called api.venice.ai
+ * directly, which meant the key was readable by anything on the page and the
+ * backend could not use Venice at all. It also meant a rejected key, an empty
+ * balance and a rate limit all arrived as the same opaque fetch failure.
+ *
+ * The proxy answers 200 with { success: false, error, detail } for an upstream
+ * failure, so those can finally be told apart and said out loud.
+ */
+const veniceCall = async (endpoint: string, body?: unknown) => {
+  const res = await fetch(`${BACKEND_API.BASE_URL}${endpoint}`, body === undefined
+    ? { cache: 'no-store' }
+    : {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.detail || `Backend error ${res.status}`);
+  if (data?.success === false) throw new Error(data.detail || data.error || 'Venice call failed');
+  return data;
+};
 
 const saveToGlobalGallery = (urls: string[], source = 'venice') => {
   if (typeof window === 'undefined' || !urls.length) return;
@@ -76,16 +102,12 @@ export function VenicePage() {
    * The hardcoded list stays as the fallback for a missing key or a bad day.
    */
   useEffect(() => {
-    const apiKey = localStorage.getItem('venice_api_key') || '';
-    if (!apiKey) return;
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('https://api.venice.ai/api/v1/models?type=image', {
-          headers: { Authorization: 'Bearer ' + apiKey },
-        });
-        if (!res.ok) return;
-        const data = await res.json();
+        // No key check here any more - the backend owns the key and answers
+        // success:false when there is none, which the catch below swallows.
+        const data = await veniceCall(`${BACKEND_API.ENDPOINTS.VENICE_MODELS}?type=image`);
         const rows = Array.isArray(data?.data) ? data.data : [];
         const models = rows
           .map((m: { id?: string; model_spec?: { name?: string } }) => ({
@@ -102,31 +124,13 @@ export function VenicePage() {
   const imageModels = liveModels ?? VENICE_IMAGE_MODELS;
 
   const generateImage = async () => {
-    const apiKey = localStorage.getItem('venice_api_key') || '';
-    if (!apiKey) { toast('Set your Venice.ai API key in the top bar (Key icon)', 'error'); return; }
     if (!imgPrompt.trim()) { toast('Prompt is required', 'error'); return; }
     setIsImgGenerating(true); setImgError(''); setImages([]);
     const body: any = { model: imgModel, prompt: imgPrompt.trim(), width, height, steps, cfg_scale: cfgScale, format: 'png', safe_mode: false, hide_watermark: true };
     if (negativePrompt.trim()) body.negative_prompt = negativePrompt.trim();
     if (seed !== undefined) body.seed = seed;
     try {
-      const res = await fetch('https://api.venice.ai/api/v1/image/generate', {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      if (!res.ok) {
-        let errMsg = `API error ${res.status}`;
-        try {
-          const errData = await res.json();
-          if (errData.error) errMsg += `: ${errData.error}`;
-        } catch {
-          const txt = await res.text();
-          errMsg += `: ${txt}`;
-        }
-        throw new Error(errMsg);
-      }
-      const data = await res.json();
+      const data = await veniceCall(BACKEND_API.ENDPOINTS.VENICE_IMAGE, body);
       let newImgs: string[] = [];
       const rawImgs = (data.images || data.data || []);
       newImgs = rawImgs.map((i: any) => {
@@ -166,7 +170,6 @@ export function VenicePage() {
     chatMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
-  const getApiKey = () => localStorage.getItem('venice_api_key') || '';
 
   const handleImageAttach = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -196,11 +199,6 @@ export function VenicePage() {
   };
 
   const sendChatMessage = async () => {
-    const apiKey = getApiKey();
-    if (!apiKey) {
-      toast('Set your Venice.ai API key in the top bar first', 'error');
-      return;
-    }
     if (!chatInput.trim() && attachedImages.length === 0) return;
 
     const userMessage: ChatMessage = {
@@ -283,11 +281,21 @@ Current context: User is requesting images of Elara at the safari camp, now spec
     };
 
     try {
-      const res = await fetch('https://api.venice.ai/api/v1/chat/completions', {
+      const res = await fetch(`${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.VENICE_CHAT}`, {
         method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
+
+      // A stream that failed upstream comes back as JSON rather than SSE, so the
+      // key/balance/rate-limit message survives instead of showing as an empty
+      // reply.
+      if ((res.headers.get('content-type') || '').includes('application/json')) {
+        const errData = await res.json();
+        if (errData?.success === false) {
+          throw new Error(errData.detail || errData.error || 'Venice call failed');
+        }
+      }
 
       if (!res.ok) {
         let errMsg = `API error ${res.status}`;
@@ -311,6 +319,9 @@ Current context: User is requesting images of Elara at the safari camp, now spec
 
       const assistantMsgIndex = newMessages.length;
       setChatMessages([...newMessages, { role: 'assistant', content: '' }]);
+      // Reasoning models put their working here and the answer in `content`.
+      // Kept only so an answer that never reached `content` can say why.
+      let assistantReasoning = '';
 
       while (!done) {
         const { value, done: streamDone } = await reader.read();
@@ -325,6 +336,10 @@ Current context: User is requesting images of Elara at the safari camp, now spec
               try {
                 const parsed = JSON.parse(data);
                 const delta = parsed.choices?.[0]?.delta;
+
+                if (delta?.reasoning_content) {
+                  assistantReasoning += delta.reasoning_content;
+                }
 
                 if (delta?.content) {
                   assistantContent += delta.content;
@@ -369,8 +384,6 @@ Current context: User is requesting images of Elara at the safari camp, now spec
         try {
           const args = JSON.parse(toolCallAccumulator.arguments || '{}');
           const imagePrompt = args.prompt || 'Elara at the safari camp at sunset';
-          const apiKey = getApiKey();
-
           const numVariants = Math.min(Math.max(parseInt(args.num_images || args.variants || 4), 1), 4);
           const imgModelToUse = args.model || 'flux-2-pro';
 
@@ -386,14 +399,14 @@ Current context: User is requesting images of Elara at the safari camp, now spec
           };
           if (args.negative_prompt) imgBody.negative_prompt = args.negative_prompt;
 
-          const imgRes = await fetch('https://api.venice.ai/api/v1/image/generate', {
+          const imgRes = await fetch(`${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.VENICE_IMAGE}`, {
             method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(imgBody)
           });
 
-          if (imgRes.ok) {
-            const imgData = await imgRes.json();
+          const imgData = imgRes.ok ? await imgRes.json() : null;
+          if (imgData && imgData.success !== false) {
             let newImgs: string[] = [];
             const rawImgs = (imgData.images || imgData.data || []);
             newImgs = rawImgs.map((i: any) => {
@@ -434,6 +447,19 @@ Current context: User is requesting images of Elara at the safari camp, now spec
             return updated;
           });
         }
+      }
+      // A reply that reasoned and then ran out of budget leaves content empty.
+      // Saying so beats an empty bubble the user cannot interpret.
+      if (!assistantContent && assistantReasoning) {
+        setChatMessages(prev => {
+          const updated = [...prev];
+          updated[assistantMsgIndex] = {
+            role: 'assistant',
+            content: 'The model spent its whole token budget reasoning and never wrote an answer. '
+              + 'Ask again, or raise max tokens.',
+          };
+          return updated;
+        });
       }
     } catch (e: any) {
       console.error(e);

@@ -137,7 +137,6 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'venice',
-    hidden: true,
     sourceModuleId: 'core-shell',
     label: 'Venice.ai',
     description: 'Image generation + Agent chat with web search, vision & tools using your API key.',

@@ -44,6 +44,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 from agent_runtime import AgentRuntime
+import venice_service
 from logging_setup import setup_logging
 
 setup_logging()
@@ -427,6 +428,100 @@ async def get_hf_token_status():
         return {"success": True, "configured": has_token}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class VeniceKeyRequest(BaseModel):
+    api_key: str
+
+
+def _venice_key() -> str:
+    return (load_settings().get("venice_api_key") or "").strip()
+
+
+def _venice(fn, *args, **kwargs):
+    """Run a venice_service call and turn its failure into an honest response.
+
+    A 500 with a stack trace tells the user nothing; venice_service already
+    distinguishes a rejected key from an empty balance from a rate limit, so
+    pass that through rather than flattening it.
+    """
+    try:
+        return {"success": True, **fn(*args, **kwargs)}
+    except venice_service.VeniceError as exc:
+        return JSONResponse(status_code=200, content=exc.as_dict())
+
+
+@app.post("/api/settings/venice-key")
+async def set_venice_key(req: VeniceKeyRequest):
+    """The key used to live in localStorage, where the backend could not see it.
+
+    Moving it here is what lets the caption and prompt paths use Venice at all,
+    and it puts it beside hf_token and civitai_api_key in a gitignored file
+    rather than in the DOM.
+    """
+    try:
+        data = load_settings()
+        data["venice_api_key"] = req.api_key.strip()
+        save_settings(data)
+        return {"success": True, "configured": bool(data["venice_api_key"])}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/settings/venice-key/status")
+async def get_venice_key_status():
+    """Configured AND working, which localStorage could never answer."""
+    return {"success": True, **venice_service.check(_venice_key())}
+
+
+@app.get("/api/venice/models")
+async def venice_models(type: str = ""):
+    return _venice(venice_service.models, _venice_key(), type)
+
+
+@app.get("/api/venice/styles")
+async def venice_styles():
+    return _venice(venice_service.image_styles, _venice_key())
+
+
+@app.get("/api/venice/balance")
+async def venice_balance():
+    return _venice(venice_service.balance, _venice_key())
+
+
+@app.get("/api/venice/rate-limits")
+async def venice_rate_limits():
+    return _venice(venice_service.rate_limits, _venice_key())
+
+
+@app.post("/api/venice/chat")
+async def venice_chat(body: Dict[str, Any]):
+    """Streams when the caller asked to stream, which the chat page does.
+
+    The first chunk is pulled inside the try so a rejected key or a rate limit
+    comes back as a normal error object. Start the StreamingResponse first and
+    the same failure arrives as an empty stream the page cannot explain.
+    """
+    key = _venice_key()
+    if not body.get("stream"):
+        return _venice(venice_service.chat, key, body)
+    try:
+        gen = venice_service.chat_stream(key, body)
+        first = next(gen, b"")
+    except venice_service.VeniceError as exc:
+        return JSONResponse(status_code=200, content=exc.as_dict())
+
+    def passthrough():
+        if first:
+            yield first
+        yield from gen
+
+    return StreamingResponse(passthrough(), media_type="text/event-stream")
+
+
+@app.post("/api/venice/image")
+async def venice_image(body: Dict[str, Any]):
+    return _venice(venice_service.image_generate, _venice_key(), body)
 
 
 @app.get("/api/workflow-memory/{workflow_id}")

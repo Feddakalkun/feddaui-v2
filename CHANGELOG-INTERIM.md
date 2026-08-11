@@ -557,3 +557,73 @@ the public history.
 **Not established:** whether the FLUX licence permits the derivative finetune,
 the redistribution of it, or commercial distribution of an app that fetches it.
 That is a question for a lawyer, not for me, and I have not tried to answer it.
+
+## 2026-08-11 — Venice.ai moved behind the backend (step 1 of the API work)
+
+**Changed:** new `backend/venice_service.py`; eight endpoints in `server.py`;
+`api.ts`, `TopSystemStrip.tsx` and `VenicePage.tsx`; `VeniceChatPage.tsx`
+deleted; the `venice` module unhidden.
+
+**Why:** the user asked for a proper Venice API section. Reading the code first
+showed it was not built "a bit" — it was built with no backend at all. Both
+Venice pages called `https://api.venice.ai/api/v1/*` straight from the browser
+with the key in `localStorage['venice_api_key']`. `server.py` had no Venice code;
+the only match was a comment.
+
+**Two defects found before writing anything:**
+- The `venice` module was `hidden: true` — a finished feature switched off, for
+  the ninth time in this project.
+- `VeniceChatPage.tsx`, 345 lines, was imported nowhere. Dead code. Deleted.
+
+**What the API actually offers:** rather than scraping the docs I pulled the
+OpenAPI spec (`api.venice.ai/doc/api/swagger.yaml`, 564 kB, dated 2026-08-10).
+**45 endpoints; the app used three.** The ones that matter here, in order:
+`/chat/completions` with vision — which would remove the joycaption workaround
+`CLAUDE.md` documents, since a model that reads its prompt makes
+`prompt_profiles.json` mean something on the caption path; `/audio/speech`,
+`/audio/voices` and `/audio/transcriptions`, which feed the lipsync family
+without another local model in VRAM; the async `/video/*` queue; and
+`/billing/*` + `/api_keys/rate_limits`, without which a bring-your-own-key
+product cannot show a user what they have left.
+
+**The architecture change is the point.** The key now lives in
+`runtime_settings.json` beside `hf_token` and `civitai_api_key` (gitignored,
+never committed). Everything routes through `venice_service`, which names the
+failure — `no_key`, `bad_key`, `no_credit`, `rate_limited`, `timeout`,
+`unreachable`, `upstream` — instead of returning one red box for all of them.
+Only the endpoints the app uses are wrapped: a blind pass-through would let a
+page reach the billing and account mutations.
+
+**Two things that would have broken quietly:**
+- **The chat streams.** `stream: true` with `res.body.getReader()`. A proxy that
+  buffered the reply to re-serialise it would have turned a live answer into a
+  wait. `/api/venice/chat` forwards the SSE bytes untouched, and pulls the first
+  chunk *inside* the try so a rejected key surfaces as an error rather than as an
+  empty stream.
+- **Reasoning models return `content: null`.** Confirmed live: `gemini-3-6-flash`
+  streams `reasoning_content` and `content` separately, and with a small
+  `max_tokens` the budget goes entirely on reasoning. The page read only
+  `delta.content`, so that case rendered an empty bubble — "finished
+  successfully, produced nothing" again. It now says what happened.
+
+**Existing users keep their key.** The top bar carries a localStorage key across
+to the backend once, silently, then removes it from the browser. Without that,
+every installed copy would have needed the key typed in again.
+
+**Verified against live Venice, through the running backend:**
+- key status: `configured: true, valid: true`, balance $2.01
+- `/api/venice/models?type=image` and `?type=text` return real catalogues
+- `/api/venice/styles`: 76 styles
+- `/api/venice/rate-limits`: answers
+- non-streaming chat: real reply
+- streaming chat: `content-type: text/event-stream`, delta keys
+  `content, reasoning_content, role, thought_signature`, answer "Hi there, friend!"
+- `npx vite build` clean
+
+**Not verified:** the image path was not run — it costs credit and the balance is
+$2.01, so that is the user's call. Nothing was checked in the browser UI; the
+proxy was exercised directly.
+
+**Next, unstarted:** balance and rate limits in the UI (step 2), then Venice
+vision on the caption path (step 3), which is the one that fixes a documented
+defect rather than adding a feature.
