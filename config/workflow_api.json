@@ -2293,8 +2293,8 @@
         "label": "Source Image (drag in)"
       },
       "prompt": {
-        "node_id": "196",
-        "input_key": "value",
+        "node_id": "203",
+        "input_key": "text",
         "type": "string",
         "label": "Outpaint Prompt"
       },
@@ -2303,12 +2303,6 @@
         "input_key": "text",
         "type": "string",
         "label": "Negative Prompt"
-      },
-      "style": {
-        "node_id": "195",
-        "input_key": "styles",
-        "type": "string",
-        "label": "Style (Load Styles CSV)"
       },
       "left": {
         "node_id": "193",
@@ -3639,8 +3633,8 @@
         "label": "Source Image"
       },
       "prompt": {
-        "node_id": "165",
-        "input_key": "string",
+        "node_id": "171",
+        "input_key": "text",
         "type": "string",
         "label": "Prompt"
       },
@@ -3648,7 +3642,7 @@
         "node_id": "161",
         "input_key": "text",
         "type": "string",
-        "label": "Negative"
+        "label": "Negative Prompt"
       },
       "loras": {
         "node_id": "170",

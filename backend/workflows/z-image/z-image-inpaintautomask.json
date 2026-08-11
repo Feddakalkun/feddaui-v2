@@ -9,13 +9,7 @@
       "validate_files": false,
       "enable_notifications": true,
       "auto_organize": false,
-      "hf_token": "",
-      "speak_and_recognation": {
-        "__value__": [
-          false,
-          true
-        ]
-      }
+      "hf_token": ""
     },
     "class_type": "HuggingFaceDownloader",
     "_meta": {
@@ -24,7 +18,6 @@
   },
   "29": {
     "inputs": {
-      "text": "",
       "anything": [
         "28",
         0
@@ -33,15 +26,6 @@
     "class_type": "easy showAnything",
     "_meta": {
       "title": "Show Any"
-    }
-  },
-  "153": {
-    "inputs": {
-      "styles": "No Style"
-    },
-    "class_type": "Load Styles CSV",
-    "_meta": {
-      "title": "Load Styles CSV"
     }
   },
   "154": {
@@ -58,24 +42,6 @@
     "class_type": "VAEDecode",
     "_meta": {
       "title": "VAE Decode"
-    }
-  },
-  "155": {
-    "inputs": {
-      "delimiter": ", ",
-      "clean_whitespace": "true",
-      "text_a": [
-        "165",
-        0
-      ],
-      "text_b": [
-        "153",
-        0
-      ]
-    },
-    "class_type": "Text Concatenate",
-    "_meta": {
-      "title": "Text Concatenate"
     }
   },
   "156": {
@@ -174,6 +140,9 @@
       "fast_mode": true,
       "ensemble": true,
       "scale_factor": 1,
+      "dtype": "float32",
+      "torch_compile": false,
+      "batch_size": 1,
       "frames": [
         "154",
         0
@@ -186,16 +155,7 @@
   },
   "161": {
     "inputs": {
-      "text": [
-        "153",
-        1
-      ],
-      "speak_and_recognation": {
-        "__value__": [
-          false,
-          true
-        ]
-      },
+      "text": "",
       "clip": [
         "167",
         0
@@ -256,21 +216,6 @@
     "class_type": "LoadImage",
     "_meta": {
       "title": "IMAGE + MASK"
-    }
-  },
-  "165": {
-    "inputs": {
-      "string": "sunset",
-      "speak_and_recognation": {
-        "__value__": [
-          false,
-          true
-        ]
-      }
-    },
-    "class_type": "String Literal",
-    "_meta": {
-      "title": "String Literal"
     }
   },
   "166": {
@@ -355,19 +300,10 @@
   },
   "171": {
     "inputs": {
-      "text": [
-        "155",
-        0
-      ],
-      "speak_and_recognation": {
-        "__value__": [
-          false,
-          true
-        ]
-      },
+      "text": "",
       "clip": [
-        "167",
-        0
+        "170",
+        1
       ]
     },
     "class_type": "CLIPTextEncode",

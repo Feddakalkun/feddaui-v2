@@ -1,7 +1,7 @@
 {
   "192": {
     "inputs": {
-      "image": "art.png"
+      "image": "1_IMG_0077.jpg"
     },
     "class_type": "LoadImage",
     "_meta": {
@@ -38,36 +38,6 @@
       "title": "Save Image"
     }
   },
-  "195": {
-    "inputs": {
-      "styles": "No Style"
-    },
-    "class_type": "Load Styles CSV",
-    "_meta": {
-      "title": "STYLE"
-    }
-  },
-  "196": {
-    "inputs": {
-      "value": "BRICK WALL"
-    },
-    "class_type": "easy string",
-    "_meta": {
-      "title": "PROMPT"
-    }
-  },
-  "197": {
-    "inputs": {
-      "text": [
-        "201",
-        0
-      ]
-    },
-    "class_type": "ShowText|pysssss",
-    "_meta": {
-      "title": "Show Text 🐍"
-    }
-  },
   "198": {
     "inputs": {
       "ckpt_name": "realism-sdxl.safetensors"
@@ -89,16 +59,7 @@
   },
   "200": {
     "inputs": {
-      "text": [
-        "195",
-        1
-      ],
-      "speak_and_recognation": {
-        "__value__": [
-          false,
-          true
-        ]
-      },
+      "text": "",
       "clip": [
         "198",
         1
@@ -107,24 +68,6 @@
     "class_type": "CLIPTextEncode",
     "_meta": {
       "title": "Negative Prompt from Styles"
-    }
-  },
-  "201": {
-    "inputs": {
-      "delimiter": ", ",
-      "clean_whitespace": "true",
-      "text_a": [
-        "196",
-        0
-      ],
-      "text_b": [
-        "195",
-        0
-      ]
-    },
-    "class_type": "Text Concatenate",
-    "_meta": {
-      "title": "Text Concatenate"
     }
   },
   "202": {
@@ -147,16 +90,7 @@
   },
   "203": {
     "inputs": {
-      "text": [
-        "201",
-        0
-      ],
-      "speak_and_recognation": {
-        "__value__": [
-          false,
-          true
-        ]
-      },
+      "text": "",
       "clip": [
         "198",
         1
@@ -248,7 +182,7 @@
   },
   "208": {
     "inputs": {
-      "seed": 327,
+      "seed": 479154656170623,
       "steps": 20,
       "cfg": 1,
       "sampler_name": "lcm",
@@ -302,13 +236,7 @@
       "validate_files": false,
       "enable_notifications": true,
       "auto_organize": false,
-      "hf_token": "",
-      "speak_and_recognation": {
-        "__value__": [
-          false,
-          true
-        ]
-      }
+      "hf_token": ""
     },
     "class_type": "HuggingFaceDownloader",
     "_meta": {
