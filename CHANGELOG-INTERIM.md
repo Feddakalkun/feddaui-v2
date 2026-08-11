@@ -1048,3 +1048,30 @@ raw JSON instead of acting, that is what happened.
 
 **Not verified:** the tool has not been driven from the browser, only proven at
 both ends — the model chooses it, and the endpoint behind it works.
+
+## 2026-08-11 — you can now see and choose which model edited the picture
+
+**Changed:** `VenicePage.tsx`.
+
+**Why:** the user asked how to tell whether an edit ran on FireRed or Qwen, and
+whether it can be chosen. Neither was possible. The agent named a model in its
+tool call or left it out, in which case the backend default
+(`qwen-edit-uncensored`) applied — and the result message only mentioned the
+model when the agent had written nothing itself, so in the normal case the answer
+was invisible.
+
+**Both fixed.** An "Edit model" picker sits beside the chat model, filled from
+`/api/venice/edit-models` — eleven models with `firered-image-edit` first. A pick
+made there **overrides** whatever the agent asks for: "the agent decided" is not
+an answer to "which model edited my picture". And the model actually used is now
+appended to every edit reply rather than being a fallback, so it appears whether
+or not the agent also wrote something.
+
+**Still `qwen-edit-uncensored` by default** — chosen when nothing was selectable,
+on the grounds that it is the permissive one. Now that FireRed is one click away
+and the user named it first, that default is worth revisiting; not changed
+without asking.
+
+**Verified:** the endpoint lists eleven models with FireRed first; the picker
+falls back to the current value while the list loads, so it is never empty.
+`npx vite build` clean. Not driven from the browser.

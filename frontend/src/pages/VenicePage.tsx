@@ -198,6 +198,11 @@ export function VenicePage() {
   // sessions use, tagged with its own workflow_id so the two lists stay apart.
   // One rolling session, restored on mount - the complaint was losing the
   // thread, not the absence of a session manager.
+  // Which model performs an edit. The agent may name one in its tool call, but
+  // a choice made here wins - "the agent decided" is not an answer to "which
+  // model edited my picture".
+  const [editModels, setEditModels] = useState<string[]>([]);
+  const [editModel, setEditModel] = useState('');
   const [chatSessionId, setChatSessionId] = useState<string | null>(null);
   const chatLoaded = useRef(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
@@ -289,6 +294,17 @@ export function VenicePage() {
     ]);
     setAttachedImages([]);
   };
+
+  useEffect(() => {
+    fetch(`${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.VENICE_EDIT_MODELS}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d?.success) return;
+        setEditModels(d.models || []);
+        setEditModel((cur) => cur || d.default || '');
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -557,7 +573,8 @@ Current context: User is requesting images of Elara at the safari camp, now spec
             body: JSON.stringify({
               image: source,
               prompt: args.instruction || args.prompt || chatInput,
-              model: args.model || '',
+              // A picked model overrides the agent's suggestion.
+              model: editModel || args.model || '',
             }),
           });
           const editData = await editRes.json();
@@ -569,7 +586,10 @@ Current context: User is requesting images of Elara at the safari camp, now spec
             const updated = [...prev];
             updated[assistantMsgIndex] = {
               role: 'assistant',
-              content: assistantContent || `Edited with ${editData.model}.`,
+              // Appended rather than used as a fallback: when the agent wrote
+              // something of its own, the model name used to vanish, which is
+              // exactly the question the user asked.
+              content: `${assistantContent ? assistantContent + '\n\n' : ''}_Edited with ${editData.model}_`,
               images: edited,
             };
             return updated;
@@ -942,6 +962,19 @@ Current context: User is requesting images of Elara at the safari camp, now spec
                       <Globe className="h-3.5 w-3.5" /> Web Search
                     </label>
                   </div>
+                  <label className="flex items-center gap-1.5 text-[11px] text-white/45">
+                    Edit&nbsp;model
+                    <select
+                      value={editModel}
+                      onChange={(e) => setEditModel(e.target.value)}
+                      title="Which Venice model performs an edit when you attach an image and ask for a change"
+                      className="rounded-lg fedda-input px-2 py-1 text-[11px] focus:border-violet-500/40"
+                    >
+                      {(editModels.length ? editModels : [editModel]).filter(Boolean).map((m) => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                  </label>
                   <FeddaButton size="sm" variant="ghost" onClick={clearChat} className="gap-1.5">
                     <Trash2 className="h-3.5 w-3.5" /> Clear Chat
                   </FeddaButton>
