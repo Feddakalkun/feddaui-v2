@@ -1,0 +1,110 @@
+.github/workflows/publish.yml
+.gitignore
+README.md
+__init__.py
+backend/Inconsolata.otf
+backend/checker_board.py
+backend/file_handeler.py
+backend/grid_filler.py
+backend/iToolsMaskedImg.png
+backend/iToolsTestImg.png
+backend/metadata_extractor.py
+backend/overlay.py
+backend/prompter.py
+backend/prompter_multi.py
+backend/shared.py
+example_workflows/KSamplerOverlay.jpg
+example_workflows/KSamplerOverlay.json
+example_workflows/PromptRecord.jpg
+example_workflows/PromptRecord.json
+example_workflows/PromptStyler.jpg
+example_workflows/PromptStyler.json
+example_workflows/PromptStylerExtra.jpg
+example_workflows/PromptStylerExtra.json
+example_workflows/VaePreview.jpg
+example_workflows/VaePreview.json
+examples/Screenshot1.jpg
+examples/Screenshot10.jpg
+examples/Screenshot11.jpg
+examples/Screenshot12.jpg
+examples/Screenshot13.jpg
+examples/Screenshot14.jpg
+examples/Screenshot15.jpg
+examples/Screenshot16.jpg
+examples/Screenshot17.jpg
+examples/Screenshot18.jpg
+examples/Screenshot19.jpg
+examples/Screenshot2.jpg
+examples/Screenshot20.jpg
+examples/Screenshot21.jpg
+examples/Screenshot22.jpg
+examples/Screenshot3.jpg
+examples/Screenshot4.jpg
+examples/Screenshot5.jpg
+examples/Screenshot6.jpg
+examples/Screenshot7.jpg
+examples/Screenshot9.jpg
+examples/iTools_a.webp
+examples/prompts.txt
+experimental/converters.py
+experimental/experimental_nodes.py
+experimental/utils.py
+iTools_nodes.py
+pyproject.toml
+styles/artist.yaml
+styles/basic.yaml
+styles/camera.yaml
+styles/mood.yaml
+styles/more examples/3D.yaml
+styles/more examples/Art.yaml
+styles/more examples/Cartoon.yaml
+styles/more examples/Craft.yaml
+styles/more examples/Design.yaml
+styles/more examples/Drawing.yaml
+styles/more examples/Experimental.yaml
+styles/more examples/Fashion.yaml
+styles/more examples/Illustration.yaml
+styles/more examples/Painting.yaml
+styles/more examples/Photography.yaml
+styles/more examples/Pixaroma.yaml
+styles/more examples/Sculpture.yaml
+styles/more examples/Vector.yaml
+styles/more examples/zREADME.txt
+styles/original.yaml
+web/appearance.js
+web/checkerboard_node.js
+web/compare_node.js
+web/crop_node.js
+web/dom_node.js
+web/js_shared.js
+web/makadi/BaseSmartWidget.js
+web/makadi/DraggableRotatable.js
+web/makadi/SmartButton.js
+web/makadi/SmartCheckBox.js
+web/makadi/SmartColorPicker.js
+web/makadi/SmartDropdownMenu.js
+web/makadi/SmartImage.js
+web/makadi/SmartInfo.js
+web/makadi/SmartLable.js
+web/makadi/SmartLayer.js
+web/makadi/SmartLoading.js
+web/makadi/SmartPaintArea.js
+web/makadi/SmartPreview.js
+web/makadi/SmartSlider.js
+web/makadi/SmartSwitch.js
+web/makadi/SmartText.js
+web/makadi/SmartWidget.js
+web/paint_node.js
+web/preview_node.js
+web/prompt_gallery.js
+web/prompt_gallery_side.js
+web/prompt_styler.js
+web/prompt_styler_extra.js
+web/regex_node.js
+web/rgthree_widgets.js
+web/temp.js
+web/test_node.js
+web/text_entry.js
+web/text_preview.js
+web/topbar_menu.js
+web/utils.js

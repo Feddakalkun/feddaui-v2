@@ -160,7 +160,7 @@ echo      READY TO INSTALL  -  what will happen
 echo   ============================================================
 echo.
 echo   The installer will now:
-echo     - Download a private copy of the app source
+echo     - Download the app source from GitHub
 echo     - Set up an embedded Python + ComfyUI
 echo     - Install the required custom nodes and dependencies
 echo     - Build the FEDDA frontend

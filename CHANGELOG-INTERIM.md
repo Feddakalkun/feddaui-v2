@@ -416,3 +416,53 @@ leftovers — `f5b879fe-d055-46fe-84a4-95c35a77c82e.png`,
 `VeniceAI_l4UhOC_Z4E67KA.0.jpeg`, `2000PX LATENT UPSCALE_00004_.png` and others
 sit in `LoadImage` placeholders where `example.png` or `fedda_placeholder.png` is
 the convention. Harmless locally, untidy in something being distributed.
+
+## 2026-08-11 — vendored the two unverifiable node packs; installer text corrected
+
+**Changed:** `vendor/custom_nodes/ComfyUI-Pixaroma/` and
+`vendor/custom_nodes/comfyui-itools/` added (26 MB, `__pycache__` and `.pyc`
+stripped); their notes in `config/nodes.json` say the url is provenance only;
+`installer/FEDDA_v2.0_Installer.bat` line 163 no longer claims the source is
+private.
+
+**Why:** neither pack has a `.git` on this machine — both were installed by hand
+— so the clone URLs I put in `nodes.json` earlier today could not be verified
+against anything. `install.ps1:632` prefers `vendor/custom_nodes/<folder>` over a
+clone precisely because "some nodes have no reliable upstream", and two packs
+already ship that way. A URL guessed on the user's behalf sitting in the install
+path is worse than 26 MB in the repository: it fails only on machines that are
+not his, which is the exact shape of the sdxl-outpaint defect.
+
+`install.ps1` looks up the vendor directory by the `folder` field, and both match
+(`ComfyUI-Pixaroma`, `comfyui-itools`), so the clone branch is now unreachable
+for these two.
+
+**The installer line:** it told the user the wizard would "Download a private
+copy of the app source". The repository is public. Now reads "Download the app
+source from GitHub". Corrected in `installer/`, which BREADCRUMBS names as the
+source of truth.
+
+**Verified:** `nodes.json` parses, 61 packs, CRLF intact; both vendor folders
+match their `folder` fields; the installer edit kept all 384 CRLF line endings.
+
+**Two things found while doing it:**
+- `installer/FEDDA_v2.0_Installer.bat` and the running copy at
+  `H:\Fedda-Hub\290726\FEDDA_v2.0_Installer.bat` differ. Byte-for-byte the
+  content is identical — only the line endings differ, repo CRLF and running copy
+  LF. Not fixed: the running copy is outside this repository.
+- **`scripts/smoke_clean_install.ps1` cannot serve as the release gate it was
+  suggested for.** It is a static structure check, not an install: it never
+  exercises the clone-or-vendor path, so it cannot tell whether these two packs
+  reach a fresh machine. It is also stale — it forbids `frontend/public/cards`,
+  which now exists and carries every card in the product, so it would fail the
+  current tree for a reason that is not a defect. Proving the vendor path needs a
+  real `install.ps1` run into an empty root, which downloads gigabytes and takes
+  30-60 minutes. Not run; that is the user's call.
+
+**Not verified:** the vendored copies have not been installed from. They are a
+byte copy of what is running on this machine, which is the strongest evidence
+available short of a clean install.
+
+**Still held back:** six commits, unpushed. `update.bat` does
+`git reset --hard origin/main`, so pushing publishes to every existing install.
+Nothing goes out without an explicit go-ahead, each time.

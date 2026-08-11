@@ -9,13 +9,13 @@
     "name": "ComfyUI-Pixaroma",
     "url": "https://github.com/pixaroma/ComfyUI-Pixaroma.git",
     "folder": "ComfyUI-Pixaroma",
-    "note": "PixaromaCompare \u2014 before/after compare, needed by klein-inpaint"
+    "note": "PixaromaCompare \u2014 before/after compare, needed by klein-inpaint. Vendored: installed here without git, so the url is provenance only."
   },
   {
     "name": "comfyui-itools",
     "url": "https://github.com/MohammadAboulEla/ComfyUI-iTools.git",
     "folder": "comfyui-itools",
-    "note": "iToolsCompareImage \u2014 used by V2/KLEIN-9B-FACESWAP"
+    "note": "iToolsCompareImage \u2014 used by V2/KLEIN-9B-FACESWAP. Vendored: installed here without git, so the url is provenance only."
   },
   {
     "name": "WhatDreamsCost-ComfyUI",
