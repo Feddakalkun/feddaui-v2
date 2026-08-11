@@ -519,9 +519,81 @@ async def venice_chat(body: Dict[str, Any]):
     return StreamingResponse(passthrough(), media_type="text/event-stream")
 
 
+VENICE_OUTPUT_SUBFOLDER = "venice"
+
+
+def _save_venice_images(data: Dict[str, Any]) -> List[Dict[str, str]]:
+    """Write generated images to ComfyUI's output/venice/ and describe them.
+
+    Everything the Venice pages produced went into `localStorage` as a base64
+    data URL, and the whole Gallery reads localStorage - so "Reset UI" destroyed
+    them while its own confirm text promised outputs were untouched, and sixty
+    base64 images blew the storage quota long before that, silently, because the
+    write is wrapped in a catch.
+
+    On disk they survive a reset, appear beside every other output, and cost the
+    browser nothing. A hosted URL is downloaded rather than linked, since a link
+    rots when Venice expires it.
+    """
+    import base64 as _b64, uuid as _uuid
+
+    rows = data.get("images") or data.get("data") or []
+    target_dir = OUTPUT_DIR / VENICE_OUTPUT_SUBFOLDER
+    saved: List[Dict[str, str]] = []
+    for item in rows:
+        blob: Optional[bytes] = None
+        if isinstance(item, str):
+            if item.startswith("http"):
+                try:
+                    r = requests.get(item, timeout=120)
+                    r.raise_for_status()
+                    blob = r.content
+                except Exception as exc:  # noqa: BLE001 - one lost image is not fatal
+                    print(f"[VENICE] could not fetch {item[:80]}: {exc}")
+            else:
+                try:
+                    blob = _b64.b64decode(item)
+                except Exception:  # noqa: BLE001
+                    blob = None
+        elif isinstance(item, dict):
+            if item.get("b64_json"):
+                try:
+                    blob = _b64.b64decode(item["b64_json"])
+                except Exception:  # noqa: BLE001
+                    blob = None
+            elif item.get("url"):
+                try:
+                    r = requests.get(item["url"], timeout=120)
+                    r.raise_for_status()
+                    blob = r.content
+                except Exception as exc:  # noqa: BLE001
+                    print(f"[VENICE] could not fetch {item['url'][:80]}: {exc}")
+        if not blob:
+            continue
+        name = f"venice_{_uuid.uuid4().hex[:12]}.png"
+        try:
+            target_dir.mkdir(parents=True, exist_ok=True)
+            (target_dir / name).write_bytes(blob)
+        except OSError as exc:
+            print(f"[VENICE] could not save {name}: {exc}")
+            continue
+        saved.append({
+            "filename": name,
+            "subfolder": VENICE_OUTPUT_SUBFOLDER,
+            "url": f"/comfy/view?filename={name}&subfolder={VENICE_OUTPUT_SUBFOLDER}&type=output",
+        })
+    return saved
+
+
 @app.post("/api/venice/image")
 async def venice_image(body: Dict[str, Any]):
-    return _venice(venice_service.image_generate, _venice_key(), body)
+    """Generate, then keep it. The saved urls are what the page should display."""
+    try:
+        data = venice_service.image_generate(_venice_key(), body)
+    except venice_service.VeniceError as exc:
+        return JSONResponse(status_code=200, content=exc.as_dict())
+    saved = _save_venice_images(data)
+    return {"success": True, **data, "saved": saved}
 
 
 class VeniceSpeechRequest(BaseModel):

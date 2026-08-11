@@ -948,3 +948,56 @@ Not verified: no run has actually injected a LoRA through this node.
 **The lesson worth keeping:** two samples are not a survey. The question was
 "what does the backend do with this type", and the answer was one grep away in
 the code that consumes it — not in two examples of how it happens to be used.
+
+## 2026-08-11 — Venice: images to disk, and the chat survives leaving the page
+
+**Changed:** `_save_venice_images()` and `/api/venice/image` in `server.py`;
+`VenicePage.tsx`.
+
+**What was actually happening.** The user asked how chat saving works in the
+Venice UI. It did not: `chatMessages` was plain `useState`, with zero
+`usePersistentState` on the page — switching to the Image tab and back lost the
+conversation, and so did a reload.
+
+The images were worse, because they *looked* saved. `saveToGlobalGallery` wrote
+into `localStorage`, and the entire Gallery reads only localStorage
+(`loadStoredMedia` scans its keys). So:
+
+- **"Reset UI" destroyed them** while its own confirm text says *"Your models,
+  outputs and API keys are NOT touched."* True-ish for ComfyUI images, whose urls
+  point at files on disk; false for Venice, which had no disk copy at all.
+- **Venice returns base64**, so each picture went into localStorage as a whole
+  data url. Sixty per source against a 5–10 MB quota — the write is inside a
+  `catch`, so passing the quota lost images with a `console.warn` and nothing
+  else.
+
+**Images now go to `ComfyUI/output/venice/`** and the response carries `saved[]`
+urls, which is what the page displays and puts in the gallery. A hosted url is
+downloaded rather than linked, since a link rots when Venice expires it. The
+base64 path survives as the fallback for a failed save, so a picture is shown
+rather than lost.
+
+**The chat is saved to the store the app already had** — the same
+`chat-edit/sessions` file, tagged `workflow_id: 'venice-chat'` so the two lists
+stay apart. One rolling session, restored on mount, saved 800 ms after the last
+change. The complaint was losing the thread, not the absence of a session
+manager, so there is no new UI.
+
+Two details that would have made it useless: the restore sets a flag before the
+save effect is allowed to run, or the greeting would immediately overwrite the
+stored thread; and the store titles a chat from the first user message's `text`
+while these carry `content`, so the title is now sent explicitly instead of every
+Venice thread reading "New chat".
+
+**Verified:** generated a real image — 519 KB written to
+`ComfyUI/output/venice/venice_c2f90a66ee2d.png`, `saved[]` url returned. Saved a
+Venice chat through the store, listed it, read the messages back, and confirmed
+the nine existing chat-edit sessions were untouched; then deleted the test
+session. `npx vite build` clean.
+
+**Not verified:** neither path was exercised from the browser UI.
+
+**Left alone, worth naming:** the "Reset UI" confirm text still claims outputs are
+untouched. That is now true for Venice images, but the button does still wipe the
+gallery *index* for everything, so what you lose is the list rather than the
+files. The wording deserves a second look.

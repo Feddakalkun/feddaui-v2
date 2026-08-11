@@ -31,6 +31,30 @@ const veniceCall = async (endpoint: string, body?: unknown) => {
   return data;
 };
 
+/**
+ * Turn a Venice image response into displayable urls.
+ *
+ * The backend now writes every generated image into ComfyUI's output/venice/
+ * and returns `saved[]`. Those urls are what belong in the gallery: a base64
+ * data url put the whole picture into localStorage, where sixty of them blew
+ * the quota - silently, since the write is inside a catch - and "Reset UI"
+ * deleted them outright while promising it did not touch outputs.
+ *
+ * The base64 path stays as the fallback for the case where saving failed, so a
+ * picture is shown rather than lost.
+ */
+const veniceImageUrls = (data: any): string[] => {
+  const saved = (data?.saved || []).map((s: any) => s?.url).filter(Boolean);
+  if (saved.length) return saved;
+  const raw = data?.images || data?.data || [];
+  return raw.map((i: any) => {
+    if (typeof i === 'string') return i.startsWith('http') ? i : 'data:image/png;base64,' + i;
+    if (i && i.b64_json) return 'data:image/png;base64,' + i.b64_json;
+    if (i && i.url) return i.url;
+    return null;
+  }).filter(Boolean);
+};
+
 const saveToGlobalGallery = (urls: string[], source = 'venice') => {
   if (typeof window === 'undefined' || !urls.length) return;
   try {
@@ -154,14 +178,7 @@ export function VenicePage() {
     if (seed !== undefined) body.seed = seed;
     try {
       const data = await veniceCall(BACKEND_API.ENDPOINTS.VENICE_IMAGE, body);
-      let newImgs: string[] = [];
-      const rawImgs = (data.images || data.data || []);
-      newImgs = rawImgs.map((i: any) => {
-        if (typeof i === 'string') return i.startsWith('http') ? i : 'data:image/png;base64,' + i;
-        if (i && i.b64_json) return 'data:image/png;base64,' + i.b64_json;
-        if (i && i.url) return i.url;
-        return null;
-      }).filter(Boolean);
+      const newImgs: string[] = veniceImageUrls(data);
       setImages(newImgs);
       saveToGlobalGallery(newImgs, 'venice-image');
       toast('Generated with Venice.ai!', 'success');
@@ -176,6 +193,13 @@ export function VenicePage() {
   };
 
   // ========== AGENT CHAT STATE & LOGIC ==========
+  // The conversation was plain useState: switching to the Image tab and back
+  // lost it, and so did a reload. It is saved to the same store the chat-edit
+  // sessions use, tagged with its own workflow_id so the two lists stay apart.
+  // One rolling session, restored on mount - the complaint was losing the
+  // thread, not the absence of a session manager.
+  const [chatSessionId, setChatSessionId] = useState<string | null>(null);
+  const chatLoaded = useRef(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     { role: 'assistant', content: "Hello! I'm your Venice Agent. I can chat, search the web, understand images, and help with creative tasks. Switch to Image tab to generate directly, or ask me here!" }
   ]);
@@ -265,6 +289,52 @@ export function VenicePage() {
     ]);
     setAttachedImages([]);
   };
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const list = await (await fetch(`${BACKEND_API.BASE_URL}/api/chat-edit/sessions`)).json();
+        const mine = (list?.sessions || []).find((x: any) => x.workflow_id === 'venice-chat');
+        if (mine) {
+          const full = await (await fetch(
+            `${BACKEND_API.BASE_URL}/api/chat-edit/sessions/${encodeURIComponent(mine.id)}`)).json();
+          if (Array.isArray(full?.messages) && full.messages.length) {
+            setChatMessages(full.messages);
+            setChatSessionId(full.id);
+          }
+        }
+      } catch { /* offline: the greeting stands and nothing is lost */ }
+      // Only after a restore attempt, or the save below would immediately
+      // overwrite the stored thread with the greeting.
+      chatLoaded.current = true;
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!chatLoaded.current) return;
+    // Never store the opening greeting on its own - an empty chat should not
+    // occupy a session.
+    if (chatMessages.length < 2) return;
+    const id = window.setTimeout(() => {
+      fetch(`${BACKEND_API.BASE_URL}/api/chat-edit/sessions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: chatSessionId,
+          workflow_id: 'venice-chat',
+          messages: chatMessages,
+          // The store titles a chat from the first user message's `text`,
+          // and these carry `content`, so without this every Venice thread
+          // would be listed as "New chat".
+          title: (chatMessages.find((m) => m.role === 'user')?.content || '').slice(0, 60),
+        }),
+      })
+        .then((r) => r.json())
+        .then((d) => { if (d?.id && !chatSessionId) setChatSessionId(d.id); })
+        .catch(() => {});
+    }, 800);
+    return () => window.clearTimeout(id);
+  }, [chatMessages, chatSessionId]);
 
   const sendChatMessage = async () => {
     if (!chatInput.trim() && attachedImages.length === 0) return;
@@ -475,14 +545,7 @@ Current context: User is requesting images of Elara at the safari camp, now spec
 
           const imgData = imgRes.ok ? await imgRes.json() : null;
           if (imgData && imgData.success !== false) {
-            let newImgs: string[] = [];
-            const rawImgs = (imgData.images || imgData.data || []);
-            newImgs = rawImgs.map((i: any) => {
-              if (typeof i === 'string') return i.startsWith('http') ? i : 'data:image/png;base64,' + i;
-              if (i && i.b64_json) return 'data:image/png;base64,' + i.b64_json;
-              if (i && i.url) return i.url;
-              return null;
-            }).filter(Boolean);
+            const newImgs: string[] = veniceImageUrls(imgData);
 
             const finalContent = assistantContent && assistantContent !== 'Generating image...' 
               ? assistantContent 
