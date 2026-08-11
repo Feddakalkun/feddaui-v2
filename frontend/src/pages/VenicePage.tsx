@@ -678,7 +678,10 @@ Current context: User is requesting images of Elara at the safari camp, now spec
           const args = JSON.parse(toolCallAccumulator.arguments || '{}');
           const imagePrompt = args.prompt || 'Elara at the safari camp at sunset';
           const numVariants = Math.min(Math.max(parseInt(args.num_images || args.variants || 4), 1), 4);
-          const imgModelToUse = args.model || 'flux-2-pro';
+          // Was hardcoded to flux-2-pro, so the model picked on the Image
+          // tab never applied to anything the agent generated in chat - and the
+          // chat's own select is the text model, which is a different thing.
+          const imgModelToUse = args.model || imgModel || 'flux-2-pro';
 
           const imgBody: any = {
             model: imgModelToUse,
@@ -1036,6 +1039,19 @@ Current context: User is requesting images of Elara at the safari camp, now spec
                     </label>
                   </div>
                   <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <label className="flex items-center gap-1.5 text-[11px] text-white/45 whitespace-nowrap">
+                    Image&nbsp;model
+                    <select
+                      value={imgModel}
+                      onChange={(e) => setImgModel(e.target.value)}
+                      title="Which model the agent generates with. Shared with the Image tab, so it is one choice, not two."
+                      className="max-w-[150px] rounded-lg fedda-input px-2 py-1 text-[11px] focus:border-violet-500/40"
+                    >
+                      {imageModels.map((m) => (
+                        <option key={m.id} value={m.id}>{m.label}</option>
+                      ))}
+                    </select>
+                  </label>
                   <label className="flex items-center gap-1.5 text-[11px] text-white/45 whitespace-nowrap">
                     Character
                     <select

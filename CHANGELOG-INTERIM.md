@@ -1357,3 +1357,30 @@ dates), the Venice chats, and the workflow runs. Those are the next inputs.
 **Verified:** the old single memory was migrated rather than dropped; the sweep
 read 11 sessions and added 16; the store reports 15 after merge with counts per
 kind. Nothing is in the UI yet.
+
+## 2026-08-11 — the chat generates with the model you picked
+
+**Changed:** `VenicePage.tsx` — the agent's `generate_image` branch, and an
+Image model picker in the chat header.
+
+**The report:** "Venice does not use the model I select in chat, and I only get a
+choice of edit models, not chroma and the others."
+
+**Half of it was a misreading on my part, checked before fixing.** The *text*
+model is honoured: asking for `venice-uncensored-1-2` returns
+`venice-uncensored-1-2`, asking for `qwen3-6-27b` returns that, and setting a
+character does not override it. So the select in the header does work — it is
+just the text model, which is a different thing from the model that draws.
+
+**The other half was real.** The agent's image tool read
+`args.model || 'flux-2-pro'` — hardcoded. The 37 live models on the Image tab,
+Chroma among them, never applied to anything generated in chat, and there was no
+picker for them there. Both halves of the complaint come from that one line.
+
+**Fix:** the chat generates with `imgModel`, the same state the Image tab uses,
+and there is now an Image model picker in the chat header beside Character and
+Edit model. One choice shared by both tabs rather than two that disagree.
+
+**Verified in the running app:** the header now carries three pickers —
+**Image model (37 options, currently `chroma`)**, Character (81), Edit model
+(11). `npx vite build` clean.
