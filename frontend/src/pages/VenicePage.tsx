@@ -201,6 +201,11 @@ export function VenicePage() {
   // Which model performs an edit. The agent may name one in its tool call, but
   // a choice made here wins - "the agent decided" is not an answer to "which
   // model edited my picture".
+  // Venice keeps a character's own definition server-side, so picking one is
+  // not the same as pasting a persona into the system prompt: the model answers
+  // as that character without the app having to carry its text.
+  const [characters, setCharacters] = useState<Array<{ slug: string; name: string; description: string; adult: boolean }>>([]);
+  const [characterSlug, setCharacterSlug] = useState('');
   const [editModels, setEditModels] = useState<string[]>([]);
   const [editModel, setEditModel] = useState('');
   const [chatSessionId, setChatSessionId] = useState<string | null>(null);
@@ -294,6 +299,13 @@ export function VenicePage() {
     ]);
     setAttachedImages([]);
   };
+
+  useEffect(() => {
+    fetch(`${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.VENICE_CHARACTERS}?limit=80`)
+      .then((r) => r.json())
+      .then((d) => { if (d?.success) setCharacters(d.characters || []); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch(`${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.VENICE_EDIT_MODELS}`)
@@ -454,6 +466,9 @@ Current context: User is requesting images of Elara at the safari camp, now spec
         enable_web_search: enableWebSearch ? 'auto' : 'off',
         enable_web_citations: true,
         include_venice_system_prompt: true,
+        // Venice applies the character server-side; the tools still work, so the
+        // agent stays able to generate and edit while in character.
+        ...(characterSlug ? { character_slug: characterSlug } : {}),
       }
     };
 
@@ -962,6 +977,21 @@ Current context: User is requesting images of Elara at the safari camp, now spec
                       <Globe className="h-3.5 w-3.5" /> Web Search
                     </label>
                   </div>
+                  <label className="flex items-center gap-1.5 text-[11px] text-white/45">
+                    Character
+                    <select
+                      value={characterSlug}
+                      onChange={(e) => setCharacterSlug(e.target.value)}
+                      title={characters.find((c) => c.slug === characterSlug)?.description
+                        || 'Answer as a public Venice character. Off means the app\'s own agent prompt.'}
+                      className="max-w-[160px] rounded-lg fedda-input px-2 py-1 text-[11px] focus:border-violet-500/40"
+                    >
+                      <option value="">No character</option>
+                      {characters.map((c) => (
+                        <option key={c.slug} value={c.slug}>{c.name}{c.adult ? ' (18+)' : ''}</option>
+                      ))}
+                    </select>
+                  </label>
                   <label className="flex items-center gap-1.5 text-[11px] text-white/45">
                     Edit&nbsp;model
                     <select

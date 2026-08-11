@@ -369,6 +369,25 @@ def clone_voice(key: str, sample: bytes, filename: str, model: str = "") -> Dict
     return out
 
 
+def characters(key: str, search: str = "", limit: int = 60,
+               adult: Optional[bool] = None) -> Dict[str, Any]:
+    """The public character catalogue.
+
+    Worth having because `/chat/completions` accepts
+    `venice_parameters.character_slug`: picking one here makes the agent answer
+    *as* that character, which is a different thing from pasting a persona into
+    the system prompt - Venice keeps the character's own definition server-side.
+
+    Marked a preview API in the spec, so the shape may move.
+    """
+    params: Dict[str, Any] = {"limit": limit}
+    if search.strip():
+        params["search"] = search.strip()
+    if adult is not None:
+        params["isAdult"] = "true" if adult else "false"
+    return call(key, "GET", "/characters", params=params)
+
+
 def balance(key: str) -> Dict[str, Any]:
     return call(key, "GET", "/billing/balance")
 

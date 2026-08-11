@@ -1135,3 +1135,41 @@ a real recording of a person — the sample was one of the TTS voices generated
 earlier today, which is a fair functional test but not a fair quality one.
 
 **Next in the user's order:** `/characters/*`, then `/embeddings`.
+
+## 2026-08-11 — Venice characters, applied server-side rather than pasted in
+
+**Changed:** `venice_service.characters()`; `/api/venice/characters`; a Character
+picker in the Venice chat header, and `character_slug` added to
+`venice_parameters`.
+
+**Why this is more than a list.** `/chat/completions` accepts
+`venice_parameters.character_slug`, and Venice keeps the character's own
+definition server-side. So picking one makes the model answer *as* that
+character without the app carrying its text — different from pasting a persona
+into the system prompt, and it does not eat the context window.
+
+**Verified that it actually changes who is answering:**
+
+| character_slug | "In one short sentence: who are you?" |
+|---|---|
+| *(none)* | "I am Venice Uncensored 1.2." |
+| `venice-psychologist` | "I am Bella, a compassionate clinical psychologist…" |
+| `molly` | "I'm Molly, a confident and rebellious cheerleader…" |
+
+The tools still work while in character, since Venice layers the character over
+the request rather than replacing it.
+
+**My first test returned empty for every slug** — on `kimi-k2-5` at 120
+max_tokens. That is exactly the reasoning-model `content: null` case fixed in the
+chat UI earlier today: the budget went on reasoning and no content was written.
+Re-run on a non-reasoning model, the answers above. Worth recording because it
+briefly looked like the feature did not work.
+
+**The endpoint is trimmed** to slug, name, description, adult flag, tags and
+photo. The raw rows carry stats, timestamps and share urls that a picker has no
+use for.
+
+**Note:** the spec marks `/characters` a **preview API** that may change shape.
+
+**Not verified:** the picker was not driven from the browser, and no chat has
+been held in character through the UI.

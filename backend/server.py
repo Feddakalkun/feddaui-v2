@@ -484,6 +484,25 @@ async def venice_styles():
     return _venice(venice_service.image_styles, _venice_key())
 
 
+@app.get("/api/venice/characters")
+async def venice_characters(search: str = "", limit: int = 60, adult: Optional[bool] = None):
+    """Trimmed to what a picker needs - the raw rows carry stats, timestamps and
+    share urls that would just be bulk on the wire."""
+    try:
+        data = venice_service.characters(_venice_key(), search, limit, adult)
+    except venice_service.VeniceError as exc:
+        return JSONResponse(status_code=200, content=exc.as_dict())
+    rows = data.get("data") or []
+    return {"success": True, "characters": [{
+        "slug": c.get("slug"),
+        "name": c.get("name"),
+        "description": (c.get("description") or "")[:280],
+        "adult": bool(c.get("adult")),
+        "tags": (c.get("tags") or [])[:6],
+        "photo": c.get("photoUrl"),
+    } for c in rows if c.get("slug")]}
+
+
 @app.get("/api/venice/balance")
 async def venice_balance():
     return _venice(venice_service.balance, _venice_key())
