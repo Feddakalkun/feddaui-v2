@@ -197,6 +197,71 @@ def image_generate(key: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     return call(key, "POST", "/image/generate", payload, timeout=TIMEOUT_SLOW)
 
 
+# The edit models are NOT in /models?type=image - they live only in the enum on
+# /image/edit, which is why a look at the catalogue suggests Venice has no
+# FireRed or uncensored Qwen. It has both.
+EDIT_MODELS = [
+    "firered-image-edit",
+    "qwen-edit-uncensored",
+    "qwen-image-3-edit",
+    "qwen-image-3-pro-edit",
+    "qwen-image-2-edit",
+    "qwen-image-2-pro-edit",
+    "flux-2-max-edit",
+    "wan-2-7-pro-edit",
+    "seedream-v5-pro-edit",
+    "nano-banana-pro-edit",
+    "grok-imagine-quality-edit",
+]
+DEFAULT_EDIT_MODEL = "qwen-edit-uncensored"
+
+
+def image_edit(key: str, image_b64: str, prompt: str, model: str = "",
+               output_format: str = "png", safe_mode: bool = False) -> Tuple[bytes, str]:
+    """Change a picture that already exists, rather than making a new one.
+
+    The chat agent had only a generate tool, so "remove her top, keep the denim
+    jacket" against an attached photo produced an unrelated new image - the
+    request read as a description to draw rather than an instruction to follow.
+
+    Unlike /image/generate, which answers JSON with base64 inside, this endpoint
+    returns the image **bytes** with an image/* content type. Sending it through
+    `call` gets "response is not JSON", which is what it said the first time.
+
+    Returns (image bytes, model used).
+    """
+    if not (key or "").strip():
+        raise VeniceError("no_key", "No Venice API key is set. Add one in the top bar.")
+    if not (prompt or "").strip():
+        raise VeniceError("failed", "An edit needs an instruction.")
+    used = (model or "").strip() or DEFAULT_EDIT_MODEL
+    payload = {
+        "image": image_b64,
+        "prompt": prompt,
+        "model": used,
+        "output_format": output_format,
+        "safe_mode": safe_mode,
+    }
+    try:
+        resp = requests.post(f"{BASE}/image/edit", headers=_headers(key),
+                             json=payload, timeout=TIMEOUT_SLOW)
+    except requests.exceptions.Timeout:
+        raise VeniceError("timeout", f"Venice did not answer within {TIMEOUT_SLOW}s.")
+    except requests.exceptions.RequestException as exc:
+        raise VeniceError("unreachable", f"Could not reach Venice: {exc}")
+    if not resp.ok:
+        raise _classify(resp)
+    # Venice flags a refusal in a header rather than an error status, so an edit
+    # it declined would otherwise arrive as a blurred picture with no reason.
+    if str(resp.headers.get("x-venice-is-content-violation", "")).lower() == "true":
+        raise VeniceError("refused",
+                          "Venice flagged this edit as a content violation and blurred it. "
+                          "Safe mode is already off; the model itself declined.")
+    if not resp.content:
+        raise VeniceError("empty_answer", f"{used} returned no image.")
+    return resp.content, (resp.headers.get("x-venice-model-id") or used)
+
+
 def image_styles(key: str) -> Dict[str, Any]:
     return call(key, "GET", "/image/styles")
 

@@ -1001,3 +1001,50 @@ session. `npx vite build` clean.
 untouched. That is now true for Venice images, but the button does still wipe the
 gallery *index* for everything, so what you lose is the list rather than the
 files. The wording deserves a second look.
+
+## 2026-08-11 — the Venice agent can edit an attached image instead of inventing one
+
+**Changed:** `venice_service.image_edit()` + `EDIT_MODELS`; `/api/venice/image-edit`
+and `/api/venice/edit-models`; an `edit_image` tool, its handler and the system
+prompt in `VenicePage.tsx`.
+
+**What the user saw:** they dropped a photo and wrote "remove her top keep her
+denim jacket". The agent generated an unrelated new picture. The cause is in the
+system prompt: it says the agent MUST call `generate_image` whenever asked to
+"make or show" anything, and it had no notion of editing at all — `generate_image`
+was the only tool.
+
+**I was wrong about where the models live.** I offered to wire the local firered
+and qwen workflows, assuming that is what "firered eller qwen" meant. The user
+corrected me: **Venice hosts both**. They are not in `/models?type=image` — they
+appear only in the `modelId` enum on `/image/edit`, which is why the catalogue
+suggested Venice had neither. Twenty edit models are there, including
+`firered-image-edit` and `qwen-edit-uncensored`.
+
+**Two things the spec settled that a JSON assumption would have got wrong:**
+- `/image/edit` returns **image bytes**, not JSON with base64 like
+  `/image/generate`. The first attempt failed with "Venice returned a response
+  that is not JSON", which was accurate.
+- A refusal is signalled by the **`x-venice-is-content-violation` header**, not by
+  a status code. Without checking it, a declined edit arrives as a blurred
+  picture with no explanation. It now raises `refused` and says the model itself
+  declined.
+
+**Verified end to end, real calls:**
+- `qwen-edit-uncensored` and `firered-image-edit` both edited the same test
+  image: "change the pink fur coat to black leather, keep everything else
+  identical" → leather jacket, bunny ears, magnifying glass, text and background
+  all preserved. 1.1 MB and 1.3 MB written to `ComfyUI/output/venice/`.
+- Tool selection, which is the part that actually failed for the user:
+  `kimi-k2-5` — the model in their screenshot — now calls **edit_image** with
+  the instruction, not generate_image.
+- `npx vite build` clean.
+
+**Worth knowing:** `venice-uncensored-1-2` declares `supportsFunctionCalling` but
+printed the tool call as a JSON code block instead of making one. 96 of 106 text
+models declare the capability; declaring it is not the same as doing it. The
+picker's six models are curated, and Kimi works — but if a chat ever answers with
+raw JSON instead of acting, that is what happened.
+
+**Not verified:** the tool has not been driven from the browser, only proven at
+both ends — the model chooses it, and the endpoint behind it works.

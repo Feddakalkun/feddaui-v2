@@ -356,6 +356,8 @@ export function VenicePage() {
 
 CRITICAL RULE: Whenever the user asks you to generate, create, draw, visualize, produce, make, or show any images, pictures, illustrations, or visuals (including specific characters like "Elara", settings like "safari camp", "sunset", etc.), you MUST immediately call the generate_image tool. 
 
+EQUALLY IMPORTANT: when the user has attached an image and asks you to CHANGE it - remove, replace, add, recolour, swap, keep-but-alter anything in it - call edit_image instead, never generate_image. "Remove her top, keep the denim jacket" is an edit of the picture in front of you, not a description of a new one to invent. Pass only the change as the instruction; the model already sees the image.
+
 Do NOT just say "I'll generate" or describe the image in text only — actually invoke the tool with a high-quality, detailed prompt.
 
 You can generate multiple images (up to 4) in one call using the num_images parameter. Make the prompt very descriptive.
@@ -384,6 +386,27 @@ Current context: User is requesting images of Elara at the safari camp, now spec
       stream: true,
       temperature: chatTemperature,
       tools: [
+        {
+          type: "function",
+          function: {
+            name: "edit_image",
+            description: "Modify the image the user attached: remove, replace, add, recolour or alter something in it while keeping the rest. Use this whenever an image is attached and the user asks for a change. Never use generate_image for that - it would invent an unrelated picture.",
+            parameters: {
+              type: "object",
+              properties: {
+                instruction: {
+                  type: "string",
+                  description: "Short, direct description of the change only, e.g. 'remove her top, keep the denim jacket'. Do not describe the whole scene - the model can see the image."
+                },
+                model: {
+                  type: "string",
+                  description: "Optional edit model. qwen-edit-uncensored (default, permissive), firered-image-edit, flux-2-max-edit, nano-banana-pro-edit, seedream-v5-pro-edit."
+                }
+              },
+              required: ["instruction"]
+            }
+          }
+        },
         {
           type: "function",
           function: {
@@ -502,7 +525,8 @@ Current context: User is requesting images of Elara at the safari camp, now spec
                     toolCallAccumulator.arguments += tc.function.arguments;
                   }
                   // Optionally show "Generating image..." in UI
-                  if (toolCallAccumulator.name === 'generate_image' && !assistantContent) {
+                  if ((toolCallAccumulator.name === 'generate_image'
+                    || toolCallAccumulator.name === 'edit_image') && !assistantContent) {
                     assistantContent = 'Generating image...';
                     setChatMessages(prev => {
                       const updated = [...prev];
@@ -518,7 +542,52 @@ Current context: User is requesting images of Elara at the safari camp, now spec
       }
 
       // Execute tool calls if detected (e.g. image generation)
-      if (toolCallAccumulator && toolCallAccumulator.name === 'generate_image') {
+      if (toolCallAccumulator && toolCallAccumulator.name === 'edit_image') {
+        try {
+          const args = JSON.parse(toolCallAccumulator.arguments || '{}');
+          // The picture to edit is the last one the user attached, which is what
+          // "this image" means in a conversation.
+          const source = [...newMessages].reverse()
+            .find((m) => m.role === 'user' && m.images?.length)?.images?.[0];
+          if (!source) throw new Error('No attached image to edit - drop one in first');
+
+          const editRes = await fetch(`${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.VENICE_IMAGE_EDIT}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              image: source,
+              prompt: args.instruction || args.prompt || chatInput,
+              model: args.model || '',
+            }),
+          });
+          const editData = await editRes.json();
+          if (!editRes.ok || editData?.success === false) {
+            throw new Error(editData?.detail || editData?.error || 'Edit failed');
+          }
+          const edited = veniceImageUrls(editData);
+          setChatMessages((prev) => {
+            const updated = [...prev];
+            updated[assistantMsgIndex] = {
+              role: 'assistant',
+              content: assistantContent || `Edited with ${editData.model}.`,
+              images: edited,
+            };
+            return updated;
+          });
+          saveToGlobalGallery(edited, 'venice-edit');
+          toast('Image edited', 'success');
+        } catch (editErr: any) {
+          toast(editErr.message || 'Edit failed', 'error');
+          setChatMessages((prev) => {
+            const updated = [...prev];
+            updated[assistantMsgIndex] = {
+              role: 'assistant',
+              content: assistantContent || `I could not edit that: ${editErr.message}`,
+            };
+            return updated;
+          });
+        }
+      } else if (toolCallAccumulator && toolCallAccumulator.name === 'generate_image') {
         try {
           const args = JSON.parse(toolCallAccumulator.arguments || '{}');
           const imagePrompt = args.prompt || 'Elara at the safari camp at sunset';

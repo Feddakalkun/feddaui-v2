@@ -596,6 +596,51 @@ async def venice_image(body: Dict[str, Any]):
     return {"success": True, **data, "saved": saved}
 
 
+class VeniceEditRequest(BaseModel):
+    image: str                            # base64, or a data: url from the chat
+    prompt: str
+    model: str = ""
+    output_format: str = "png"
+    safe_mode: bool = False
+
+
+@app.get("/api/venice/edit-models")
+async def venice_edit_models():
+    """The edit models are not in the model catalogue - only in the endpoint's
+    own enum - so the UI has nowhere else to read them from."""
+    return {"success": True, "models": venice_service.EDIT_MODELS,
+            "default": venice_service.DEFAULT_EDIT_MODEL}
+
+
+@app.post("/api/venice/image-edit")
+async def venice_image_edit(req: VeniceEditRequest):
+    """Edit an existing picture, and keep the result like a generated one."""
+    raw = req.image or ""
+    if raw.startswith("data:"):
+        raw = raw.split(",", 1)[-1]      # the chat holds images as data: urls
+    import uuid as _uuid
+
+    try:
+        blob, used = venice_service.image_edit(
+            _venice_key(), raw, req.prompt, req.model, req.output_format, req.safe_mode)
+    except venice_service.VeniceError as exc:
+        return JSONResponse(status_code=200, content=exc.as_dict())
+
+    ext = (req.output_format or "png").lower()
+    name = f"venice_edit_{_uuid.uuid4().hex[:12]}.{ext}"
+    target = OUTPUT_DIR / VENICE_OUTPUT_SUBFOLDER
+    try:
+        target.mkdir(parents=True, exist_ok=True)
+        (target / name).write_bytes(blob)
+    except OSError as exc:
+        raise HTTPException(status_code=500, detail=f"Edit produced but not saved: {exc}")
+
+    url = (f"/comfy/view?filename={name}"
+           f"&subfolder={VENICE_OUTPUT_SUBFOLDER}&type=output")
+    return {"success": True, "model": used, "bytes": len(blob),
+            "saved": [{"filename": name, "subfolder": VENICE_OUTPUT_SUBFOLDER, "url": url}]}
+
+
 class VeniceSpeechRequest(BaseModel):
     text: str
     voice: str = ""
