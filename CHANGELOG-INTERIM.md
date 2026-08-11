@@ -853,3 +853,31 @@ what made this happen, and the next engine will hit it again.
 
 **Verified:** `npx vite build` clean. Not verified in the browser — neither page
 was driven by hand, and no lipsync run has consumed a Venice clip yet.
+
+## 2026-08-11 — correction: adding a third engine leaked the second one's controls
+
+**Changed:** `LipsyncPage.tsx` and `ltx/LtxAi2vPage.tsx`.
+
+**What I broke.** Both pages branched on two engines with a ternary —
+`{ttsEngine === 'edge' ? (edge controls) : (chatterbox controls)}` on Lipsync,
+and the mirror of it on LtxAi2v. A third value falls into the else branch, so
+selecting Venice showed the *other* engine's controls underneath the Venice ones:
+the user's screenshot has a cloned-voice picker, EMOTION and PACE sliders and a
+"clone from clip" box sitting under a Venice selection, none of which apply.
+
+Both are now two independent `&&` blocks rather than one ternary, so a fourth
+engine cannot repeat it.
+
+**Worth noticing:** a two-valued ternary is exactly how a two-option control gets
+written, and it silently becomes wrong the moment a third option exists. Same
+family as the fixed four-column grid that broke when a fifth card appeared —
+both were correct until the count changed, and neither failed loudly.
+
+**Also found:** `tts-inworld-1-5-max` rejects `response_format: "mp3"`. Formats
+are per-model, not global. The app sends `wav` everywhere, which that model does
+accept, so nothing in the product hits this — but a format picker would need to
+read the model's own list.
+
+**Voice samples generated** for the "sweet young female" question rather than
+guessing from names: nine candidates saying the same line, in the scratchpad, sent
+to the user to choose by ear. No default changed yet.

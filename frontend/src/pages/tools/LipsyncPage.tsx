@@ -368,7 +368,7 @@ export const LipsyncPage = () => {
                   </>
                 )}
 
-                {ttsEngine === 'edge' ? (
+                {ttsEngine === 'edge' && (
                   <>
                     <select value={edgeVoice} onChange={(e) => setEdgeVoice(e.target.value)} className={selectCls}>
                       <option value="">Default voice</option>
@@ -379,7 +379,8 @@ export const LipsyncPage = () => {
                       <SliderField label="Pitch" value={edgePitch} onChange={setEdgePitch} min={-30} max={30} step={1} format={(v) => `${v > 0 ? '+' : ''}${v}Hz`} />
                     </div>
                   </>
-                ) : (
+                )}
+                {ttsEngine === 'chatterbox' && (
                   <>
                     <select value={cbVoice} onChange={(e) => setCbVoice(e.target.value)} className={selectCls}>
                       <option value="">Pick a cloned voice…</option>

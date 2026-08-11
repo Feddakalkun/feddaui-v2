@@ -405,7 +405,7 @@ export const LtxAi2vPage = () => {
                     </select>
                   </>
                 )}
-                {ttsEngine === 'chatterbox' ? (
+                {ttsEngine === 'chatterbox' && (
                   <select
                     value={ttsCbVoice}
                     onChange={(e) => setTtsCbVoice(e.target.value)}
@@ -416,7 +416,8 @@ export const LtxAi2vPage = () => {
                       <option key={v.id} value={v.id}>{v.name}</option>
                     ))}
                   </select>
-                ) : (
+                )}
+                {ttsEngine === 'edge' && (
                   <select
                     value={ttsVoice}
                     onChange={(e) => setTtsVoice(e.target.value)}
