@@ -1384,3 +1384,38 @@ Edit model. One choice shared by both tabs rather than two that disagree.
 **Verified in the running app:** the header now carries three pickers —
 **Image model (37 options, currently `chroma`)**, Character (81), Edit model
 (11). `npx vite build` clean.
+
+## 2026-08-11 — semantic dedupe for memory, and the case where it must not be used
+
+**Changed:** `agent_memory.py` — a local embedder, cosine dedupe, and an
+exemption for derived rows.
+
+**Model choice: `nomic-embed-text`, local, 274 MB.** Venice has an embeddings
+endpoint, but a memory that stops working when an API balance runs out is not a
+memory — the same principle the vision provider was built on. Embedding fails
+soft: no vectors means the word-overlap check still runs, and a write is never
+blocked by an embedder being down.
+
+**It caught the pair I could not.** "asked to modify an image by removing a
+character's top" against "asked the AI to remove a character's top" scores
+**0.871** — the pair that word overlap put at 0.6 against a 0.7 threshold.
+
+**And it found a case where it must not be used.** In the same pass, two
+*different* prompts scored **0.868**: "generated this 43 times: a pretty young
+woman with big floppy rabbit ears" and "generated this 12 times: a beautiful
+young woman who is half rabbit". Three thousandths apart from a true duplicate.
+No threshold separates those, so picking one would have been fitting the noise.
+
+The reason is structural: every library-derived memory shares the template
+"The user has generated this N times: …", and the template dominates the vector.
+Those rows already carry their own identity — the prompt they came from — so they
+are now exact-match only. Resemblance is the wrong question for a row that knows
+what it is.
+
+**Verified:** vectors backfilled for all 26 stored memories (768 dimensions, 71s
+for the batch); the true duplicate merged, the two rabbit prompts survived as
+distinct entries; **25 memories** across four kinds.
+
+**Cost noted:** the store is now ~1 MB for 25 memories, because a 768-float
+vector is far larger than the sentence it describes. At a few hundred memories
+that is still fine; past that the vectors want their own file.

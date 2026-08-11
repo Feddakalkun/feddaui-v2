@@ -59,6 +59,44 @@ def _tokens(text: str) -> set:
     return {w for w in _norm(text).split() if w not in _STOP and len(w) > 2}
 
 
+# Local, 274 MB, and free forever. Venice has an embeddings endpoint too, but a
+# memory that stops working when an API balance runs out is not a memory - the
+# same principle the vision provider was built on.
+EMBED_MODEL = "nomic-embed-text"
+EMBED_THRESHOLD = 0.86
+
+
+def cosine(a: List[float], b: List[float]) -> float:
+    if not a or not b or len(a) != len(b):
+        return 0.0
+    dot = sum(x * y for x, y in zip(a, b))
+    na = sum(x * x for x in a) ** 0.5
+    nb = sum(y * y for y in b) ** 0.5
+    return dot / (na * nb) if na and nb else 0.0
+
+
+def embed(texts: List[str], ollama_url: str, timeout: int = 120) -> List[List[float]]:
+    """Vectors for a batch. Returns [] on any failure - never blocks a write.
+
+    Storing a memory must not depend on an embedding service being up. Without
+    vectors the word-overlap check still runs; it is simply less good.
+    """
+    import requests as _rq
+
+    out: List[List[float]] = []
+    for text in texts:
+        try:
+            r = _rq.post(f"{ollama_url}/api/embeddings",
+                         json={"model": EMBED_MODEL, "prompt": text, "keep_alive": 300},
+                         timeout=timeout)
+            r.raise_for_status()
+            vec = r.json().get("embedding") or []
+        except Exception:  # noqa: BLE001
+            return []
+        out.append(vec)
+    return out
+
+
 def similar(a: str, b: str, threshold: float = 0.7) -> bool:
     """Same memory said differently.
 
@@ -87,16 +125,39 @@ def save(path: Path, data: Dict[str, Any]) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
+# Sources whose rows carry their own identity and must never be merged by
+# resemblance. The library-derived memories all share the template "The user
+# has generated this N times: ...", and that template dominates the vector:
+# two different prompts about a rabbit-eared woman scored 0.868 while a true
+# duplicate scored 0.871. No threshold separates those, so the answer is not to
+# pick one - it is to not ask the question for rows that already know what they
+# are.
+EXACT_ONLY_SOURCES = {"prompt-library"}
+
+
 def add_many(path: Path, items: Iterable[Dict[str, Any]], source: str = "",
-             session_id: str = "") -> Dict[str, int]:
+             session_id: str = "", ollama_url: str = "") -> Dict[str, int]:
     """Merge new items, skipping ones already known.
 
     Deduped on normalised text: the same preference learned twice in two
     conversations should raise its weight, not fill the list with near-copies.
     """
+    # Materialised: the batch is walked twice, once to embed and once to
+    # merge, and a generator would be empty the second time.
+    items = list(items)
     data = load(path)
     existing = {_norm(m.get("text", "")): m for m in data["memories"]}
     added = repeated = 0
+
+    # Vectors for the incoming batch, if an embedder is reachable. Word overlap
+    # missed "asked to modify an image by removing X" against "asked the AI to
+    # remove X" - 0.6 against a 0.7 threshold - and tuning that number against
+    # fifteen examples would be fitting the noise.
+    wanted = [str(i.get("text") or "").strip() for i in items
+              if MIN_LEN <= len(str(i.get("text") or "").strip()) <= MAX_LEN]
+    vectors = embed(wanted, ollama_url) if (ollama_url and wanted) else []
+    vec_of = dict(zip(wanted, vectors)) if vectors else {}
+
     for item in items:
         text = str(item.get("text") or "").strip()
         if not (MIN_LEN <= len(text) <= MAX_LEN):
@@ -106,8 +167,13 @@ def add_many(path: Path, items: Iterable[Dict[str, Any]], source: str = "",
             kind = "fact"
         key = _norm(text)
         hit = existing.get(key)
-        if hit is None:
-            # Not identical - but the same thing said another way still counts.
+        mine = vec_of.get(text)
+        fuzzy_ok = source not in EXACT_ONLY_SOURCES
+        if hit is None and mine and fuzzy_ok:
+            hit = next((m for m in data["memories"]
+                        if m.get("vec") and cosine(m["vec"], mine) >= EMBED_THRESHOLD), None)
+        if hit is None and fuzzy_ok:
+            # No embedder, or nothing close enough: fall back to word overlap.
             hit = next((m for m in data["memories"] if similar(m.get("text", ""), text)), None)
         if hit is not None:
             hit["seen"] = int(hit.get("seen", 1)) + 1
@@ -119,6 +185,7 @@ def add_many(path: Path, items: Iterable[Dict[str, Any]], source: str = "",
             continue
         row = {
             "id": uuid.uuid4().hex[:10],
+            "vec": mine or [],
             "kind": kind,
             "text": text,
             "source": source,

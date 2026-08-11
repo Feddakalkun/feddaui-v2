@@ -553,7 +553,8 @@ async def agent_memory_derive(min_runs: int = 4):
         raise HTTPException(status_code=404,
                             detail="No prompt library yet - POST /api/prompt-library/rebuild")
     found = _am.derive_from_library(lib, min_runs=min_runs)
-    stats = _am.add_many(AGENT_MEMORY_FILE, found, source="prompt-library")
+    stats = _am.add_many(AGENT_MEMORY_FILE, found, source="prompt-library",
+                         ollama_url=OLLAMA_URL)
     return {"success": True, "derived": len(found), **stats}
 
 
@@ -596,7 +597,8 @@ async def agent_memory_extract(req: MemoryExtractRequest):
             continue
         stats = _am.add_many(AGENT_MEMORY_FILE, found,
                              source=sess.get("workflow_id") or "chat",
-                             session_id=str(sess.get("id") or ""))
+                             session_id=str(sess.get("id") or ""),
+                             ollama_url=OLLAMA_URL)
         known = [m["text"] for m in _am.load(AGENT_MEMORY_FILE)["memories"]]
         total_added += stats["added"]
         report.append({"id": sess.get("id"), "title": sess.get("title"),
