@@ -98,3 +98,5 @@ config/prompt_library.json
 
 # Internal notes and plans live outside the repo, in H:\Fedda-Hubrain
 docs/
+config/thumb_cache/
+config/agent_memory.json

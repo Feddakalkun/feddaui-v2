@@ -8,6 +8,7 @@ import os
 import json
 import ast
 import base64
+import hashlib
 import subprocess
 import sys
 import sqlite3
@@ -633,6 +634,40 @@ async def prompt_library_list(q: str = "", limit: int = 200, offset: int = 0):
                 or needle in str(r.get("prefix", "")).lower()]
     return {"success": True, "total": len(rows), "built": data.get("generated_at"),
             "source": data.get("source"), "prompts": rows[offset:offset + limit]}
+
+
+THUMB_CACHE = CONFIG_DIR / "thumb_cache"
+
+
+@app.get("/api/prompt-library/thumb")
+async def prompt_library_thumb(path: str, width: int = 360):
+    """A small cached JPEG for one library image.
+
+    ComfyUI's `preview=webp` re-encodes but does not resize: the first image
+    measured 8.5 MB as PNG and 260 kB as webp, still 3840x2560. A grid of 120 of
+    those decodes to gigabytes of bitmap. These are 360px wide and cached on
+    disk, so the grid is browsable and the second visit is free.
+    """
+    from PIL import Image
+
+    src = _resolve_under(OUTPUT_DIR, path)
+    if not src or not Path(src).is_file():
+        raise HTTPException(status_code=404, detail="no such image")
+    src = Path(src)
+    stamp = f"{src.stat().st_mtime_ns}-{width}"
+    name = hashlib.sha1(f"{path}|{stamp}".encode("utf-8")).hexdigest()[:20] + ".jpg"
+    cached = THUMB_CACHE / name
+    if not cached.exists():
+        try:
+            THUMB_CACHE.mkdir(parents=True, exist_ok=True)
+            im = Image.open(src)
+            im = im.convert("RGB")
+            im.thumbnail((width, width * 2), Image.LANCZOS)
+            im.save(cached, "JPEG", quality=82, optimize=True)
+        except Exception as exc:  # noqa: BLE001
+            raise HTTPException(status_code=500, detail=f"thumbnail failed: {exc}")
+    return FileResponse(cached, media_type="image/jpeg",
+                        headers={"Cache-Control": "public, max-age=604800"})
 
 
 @app.post("/api/prompt-library/rebuild")

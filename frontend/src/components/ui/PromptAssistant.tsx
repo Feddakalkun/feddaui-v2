@@ -15,7 +15,8 @@
 
 import { useRef, useState, useCallback } from 'react';
 import type { DragEvent, ClipboardEvent } from 'react';
-import { Wand2, Loader2, ImageIcon, X } from 'lucide-react';
+import { Wand2, Loader2, ImageIcon, X, Library } from 'lucide-react';
+import { PromptLibraryPicker } from './PromptLibraryPicker';
 import { BACKEND_API } from '../../config/api';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -147,6 +148,7 @@ export const PromptAssistant = ({
   const [mode, setMode] = useState<'enhance' | 'caption' | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [captionModel, setCaptionModel] = useState<string | null>(null);
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const captionInputRef = useRef<HTMLInputElement | null>(null);
   const dragDepthRef = useRef(0);
@@ -294,6 +296,11 @@ export const PromptAssistant = ({
             placeholder-white/15 resize-none outline-none transition-all
             ${ACCENT_FOCUS[accent]} ${isLoading ? 'opacity-70' : ''} ${ringClass}`}
         />
+        <PromptLibraryPicker
+          open={libraryOpen}
+          onClose={() => setLibraryOpen(false)}
+          onPick={(positive) => onChange(positive)}
+        />
         {/* Floating AI buttons top-right of textarea */}
         <div className="absolute top-2 right-2 flex items-center gap-1">
           {isLoading ? (
@@ -304,6 +311,10 @@ export const PromptAssistant = ({
             </button>
           ) : (
             <>
+              <button onClick={() => setLibraryOpen(true)} title="Reuse a prompt that already worked"
+                className={`p-1 rounded-lg bg-black/60 border border-white/10 text-white/25 transition-all ${ACCENT_BTN[accent]}`}>
+                <Library className="w-3 h-3" />
+              </button>
               <button onClick={() => runStream('enhance')} title="Enhance with AI"
                 className={`p-1 rounded-lg bg-black/60 border border-white/10 text-white/25 transition-all ${ACCENT_BTN[accent]}`}>
                 <Wand2 className="w-3 h-3" />
@@ -333,6 +344,11 @@ export const PromptAssistant = ({
   // ── Full mode ───────────────────────────────────────────────────────────────
   return (
     <div className="space-y-2">
+      <PromptLibraryPicker
+        open={libraryOpen}
+        onClose={() => setLibraryOpen(false)}
+        onPick={(positive) => onChange(positive)}
+      />
       {/* Label row */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -387,6 +403,17 @@ export const PromptAssistant = ({
                   Dropping or pasting an image onto the textarea still captions
                   it - that behaviour is kept, it just no longer needs a button
                   advertising it. */}
+              {/* One button, for the one job nothing else here does: reuse a
+                  prompt that already produced something. The agent beside this
+                  box writes new ones; it cannot hand you an old one back. */}
+              <button
+                type="button"
+                onClick={() => setLibraryOpen(true)}
+                title="Reuse a prompt that already worked"
+                className="px-2 py-0.5 rounded-lg bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-white/70 transition-colors flex items-center gap-1"
+              >
+                <Library className="w-3 h-3" /> Library
+              </button>
               {/* Char count */}
               <span className="text-white/10 font-mono text-[10px] ml-1">{value.length}</span>
             </>

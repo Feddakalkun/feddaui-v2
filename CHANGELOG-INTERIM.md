@@ -1419,3 +1419,45 @@ distinct entries; **25 memories** across four kinds.
 **Cost noted:** the store is now ~1 MB for 25 memories, because a 768-float
 vector is far larger than the sentence it describes. At a few hundred memories
 that is still fine; past that the vectors want their own file.
+
+## 2026-08-11 — the prompt library gets a surface
+
+**Changed:** new `PromptLibraryPicker.tsx` and a Library button in
+`PromptAssistant`; new `GET /api/prompt-library/thumb`; `.gitignore` for the
+thumbnail cache and the memory store.
+
+**Where it lives:** on the prompt box, because that is where a prompt is wanted.
+`PromptAssistant` is shared by a dozen pages, so one button reaches all of them.
+The full variant of that component deliberately has **no** buttons — a previous
+pass removed Enhance and "Prompt from image" with the note that "three buttons
+for one job is what made this section unreadable" — so this adds exactly one, for
+the one job nothing else there does: hand back a prompt that already worked. The
+agent beside the box writes new ones; it cannot return an old one.
+
+**Shown as thumbnails, not sentences,** because what anyone remembers about a
+prompt is the picture it made. Each card carries the prompt, the model, and a
+`×N` badge for how many times it was run — picking one fills both the positive
+and the negative it originally ran with.
+
+**The thumbnails needed a backend endpoint, and finding out why took two goes.**
+The grid showed 120 cards and not one image. First guess: the originals are
+full-resolution — the first measured **8.5 MB**, so 120 of them is a gigabyte.
+Switching to ComfyUI's `preview=webp;70` brought that to 260 kB and still nothing
+appeared. Forcing one to load eagerly showed why: `preview` re-encodes but does
+**not resize**, so each was still **3840x2560** — a gigabyte of decoded bitmap
+rather than a gigabyte of transfer.
+
+`/api/prompt-library/thumb` now writes a 360px JPEG and caches it on disk:
+**18 kB**, 0.27s cold, instant warm, and path traversal is refused
+(`../../config/runtime_settings.json` → 400).
+
+**One measurement artefact worth recording:** with the browser pane hidden, the
+page does not composite, so `loading="lazy"` images never enter a viewport and
+never load. `loaded: 0` looked like a bug and was not. An eager `new Image()`
+probe is what told the two apart.
+
+**Verified:** picker opens from the prompt box, 120 cards, `×8`/`×7`/`×4` badges
+present, footer reporting the build time; thumbnail endpoint measured cold and
+warm; traversal blocked. `npx vite build` clean.
+
+**Not verified:** no prompt has been picked and generated from through the UI.
