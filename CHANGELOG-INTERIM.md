@@ -821,3 +821,35 @@ appears in `LoadAudio`'s options. `npx vite build` clean.
 **Not verified:** nothing was generated through the Voice Studio UI, and no
 lipsync run has actually consumed one of these files. The chain is proven up to
 the point where ComfyUI can see the audio.
+
+## 2026-08-11 — Venice voice on the pages that consume audio, not just Voice Studio
+
+**Changed:** `LipsyncPage.tsx` and `ltx/LtxAi2vPage.tsx`.
+
+**Why:** the user opened Lipsync and asked, reasonably, why Venice was not in the
+voice panel there. It was not, because I had added it to Voice Studio only.
+
+**The underlying problem, which is the more useful finding:** the TTS engine list
+is written out separately on **four** pages — `ZonosTTSPage`, `LipsyncPage`,
+`LtxAi2vPage` and `GrokPage`. Each has its own engine state, its own picker and
+its own call to `/api/chat/tts`. So adding an engine means editing four files,
+and missing one is the default outcome rather than an accident. It is the same
+shape as the workflow defects this project keeps finding: the capability exists,
+and one of the places that should offer it does not.
+
+**Done here:** Lipsync and LTX Audio-to-Video now offer Venice beside Edge and
+Chatterbox, with model and voice from the live catalogue. Both skip a step the
+local engines need — Venice writes its wav into ComfyUI's input directory itself,
+so there is no base64 → File → upload round trip; the returned filename goes
+straight into the audio slot.
+
+**Left undone, deliberately:** `GrokPage` still has only the two local engines. It
+is a chat page rather than one of the three workflows that need an audio file, so
+it was not worth a fourth copy of the same block in the same sitting. Named here
+so it is a known gap rather than an oversight.
+
+**Worth doing at some point:** one shared voice-picker component. Four copies is
+what made this happen, and the next engine will hit it again.
+
+**Verified:** `npx vite build` clean. Not verified in the browser — neither page
+was driven by hand, and no lipsync run has consumed a Venice clip yet.

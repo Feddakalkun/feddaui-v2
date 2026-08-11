@@ -64,7 +64,12 @@ export const LtxAi2vPage = () => {
   // In-page text-to-speech for the audio slot (Edge = fast, Chatterbox = natural GPU voice)
   const [ttsText, setTtsText] = usePersistentState('ltx_ai2v_tts_text', '');
   const [ttsVoice, setTtsVoice] = usePersistentState('ltx_ai2v_tts_voice', 'en-US-AvaNeural');
-  const [ttsEngine, setTtsEngine] = usePersistentState<'edge' | 'chatterbox'>('ltx_ai2v_tts_engine', 'edge');
+  const [ttsEngine, setTtsEngine] = usePersistentState<'edge' | 'chatterbox' | 'venice'>('ltx_ai2v_tts_engine', 'edge');
+  // Venice writes its wav into ComfyUI's input directory itself, so this branch
+  // skips the base64 -> File -> upload dance the local engines need.
+  const [vnModels, setVnModels] = useState<{ id: string; voices: string[] }[]>([]);
+  const [vnModel, setVnModel] = usePersistentState('ltx_ai2v_venice_model', 'tts-kokoro');
+  const [vnVoice, setVnVoice] = usePersistentState('ltx_ai2v_venice_voice', 'af_sky');
   const [ttsCbVoice, setTtsCbVoice] = usePersistentState('ltx_ai2v_tts_cb_voice', '');
   const [ttsGenerating, setTtsGenerating] = useState(false);
   // Lipsync has had these since it was written; this page never got them,
@@ -144,12 +149,48 @@ export const LtxAi2vPage = () => {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (ttsEngine !== 'venice' || vnModels.length) return;
+    fetch(`${BACKEND_API.BASE_URL}/api/venice/models?type=tts`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.success === false) return;
+        const rows = (d?.data || [])
+          .map((m: any) => ({ id: String(m.id), voices: (m?.model_spec?.voices || []).map(String) }))
+          .filter((m: any) => m.voices.length);
+        if (!rows.length) return;
+        setVnModels(rows);
+        const current = rows.find((m: any) => m.id === vnModel) || rows[0];
+        setVnModel(current.id);
+        if (!current.voices.includes(vnVoice)) setVnVoice(current.voices[0]);
+      })
+      .catch(() => {});
+  }, [ttsEngine]);
+
   /** Generates the TTS clip and loads it into the audio slot; returns the uploaded filename. */
   const generateVoiceClip = async (): Promise<string | null> => {
     if (!ttsText.trim() || ttsGenerating) return null;
     let uploadedName: string | null = null;
     setTtsGenerating(true);
     try {
+      if (ttsEngine === 'venice') {
+        const vr = await fetch(`${BACKEND_API.BASE_URL}/api/venice/speech`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: ttsText.trim(), model: vnModel, voice: vnVoice,
+            speed: ttsRate || 1.0, format: 'wav',
+          }),
+        });
+        const vd = await vr.json();
+        if (!vr.ok || vd?.success === false) {
+          throw new Error(vd?.detail || vd?.error || 'Venice speech failed');
+        }
+        uploadedName = vd.filename;
+        setAudioFilename(vd.filename);
+        toast(`Voice clip generated (${vd.voice})`, 'success');
+        return uploadedName;
+      }
       const res = await fetch(`${BACKEND_API.BASE_URL}/api/chat/tts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -331,12 +372,39 @@ export const LtxAi2vPage = () => {
               <div className="flex gap-2">
                 <select
                   value={ttsEngine}
-                  onChange={(e) => setTtsEngine(e.target.value as 'edge' | 'chatterbox')}
+                  onChange={(e) => setTtsEngine(e.target.value as 'edge' | 'chatterbox' | 'venice')}
                   className={cn(inputBase, 'w-[130px] text-[11px]')}
                 >
                   <option value="edge">Edge (fast)</option>
                   <option value="chatterbox">Chatterbox (natural)</option>
+                  <option value="venice">Venice (cloud)</option>
                 </select>
+                {ttsEngine === 'venice' && (
+                  <>
+                    <select
+                      value={vnModel}
+                      onChange={(e) => {
+                        setVnModel(e.target.value);
+                        const m = vnModels.find((x) => x.id === e.target.value);
+                        if (m && !m.voices.includes(vnVoice)) setVnVoice(m.voices[0]);
+                      }}
+                      className={cn(inputBase, 'w-[150px] text-[11px]')}
+                    >
+                      {(vnModels.length ? vnModels : [{ id: vnModel, voices: [] }]).map((m) => (
+                        <option key={m.id} value={m.id}>{m.id}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={vnVoice}
+                      onChange={(e) => setVnVoice(e.target.value)}
+                      className={cn(inputBase, 'w-[130px] text-[11px]')}
+                    >
+                      {(vnModels.find((m) => m.id === vnModel)?.voices || [vnVoice]).map((v) => (
+                        <option key={v} value={v}>{v}</option>
+                      ))}
+                    </select>
+                  </>
+                )}
                 {ttsEngine === 'chatterbox' ? (
                   <select
                     value={ttsCbVoice}

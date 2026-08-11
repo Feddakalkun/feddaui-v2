@@ -63,7 +63,14 @@ export const LipsyncPage = () => {
   const [audioMode, setAudioMode] = usePersistentState<'tts' | 'upload'>('lipsync_audio_mode', 'tts');
   const [ttsText, setTtsText] = usePersistentState('lipsync_tts_text', '');
   const [ttsBusy, setTtsBusy] = useState(false);
-  const [ttsEngine, setTtsEngine] = usePersistentState<'edge' | 'chatterbox'>('lipsync_tts_engine', 'edge');
+  const [ttsEngine, setTtsEngine] = usePersistentState<'edge' | 'chatterbox' | 'venice'>('lipsync_tts_engine', 'edge');
+  // Venice writes its wav straight into ComfyUI's input directory, which is
+  // exactly what this page needs - so unlike the local engines there is no blob
+  // to fetch and re-upload afterwards.
+  const [vnModels, setVnModels] = useState<{ id: string; voices: string[] }[]>([]);
+  const [vnModel, setVnModel] = usePersistentState('lipsync_venice_model', 'tts-kokoro');
+  const [vnVoice, setVnVoice] = usePersistentState('lipsync_venice_voice', 'af_sky');
+  const [vnStyle, setVnStyle] = usePersistentState('lipsync_venice_style', '');
   const [edgeVoice, setEdgeVoice] = usePersistentState('lipsync_edge_voice', '');
   const [edgeRate, setEdgeRate] = usePersistentState('lipsync_edge_rate', 1.0);
   const [edgePitch, setEdgePitch] = usePersistentState('lipsync_edge_pitch', 0);
@@ -152,12 +159,48 @@ export const LipsyncPage = () => {
     finally { setBusy(false); }
   };
 
+  useEffect(() => {
+    if (ttsEngine !== 'venice' || vnModels.length) return;
+    fetch('/api/venice/models?type=tts')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.success === false) return;
+        const rows = (d?.data || [])
+          .map((m: any) => ({ id: String(m.id), voices: (m?.model_spec?.voices || []).map(String) }))
+          .filter((m: any) => m.voices.length);
+        if (!rows.length) return;
+        setVnModels(rows);
+        const current = rows.find((m: any) => m.id === vnModel) || rows[0];
+        setVnModel(current.id);
+        if (!current.voices.includes(vnVoice)) setVnVoice(current.voices[0]);
+      })
+      .catch(() => {});
+  }, [ttsEngine]);
+
   // Text-to-speech -> stage the resulting audio as the lipsync input
   const generateVoice = async () => {
     if (!ttsText.trim() || ttsBusy) return;
     if (ttsEngine === 'chatterbox' && !cbVoice) { toast('Pick a cloned voice first (or save one)', 'error'); return; }
     setTtsBusy(true);
     try {
+      if (ttsEngine === 'venice') {
+        const vr = await fetch('/api/venice/speech', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: ttsText.trim(), model: vnModel, voice: vnVoice,
+            style: vnStyle.trim(), speed: edgeRate || 1.0, format: 'wav',
+          }),
+        });
+        const vd = await vr.json();
+        if (!vr.ok || vd?.success === false) {
+          throw new Error(vd?.detail || vd?.error || 'Venice speech failed');
+        }
+        // Already in ComfyUI's input directory - staging it is just naming it.
+        setAudioFile(vd.filename);
+        toast(`Voice generated (${vd.voice})`, 'success');
+        return;
+      }
       const r = await fetch('/api/chat/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -287,8 +330,43 @@ export const LipsyncPage = () => {
           >
             {audioMode === 'tts' ? (
               <div className="space-y-2">
-                <ChipGroup options={['edge', 'chatterbox'] as const} value={ttsEngine} onChange={setTtsEngine}
-                  renderLabel={(e) => (e === 'edge' ? 'Edge (fast, many voices)' : 'Chatterbox (voice cloning)')} />
+                <ChipGroup options={['edge', 'chatterbox', 'venice'] as const} value={ttsEngine} onChange={setTtsEngine}
+                  renderLabel={(e) => (e === 'edge'
+                    ? 'Edge (fast, many voices)'
+                    : e === 'chatterbox'
+                      ? 'Chatterbox (voice cloning)'
+                      : 'Venice (cloud, costs credit)')} />
+
+                {ttsEngine === 'venice' && (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <select
+                        value={vnModel}
+                        onChange={(e) => {
+                          setVnModel(e.target.value);
+                          const m = vnModels.find((x) => x.id === e.target.value);
+                          if (m && !m.voices.includes(vnVoice)) setVnVoice(m.voices[0]);
+                        }}
+                        className={selectCls}
+                      >
+                        {(vnModels.length ? vnModels : [{ id: vnModel, voices: [] }]).map((m) => (
+                          <option key={m.id} value={m.id}>{m.id}</option>
+                        ))}
+                      </select>
+                      <select value={vnVoice} onChange={(e) => setVnVoice(e.target.value)} className={selectCls}>
+                        {(vnModels.find((m) => m.id === vnModel)?.voices || [vnVoice]).map((v) => (
+                          <option key={v} value={v}>{v}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <input
+                      value={vnStyle}
+                      onChange={(e) => setVnStyle(e.target.value)}
+                      placeholder="Delivery, optional - whispering, urgent, warm and slow..."
+                      className={selectCls}
+                    />
+                  </>
+                )}
 
                 {ttsEngine === 'edge' ? (
                   <>
