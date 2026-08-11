@@ -202,9 +202,13 @@ def image_styles(key: str) -> Dict[str, Any]:
 
 
 # Kokoro is the cheapest of the eleven TTS models and carries 54 voices, more
-# than the rest combined. `af_sky` is Venice's own default.
+# than the rest combined - which matters for something a lot of people will run.
+#
+# bf_lily was picked by ear, not from the name: nine candidates read the same
+# line and the user chose this one. It is a British female voice (kokoro's `bf_`
+# prefix), so anything that assumes an American accent by default is now wrong.
 TTS_DEFAULT_MODEL = "tts-kokoro"
-TTS_DEFAULT_VOICE = "af_sky"
+TTS_DEFAULT_VOICE = "bf_lily"
 
 
 def speech(key: str, text: str, voice: str = "", model: str = "",

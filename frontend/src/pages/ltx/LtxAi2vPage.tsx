@@ -69,7 +69,7 @@ export const LtxAi2vPage = () => {
   // skips the base64 -> File -> upload dance the local engines need.
   const [vnModels, setVnModels] = useState<{ id: string; voices: string[] }[]>([]);
   const [vnModel, setVnModel] = usePersistentState('ltx_ai2v_venice_model', 'tts-kokoro');
-  const [vnVoice, setVnVoice] = usePersistentState('ltx_ai2v_venice_voice', 'af_sky');
+  const [vnVoice, setVnVoice] = usePersistentState('ltx_ai2v_venice_voice_v2', 'bf_lily');
   const [ttsCbVoice, setTtsCbVoice] = usePersistentState('ltx_ai2v_tts_cb_voice', '');
   const [ttsGenerating, setTtsGenerating] = useState(false);
   // Lipsync has had these since it was written; this page never got them,

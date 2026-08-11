@@ -20,7 +20,7 @@ export function ZonosTTSPage() {
   // costs credit per call, and the app has to work with no key at all.
   const [veniceModels, setVeniceModels] = useState<{ id: string; voices: string[] }[]>([]);
   const [veniceModel, setVeniceModel] = useState('tts-kokoro');
-  const [veniceVoice, setVeniceVoice] = useState('af_sky');
+  const [veniceVoice, setVeniceVoice] = useState('bf_lily');
   const [veniceStyle, setVeniceStyle] = useState('');
   // The file lands in ComfyUI's input directory, which is where lipsync and
   // ltx-ai2v read their audio from. Showing the name is what makes it usable

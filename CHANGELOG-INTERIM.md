@@ -881,3 +881,30 @@ read the model's own list.
 **Voice samples generated** for the "sweet young female" question rather than
 guessing from names: nine candidates saying the same line, in the scratchpad, sent
 to the user to choose by ear. No default changed yet.
+
+## 2026-08-11 — default Venice voice: tts-kokoro / bf_lily
+
+**Changed:** `venice_service.TTS_DEFAULT_VOICE`, and the initial voice on all
+three pages that offer Venice speech.
+
+**How it was chosen:** the user asked for a sweet young female voice. Rather than
+reading names, nine candidates read the same line — six kokoro voices, plus
+`LivelyGirl` (minimax) and `Pixie`/`Luna` (inworld), the only models whose voice
+names point at a young woman — and the user picked by ear.
+
+**Note for anyone assuming otherwise:** `bf_lily` is kokoro's *British* female
+prefix. Copy that says "American voice" or any test expecting a US accent is now
+wrong.
+
+**The persisted keys were bumped** (`lipsync_venice_voice` →
+`..._v2`, same for ltx_ai2v). The stored `af_sky` was this morning's placeholder
+rather than anyone's choice, so leaving it would have meant selecting Lily by
+hand on every page already opened. A key bump discards a real preference, so it
+is worth doing only while the feature is hours old — which it is.
+
+**Verified:** `/api/venice/speech` with no voice given returns
+`voice: bf_lily, model: tts-kokoro`, 132 KB of wav. `npx vite build` clean.
+
+**Also learned:** `tts-inworld-1-5-max` rejects mp3 but accepts wav. Output
+formats are per-model. The app sends wav everywhere so nothing hits it, but a
+format picker would have to read each model's own list.

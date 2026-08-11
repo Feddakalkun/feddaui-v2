@@ -69,7 +69,7 @@ export const LipsyncPage = () => {
   // to fetch and re-upload afterwards.
   const [vnModels, setVnModels] = useState<{ id: string; voices: string[] }[]>([]);
   const [vnModel, setVnModel] = usePersistentState('lipsync_venice_model', 'tts-kokoro');
-  const [vnVoice, setVnVoice] = usePersistentState('lipsync_venice_voice', 'af_sky');
+  const [vnVoice, setVnVoice] = usePersistentState('lipsync_venice_voice_v2', 'bf_lily');
   const [vnStyle, setVnStyle] = usePersistentState('lipsync_venice_style', '');
   const [edgeVoice, setEdgeVoice] = usePersistentState('lipsync_edge_voice', '');
   const [edgeRate, setEdgeRate] = usePersistentState('lipsync_edge_rate', 1.0);
