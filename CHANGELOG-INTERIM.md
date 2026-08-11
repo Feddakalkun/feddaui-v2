@@ -513,3 +513,47 @@ URL, in `update_code.ps1`, `runpod_boot.sh` and the installer.
 **Not investigated:** whether those 192 pre-reset commits hold work that never
 made it across the reset. The folder also has two untracked files
 (`backend/run_zimage_task.py`, `backend/server_backup.py`). Left alone.
+
+## 2026-08-11 — model weights: where they come from and what they are licensed under
+
+**Changed:** nothing. This is a findings entry; the user asked for the licensing
+question to be settled.
+
+**How the weights reach a user:** every graph carries `HuggingFaceDownloader`
+nodes with `auto_download: true`. Roughly 100 distinct URLs across the workflow
+set, all HuggingFace except one GitHub release (GFPGAN). Nothing is bundled —
+each install pulls from the original host, so bandwidth is HuggingFace's, not
+feddakalkun.com's.
+
+**Finding 1 — the base of the flagship family is non-commercial.**
+`black-forest-labs/FLUX.2-klein-9b-fp8` is released under the **FLUX
+Non-Commercial License**. Its 4B sibling is Apache 2.0; the 9B is not. That 9B is
+the base for `flux2klein-uncensored-txt2img` (the page the user actually
+generates with), `klein-inpaint`, `flux-headswap` and the new
+`klein-9b-faceswap`. Relevant because a paid installer and subscriber updates are
+planned. Not a lawyer, and not a judgement about what is permitted — a fact to
+put in front of someone qualified before money is taken.
+
+**Finding 2 — that repo is gated, which is an install-path problem too.**
+Access requires accepting the licence agreement on HuggingFace. A new user's
+auto-download therefore fails without both an accepted agreement and a token.
+This machine works because `config/runtime_settings.json` holds an `hf_token`.
+Worth checking whether the downloader surfaces a 401/403 as "accept the licence
+here" or as a silent failure — the latter is the same shape as every other defect
+in this project.
+
+**Finding 3 — the re-hosted models declare nothing.**
+`comfyuistudio/nsfwKLein` has no licence, no model card and no stated base model.
+The same account hosts `orins` (the explicit WAN LoRAs), `wan22nsfw`,
+`realism-sdxl` and `wan2.1_loras/SECRET_SAUCE_WAN2.1_14B_fp8`. These are the only
+weights the project redistributes rather than links to, so they are the ones
+whose provenance is the project's own responsibility.
+
+**Finding 4 — credentials are clean.** `config/runtime_settings.json` holds an
+`hf_token` and a `civitai_api_key`. It is gitignored, has never been committed,
+and `git log --all -S"hf_"` over `config/` returns nothing. Nothing leaked into
+the public history.
+
+**Not established:** whether the FLUX licence permits the derivative finetune,
+the redistribution of it, or commercial distribution of an app that fetches it.
+That is a question for a lawyer, not for me, and I have not tried to answer it.
