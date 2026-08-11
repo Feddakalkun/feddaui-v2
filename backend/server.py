@@ -524,6 +524,48 @@ async def venice_image(body: Dict[str, Any]):
     return _venice(venice_service.image_generate, _venice_key(), body)
 
 
+class VeniceSpeechRequest(BaseModel):
+    text: str
+    voice: str = ""
+    model: str = ""
+    format: str = "wav"
+    speed: float = 1.0
+    style: str = ""                       # emotion / delivery hint
+
+
+@app.post("/api/venice/speech")
+async def venice_speech(req: VeniceSpeechRequest):
+    """Generate speech and leave it where ComfyUI will find it.
+
+    `lipsync-infinitetalk`, `lipsync-multitalk` and `ltx-ai2v` all take an audio
+    input that is a filename in ComfyUI's input directory - which meant the user
+    had to produce a file somewhere else and put it there by hand before any of
+    those three could run at all. Writing it straight into that directory is the
+    whole point of wiring this endpoint rather than just returning bytes.
+    """
+    import uuid as _uuid
+
+    try:
+        audio, model, voice = venice_service.speech(
+            _venice_key(), req.text, req.voice, req.model,
+            req.format, req.speed, req.style)
+    except venice_service.VeniceError as exc:
+        return JSONResponse(status_code=200, content=exc.as_dict())
+
+    ext = (req.format or "wav").lower()
+    name = f"fedda_tts_{_uuid.uuid4().hex[:12]}.{ext}"
+    try:
+        target = _comfy_input_dir() / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(audio)
+    except OSError as exc:
+        raise HTTPException(status_code=500,
+                            detail=f"Speech generated but could not be saved: {exc}")
+
+    return {"success": True, "filename": name, "bytes": len(audio),
+            "model": model, "voice": voice, "format": ext}
+
+
 @app.get("/api/workflow-memory/{workflow_id}")
 async def get_workflow_memory(workflow_id: str, limit: int = 12):
     """Return recent local memory entries for one FEDDA workflow."""

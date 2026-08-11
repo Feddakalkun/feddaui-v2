@@ -782,3 +782,42 @@ Deliberately left alone: `/x402/*` and `/crypto/*` (wallet top-ups and JSON-RPC
 proxying — nothing here needs them), `/api_keys` mutations (creating and deleting
 keys from inside the app is a capability worth not having), and `/responses`,
 which the spec marks Alpha.
+
+## 2026-08-11 — Venice audio: speech that lands where the workflows read it
+
+**Changed:** `venice_service.speech()`, `POST /api/venice/speech`, and Venice as
+a third engine in `ZonosTTSPage.tsx` (Voice Studio).
+
+**Why audio first, of the untouched families:** it is the only one that gives the
+app something it has no local equivalent for in the place it is needed.
+`lipsync-infinitetalk`, `lipsync-multitalk` and `ltx-ai2v` all take an audio
+input that is *a filename in ComfyUI's input directory* — so until now the user
+had to produce a file elsewhere and put it there by hand before any of the three
+could run.
+
+**So the endpoint writes the file there.** That is the point of it: it returns
+the filename, and the workflow can use it immediately. Verified — ComfyUI's
+`LoadAudio` lists `fedda_tts_dfd3b1f2e81c.wav` in its options after the call.
+
+**Findings from the spec worth recording:**
+- `/audio/voices` is **not** a voice list — it is a POST that uploads a sample
+  for voice cloning. The voices live in each model's `model_spec.voices`, from
+  `/models?type=tts`. 11 TTS models; kokoro alone carries 54 voices, more than
+  the rest combined, which is why it is the default.
+- `wav` is available on both sides. It is the default here because ComfyUI's
+  `LoadAudio` is least likely to need a decoder the install may not have.
+
+**In the UI:** Venice is a third engine beside Edge and Chatterbox, not a
+replacement — same principle as vision. Model and voice pickers are filled from
+the live catalogue, there is an optional delivery/emotion prompt, and after
+generating, the page names the file and says where to use it. Playback is served
+straight out of ComfyUI's input directory, so what you hear is byte for byte what
+a workflow would load.
+
+**Verified:** generated 294 KB of wav through the running backend with
+`tts-kokoro` / `af_bella`; the file exists in ComfyUI's input directory and
+appears in `LoadAudio`'s options. `npx vite build` clean.
+
+**Not verified:** nothing was generated through the Voice Studio UI, and no
+lipsync run has actually consumed one of these files. The chain is proven up to
+the point where ComfyUI can see the audio.

@@ -5,7 +5,7 @@ import { Volume2, Upload, Play, Download, Loader2, Clapperboard } from 'lucide-r
 import { saveAudioToGallery } from '../utils/mediaStore';
 import { setHandoff, navigateToTab } from '../utils/workflowHandoff';
 
-type TtsEngine = 'edge' | 'chatterbox';
+type TtsEngine = 'edge' | 'chatterbox' | 'venice';
 
 interface EdgeVoice {
   id: string;
@@ -16,6 +16,16 @@ interface EdgeVoice {
 export function ZonosTTSPage() {
   const { toast } = useToast();
   const [engine, setEngine] = useState<TtsEngine>('edge');
+  // Venice sits alongside the two local engines rather than replacing them: it
+  // costs credit per call, and the app has to work with no key at all.
+  const [veniceModels, setVeniceModels] = useState<{ id: string; voices: string[] }[]>([]);
+  const [veniceModel, setVeniceModel] = useState('tts-kokoro');
+  const [veniceVoice, setVeniceVoice] = useState('af_sky');
+  const [veniceStyle, setVeniceStyle] = useState('');
+  // The file lands in ComfyUI's input directory, which is where lipsync and
+  // ltx-ai2v read their audio from. Showing the name is what makes it usable
+  // there - otherwise the user has produced a file they cannot point at.
+  const [veniceFilename, setVeniceFilename] = useState('');
   const [text, setText] = useState('Hey! Okay so I have to tell you about this — it turned out so much better than I expected.');
   const [edgeVoices, setEdgeVoices] = useState<EdgeVoice[]>([]);
   const [edgeVoice, setEdgeVoice] = useState('en-US-AvaNeural');
@@ -72,6 +82,51 @@ export function ZonosTTSPage() {
     }
   };
 
+  useEffect(() => {
+    if (engine !== 'venice' || veniceModels.length) return;
+    fetch('/api/venice/models?type=tts')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.success === false) return;
+        const rows = (d?.data || []).map((m: any) => ({
+          id: String(m.id),
+          voices: (m?.model_spec?.voices || []).map(String),
+        })).filter((m: any) => m.voices.length);
+        if (!rows.length) return;
+        setVeniceModels(rows);
+        const current = rows.find((m: any) => m.id === veniceModel) || rows[0];
+        setVeniceModel(current.id);
+        if (!current.voices.includes(veniceVoice)) setVeniceVoice(current.voices[0]);
+      })
+      .catch(() => {});
+  }, [engine]);
+
+  const generateVenice = async () => {
+    const res = await fetch('/api/venice/speech', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: text.trim(),
+        model: veniceModel,
+        voice: veniceVoice,
+        style: veniceStyle.trim(),
+        speed: speakingRate || 1.0,
+        format: 'wav',
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok || data?.success === false) {
+      throw new Error(data?.detail || data?.error || 'Venice speech failed');
+    }
+    setVeniceFilename(data.filename);
+    // Served straight out of ComfyUI's input directory, so what plays here is
+    // byte for byte what a workflow would load.
+    const url = `/comfy/view?filename=${encodeURIComponent(data.filename)}&type=input`;
+    setAudioUrl(url);
+    saveAudioToGallery(url, `venice/${data.model}`);
+    toast(`Saved as ${data.filename} - pick it as the audio input in Lipsync`, 'success');
+  };
+
   const generate = async () => {
     if (!text.trim()) {
       toast('Text is required', 'error');
@@ -80,8 +135,13 @@ export function ZonosTTSPage() {
     setIsGenerating(true);
     setAudioUrl('');
     setAudioBase64('');
+    setVeniceFilename('');
 
     try {
+      if (engine === 'venice') {
+        await generateVenice();
+        return;
+      }
       const res = await fetch('/api/chat/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -185,7 +245,66 @@ export function ZonosTTSPage() {
                 Chatterbox
                 <span className="block text-[9px] uppercase tracking-wider opacity-60">natural · voice clone · GPU</span>
               </button>
+              <button
+                type="button"
+                onClick={() => setEngine('venice')}
+                className={`flex-1 rounded-xl border px-3 py-2.5 text-sm transition-all ${
+                  engine === 'venice'
+                    ? 'border-sky-500/40 bg-sky-500/15 text-sky-200'
+                    : 'border-white/10 bg-white/5 text-white/50 hover:bg-white/10'
+                }`}
+              >
+                Venice
+                <span className="block text-[9px] uppercase tracking-wider opacity-60">cloud · 11 models · costs credit</span>
+              </button>
             </div>
+            {engine === 'venice' && (
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <label className="text-[11px] text-white/50">
+                  Model
+                  <select
+                    value={veniceModel}
+                    onChange={(e) => {
+                      setVeniceModel(e.target.value);
+                      const m = veniceModels.find((x) => x.id === e.target.value);
+                      if (m && !m.voices.includes(veniceVoice)) setVeniceVoice(m.voices[0]);
+                    }}
+                    className="mt-1 w-full rounded-xl fedda-input p-2.5 text-sm"
+                  >
+                    {(veniceModels.length ? veniceModels : [{ id: veniceModel, voices: [] }]).map((m) => (
+                      <option key={m.id} value={m.id}>{m.id}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-[11px] text-white/50">
+                  Voice
+                  <select
+                    value={veniceVoice}
+                    onChange={(e) => setVeniceVoice(e.target.value)}
+                    className="mt-1 w-full rounded-xl fedda-input p-2.5 text-sm"
+                  >
+                    {(veniceModels.find((m) => m.id === veniceModel)?.voices || [veniceVoice]).map((v) => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-[11px] text-white/50 sm:col-span-2">
+                  Delivery (optional)
+                  <input
+                    value={veniceStyle}
+                    onChange={(e) => setVeniceStyle(e.target.value)}
+                    placeholder="whispering, urgent, warm and slow..."
+                    className="mt-1 w-full rounded-xl fedda-input p-2.5 text-sm"
+                  />
+                </label>
+                {veniceFilename && (
+                  <p className="sm:col-span-2 rounded-lg border border-sky-500/25 bg-sky-500/10 px-3 py-2 text-[11px] text-sky-200">
+                    Saved to ComfyUI input as <b>{veniceFilename}</b> - select it as the audio
+                    input in Lipsync or LTX Audio-to-Video.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <div>

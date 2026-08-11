@@ -201,6 +201,51 @@ def image_styles(key: str) -> Dict[str, Any]:
     return call(key, "GET", "/image/styles")
 
 
+# Kokoro is the cheapest of the eleven TTS models and carries 54 voices, more
+# than the rest combined. `af_sky` is Venice's own default.
+TTS_DEFAULT_MODEL = "tts-kokoro"
+TTS_DEFAULT_VOICE = "af_sky"
+
+
+def speech(key: str, text: str, voice: str = "", model: str = "",
+           fmt: str = "wav", speed: float = 1.0, style: str = "") -> Tuple[bytes, str, str]:
+    """Text to speech. Returns (audio bytes, model used, voice used).
+
+    Answers audio rather than JSON, so it cannot go through `call`.
+
+    wav by default: the lipsync and audio-to-video graphs feed this to ComfyUI's
+    LoadAudio, and wav is the format least likely to need a decoder that install
+    may or may not have.
+    """
+    if not (key or "").strip():
+        raise VeniceError("no_key", "No Venice API key is set. Add one in the top bar.")
+    if not (text or "").strip():
+        raise VeniceError("failed", "Nothing to say - the text is empty.")
+    used_model = (model or "").strip() or TTS_DEFAULT_MODEL
+    used_voice = (voice or "").strip() or TTS_DEFAULT_VOICE
+    payload: Dict[str, Any] = {
+        "input": text,
+        "model": used_model,
+        "voice": used_voice,
+        "response_format": fmt,
+        "speed": speed,
+    }
+    if style.strip():
+        payload["prompt"] = style.strip()
+    try:
+        resp = requests.post(f"{BASE}/audio/speech", headers=_headers(key),
+                             json=payload, timeout=TIMEOUT_SLOW)
+    except requests.exceptions.Timeout:
+        raise VeniceError("timeout", f"Venice did not answer within {TIMEOUT_SLOW}s.")
+    except requests.exceptions.RequestException as exc:
+        raise VeniceError("unreachable", f"Could not reach Venice: {exc}")
+    if not resp.ok:
+        raise _classify(resp)
+    if not resp.content:
+        raise VeniceError("empty_answer", f"{used_model} returned no audio.")
+    return resp.content, used_model, used_voice
+
+
 def balance(key: str) -> Dict[str, Any]:
     return call(key, "GET", "/billing/balance")
 
