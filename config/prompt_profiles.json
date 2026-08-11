@@ -16,7 +16,13 @@
     "",
     "Note: a captioner like joycaption largely ignores these instructions and",
     "answers in its own tag-list style. They still steer llava/qwen-vl and the",
-    "Florence path, and the agent is told to rewrite tag lists, so keep both true."
+    "Florence path, and the agent is told to rewrite tag lists, so keep both true.",
+    "",
+    "Two fields serve the conversational agent (/api/prompt-agent/turn) rather than",
+    "the caption pass: `match` lists workflow_id substrings that select this profile,",
+    "and `agent` is one line of model-specific steering written for text->prompt.",
+    "`task` and `add` are NOT reused there - they assume an image is present and say",
+    "things like 'do not invent', which is the opposite of the agent's job."
   ],
 
   "base": {
@@ -33,6 +39,8 @@
 
   "profiles": {
     "zimage": {
+      "match": ["z-image"],
+      "agent": "Z-Image is photographic. Write it as a straight photograph - concrete, physical description, no art-style vocabulary and no quality padding like 'masterpiece' or '8k'.",
       "task": "Write ONE photorealistic image-generation prompt that would recreate this exact photo, grounded ONLY in what is clearly visible. FOCUS: describe only the one or two people who are in sharp foreground focus - the clear subjects of the shot, largest and closest to the camera. If two people are in focus, describe BOTH and state each one's position (e.g. 'a woman on the left', 'a man on the right'). IGNORE every other person: anyone blurred, seated behind, in the background, passing by, or part of a crowd - do not mention them at all. For each focal subject include: apparent age and gender, face and expression, visible makeup/face paint, hair, wardrobe and materials, and pose. Then describe the setting, composition and camera framing, and the lighting direction and colour.",
       "add": "Do NOT invent facts not clearly visible (no unseen actions, locations, relationships or body posture). Do NOT mention fisheye, ultra-wide or lens distortion unless clearly visible. No meta wording like 'the image shows'.",
       "words": 110,
@@ -105,12 +113,16 @@
     },
 
     "ideogram": {
+      "match": ["ideogram"],
+      "agent": "Ideogram renders text well. If the picture should contain words, quote them exactly and describe the font, layout and design; otherwise lead with colour palette, atmosphere and visual design.",
       "task": "Describe this image as an Ideogram-style generation prompt. If it contains text, quote the text exactly and describe the font, layout and design. For scenes: describe subject, colour palette, atmosphere and visual design.",
       "words": 80,
       "single": false
     },
 
     "flux2-klein": {
+      "match": ["flux2klein", "flux-headswap", "klein-inpaint"],
+      "agent": "FLUX reads sentences, not tags. Write flowing prose - never a comma-separated keyword list, no weights, no parentheses.",
       "task": "Describe this image as a FLUX prompt: one flowing natural-language description of the finished picture. Cover the subject, wardrobe and materials, the setting, the composition and camera framing, and the direction and colour of the light.",
       "add": "Write prose, not comma-separated tags - FLUX reads sentences. No weights, no parentheses, no 'masterpiece'-style quality padding.",
       "words": 90,
@@ -118,6 +130,8 @@
     },
 
     "chroma": {
+      "match": ["chroma"],
+      "agent": "Chroma follows colours and materials closely, so name them outright: the exact colour, the fabric, the surface. No quality padding.",
       "task": "Describe this image as a Chroma prompt: the subject, wardrobe, setting, composition and lighting of the finished picture, in plain flowing language.",
       "add": "Say colours and materials explicitly; Chroma follows them closely. No quality padding.",
       "words": 85,
@@ -125,6 +139,8 @@
     },
 
     "qwen": {
+      "match": ["qwen-"],
+      "agent": "Qwen follows plain instruction-like description. Prefer direct declarative sentences over stacked adjectives. If the picture should contain text, quote it exactly and say where it sits.",
       "task": "Describe this image as a Qwen-Image prompt: subject, wardrobe, setting, composition and lighting, stated plainly and concretely. If the picture contains text, quote it exactly and say where it sits.",
       "add": "Prefer direct declarative sentences over stacked adjectives.",
       "words": 85,
@@ -132,6 +148,8 @@
     },
 
     "firered": {
+      "match": ["firered"],
+      "agent": "State the light direction and colour temperature explicitly - FireRed follows them.",
       "task": "Describe this image as a FireRed prompt: the subject, wardrobe, setting, composition and lighting of the finished picture.",
       "add": "State the light direction and colour temperature explicitly.",
       "words": 80,
@@ -139,12 +157,16 @@
     },
 
     "sdxl": {
+      "match": ["sdxl-"],
+      "agent": "SDXL takes densely packed descriptive phrases. Lead with the subject, then environment, lighting quality and colour palette.",
       "task": "Describe this image as an SDXL generation prompt. Include subject, environment, lighting quality, colour palette and photorealistic details.",
       "words": 75,
       "single": true
     },
 
     "sdxl-outpaint": {
+      "match": ["sdxl-outpaint"],
+      "agent": "The new strip is scenery continuing past the edge - name what carries on and keep the same light, colour and style. Never lead with the subject and never describe the whole scene.",
       "task": "Describe only what should continue past the edge of this image, as more of what is already there - name the thing that carries on (the wall, the forest, the road) and keep the same light, colour and style.",
       "add": "Never describe the subject of the picture, never invent a person, an object or an event, and never write motion of any kind. Nothing already in the picture changes.",
       "words": 40,

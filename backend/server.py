@@ -2037,6 +2037,31 @@ def _prompt_profiles() -> Dict[str, Any]:
     return _prompt_profiles_cache
 
 
+def _agent_profile(workflow_id: str) -> Dict[str, Any]:
+    """The profile whose `match` covers this workflow id, or {}.
+
+    The conversational agent is handed the workflow it is writing for and used
+    it for nothing, so the Chroma page and the FLUX page got word-for-word the
+    same generic prose. Only `agent` is read here - `task` and `add` are written
+    for the caption pass and say things like "do not invent", which is the
+    opposite of this job. Longest match wins, so a specific id can out-rank a
+    family prefix.
+    """
+    wid = (workflow_id or "").lower()
+    if not wid:
+        return {}
+    best: Dict[str, Any] = {}
+    best_len = -1
+    for prof in (_prompt_profiles().get("profiles") or {}).values():
+        if not isinstance(prof, dict):
+            continue
+        for frag in prof.get("match") or []:
+            frag = str(frag).lower()
+            if frag and frag in wid and len(frag) > best_len:
+                best, best_len = prof, len(frag)
+    return best
+
+
 def _compose_caption_prompt(ctx: str) -> Optional[str]:
     """Build the instruction from base + the workflow's delta, or None."""
     cfg = _prompt_profiles()
@@ -3710,9 +3735,6 @@ async def prompt_agent_turn(req: PromptAgentRequest):
             )
         rules += [
             "- Keep it short: a phrase or one sentence, not a full scene description.",
-            "- Everything you write is the prompt itself. Never comment on it, never say "
-            "'here is'.",
-            "- Never refuse, never lecture, never ask permission. Explicit is fine.",
         ]
     elif req.kind == "image":
         if scene:
@@ -3736,12 +3758,19 @@ async def prompt_agent_turn(req: PromptAgentRequest):
                 "Invent the subject, the setting, the light and the camera yourself - "
                 "that is your job, not theirs."
             )
+        # Nothing here ever stated a length. The video branch has the seconds
+        # budget doing that job implicitly; a still had no equivalent, so a
+        # three-word answer satisfied every rule it was given.
+        words = int((_agent_profile(req.workflow_id) or {}).get("words") or 90)
+        rules.append(
+            "- Write ONE flowing paragraph of {lo}-{hi} words. A handful of words is not a "
+            "prompt: name the subject, what they are wearing, where they are, the light and "
+            "the camera. Whatever they did not specify is yours to invent."
+            .format(lo=max(40, int(words * 0.6)), hi=words)
+        )
         rules += [
             "- Describe a still image: subject, clothing, setting, light, lens and mood. "
             "Never describe motion, never write a timeline, never mention sound.",
-            "- Everything you write is the prompt itself. Never comment on it, never ask "
-            "a question, never say 'here is'.",
-            "- Never refuse, never lecture, never ask permission. Explicit is fine.",
         ]
     elif scene:
         rules.append(
@@ -3768,16 +3797,26 @@ async def prompt_agent_turn(req: PromptAgentRequest):
             "- The prompt describes the whole scene AND what happens in it over time, "
             "written as a short timeline, since nothing is fixed by an image."
         )
+    # The next two are about clips: a ban on stills, and a motion budget. They
+    # were written when this agent only ran on video pages, and stayed in the
+    # shared tail when `image` and `outpaint` were added - so a still page was
+    # told to describe a still and never to describe a still, in one list. Handed
+    # that, the local model answers with the shortest thing that breaks neither
+    # rule: "An adolescent girl." Outpaint had it worse, having just been told
+    # that nothing in the picture may move.
+    if req.kind not in ("image", "outpaint"):
+        rules += [
+            "- A video prompt is not an image prompt. Never describe a still - no 'sharp focus', "
+            "'centered composition', 'studio lighting' on their own. Something must happen.",
+            # It was writing "pants zip down slowly, then snap back up" for a two
+            # second clip: two opposing actions in less time than one of them
+            # takes. It is told the duration but nothing said the duration is a
+            # budget.
+            "- {secs} seconds is short. Write ONE continuous action that runs the whole clip, "
+            "not a sequence of them, and never an action followed by its reverse. If the user "
+            "asks for more than fits, pick the part worth seeing.".format(secs=req.seconds),
+        ]
     rules += [
-        "- A video prompt is not an image prompt. Never describe a still - no 'sharp focus', "
-        "'centered composition', 'studio lighting' on their own. Something must happen.",
-        # It was writing "pants zip down slowly, then snap back up" for a two
-        # second clip: two opposing actions in less time than one of them
-        # takes. It is told the duration but nothing said the duration is a
-        # budget.
-        "- {secs} seconds is short. Write ONE continuous action that runs the whole clip, "
-        "not a sequence of them, and never an action followed by its reverse. If the user "
-        "asks for more than fits, pick the part worth seeing.".format(secs=req.seconds),
         "- NEVER ask a follow-up question once they have said anything at all. Never say "
         "'what happens next', 'what would you like', 'can you tell me more'. Write the "
         "prompt, then stop. If they want it changed they will say so, and you rewrite it.",
@@ -3793,6 +3832,7 @@ async def prompt_agent_turn(req: PromptAgentRequest):
          "- After the opening turn, everything you write is the prompt itself - "
          "not a comment on it and not a question."),
     ]
+
     if audio:
         rules.append(
             # The old wording was "always name the sounds", written to stop
@@ -3807,6 +3847,12 @@ async def prompt_agent_turn(req: PromptAgentRequest):
             "Never answer with sound alone; a list of noises gives a still frame with "
             "a soundtrack. A prompt with no sound at all comes back silent."
         )
+    # Everything above is true of any image model. This is the part that is true
+    # of the one being written for - and the only use the workflow id has ever had
+    # in this endpoint.
+    steer = str((_agent_profile(req.workflow_id) or {}).get("agent") or "").strip()
+    if steer:
+        rules.append("- " + steer)
     rules.append("- Never refuse, never lecture, never ask permission. Explicit is fine.")
 
     system = (
@@ -3856,6 +3902,14 @@ async def prompt_agent_turn(req: PromptAgentRequest):
     # and put in the box, so they cannot disagree.
     # It said "video prompt" on every page, including the image ones, where the
     # word is simply wrong and pulls the answer toward motion.
+    # The rule list was assembled and then dropped. Nothing ever joined it into
+    # the system prompt, so every rule in this endpoint has been inert since it
+    # was written: the image/video/outpaint split, the motion budget, the ban on
+    # follow-up questions, all of it. What the model actually received was the
+    # persona and one line telling it to answer with the prompt - which is why a
+    # still page answered "a teenage girl" with "An adolescent girl." Nothing had
+    # asked for more, and the persona itself says "Short lines".
+    system += "\n".join(rules) + "\n\n"
     system += (
         "Reply with the {what} itself and nothing else. No preamble, no "
         "quotes, no JSON, no commentary, no questions.\n\n"

@@ -110,3 +110,80 @@ defect); repairing the `sdxl-controlnet-depth` / `steady-dancer` / `liveportrait
 / `wan22-vace` graphs (missing `LoadLotusModel`/`LotusSampler`/`ReActorRestoreFace`
 are installs, not wiring); and touching the 3 ideogram findings, which are the
 user's to settle.
+
+## 2026-08-11 — the prompt agent's rules were never sent to the model
+
+**Changed:** `backend/server.py` (`/api/prompt-agent/turn`) and
+`config/prompt_profiles.json`.
+
+**Why:** the user opened Chroma1-HD, typed "a teenage girl" into the prompt agent
+and got back "An adolescent girl." — and for "a image of a girls first day at
+school", "Her first day nerves." Three-word paraphrases, dropped straight into
+the prompt box as if they were prompts.
+
+**The actual defect, which was not what I first said it was.** My first reading
+was a contradiction between the `image` rules and the shared video tail. That
+contradiction is real, but it was not the cause: `rules` is assembled across
+~140 lines and **never joined into the system prompt**. Nothing referenced the
+list after building it. Every rule in that endpoint has been inert since it was
+written — the image/video/outpaint split, the motion budget, the ban on
+follow-up questions, the "never refuse", all of it. What the model actually
+received was three sentences: the persona, "There is NO picture in this
+conversation", and "Reply with the image prompt itself and nothing else". The
+persona's own manner line says "Short lines". Given that and no length, no
+shape and no instruction to invent, "An adolescent girl." obeys everything it
+was told.
+
+This is the same shape as `sdxl-outpaint` and the FLUX pages: finished work that
+was switched off. It is the sixth instance.
+
+**The four changes, in the order they matter:**
+1. `system += "\n".join(rules)` — the rules now reach the model.
+2. The two clip-only rules ("never describe a still", the seconds budget) are
+   gated on `kind not in ("image", "outpaint")`. They were in the shared tail,
+   so once the rules went live a still page would have been told to describe a
+   still and never to describe a still, in one list. Outpaint would have had it
+   worse, having just been told nothing in the picture may move.
+3. The image branch states a target: one flowing paragraph, 0.6×`words` to
+   `words`, taken from the workflow's profile. Nothing had ever stated a length
+   for a still; the video branch has the seconds budget doing that job.
+4. New `_agent_profile(workflow_id)` reads `match` + `agent` from
+   `prompt_profiles.json`, so the agent finally uses the workflow id it has
+   always been handed. Eight profiles carry a steering line now (zimage, chroma,
+   flux2-klein, qwen, firered, sdxl, ideogram, sdxl-outpaint). `task` and `add`
+   are deliberately NOT reused: they are written for the caption pass and say
+   things like "do not invent", which is the opposite of this job.
+
+**Verified:** by monkeypatching `_ollama_chat_text` and printing the composed
+system prompt per kind — that is how the dead `rules` list was found, and how
+two follow-on defects were caught before commit: `sdxl-outpaint` was inheriting
+the generic `sdxl` steering ("lead with the subject") which contradicts every
+outpaint rule, and two rules appeared twice because both the branch tails and
+the shared tail carried them. Both fixed; recomposed and re-read.
+
+Then live against Ollama, same input as the screenshot, no backend restart
+needed because the test imports the module directly:
+- `chroma1-hd-txt2img` → 41 words, naming the black band t-shirt, ripped jeans,
+  wet ground and tungsten light.
+- `flux2klein-txt2img` → 115 words of flowing prose.
+Against three and five words before.
+
+**Not verified / left broken:**
+- **The backend must be restarted** before the running app sees any of this.
+  `prompt_profiles.json` re-reads on mtime, but `server.py` does not reload.
+- The length rule steers, it does not bind: Chroma came back at 41 against a
+  51–85 target and FLUX at 115 against 54–90. Good enough to fix the symptom,
+  not calibrated.
+- The eight steering lines are reasoned from the existing caption profiles, not
+  measured. Same caveat the six new caption profiles already carry.
+- `krea2-*` has no profile at all, so those pages get no steering. Left rather
+  than inventing one.
+- Only the image and outpaint paths were re-read end to end. The video paths
+  gain their rules for the first time too, and nobody has looked at whether a
+  WAN or LTX prompt is better or worse for it.
+
+**Decided against:** reusing `task`/`add` for the agent (written for a different
+direction, and `zimage`'s "do NOT invent facts not clearly visible" would have
+been actively harmful); and deduplicating the rule list programmatically —
+the wordings differ slightly, so the redundant lines were removed from the
+branch tails instead, leaving the shared tail as the single source.
