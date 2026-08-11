@@ -423,7 +423,6 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'qwen-reference',
-    hidden: true,
     sourceModuleId: 'qwen-image',
     label: 'Qwen Reference',
     description: 'Edit or generate from a reference image + prompt.',
@@ -471,7 +470,6 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'qwen-multi-angle',
-    hidden: true,
     sourceModuleId: 'qwen-image',
     label: 'Qwen Multi Angle',
     description: 'Generate angle variants from one input.',
@@ -514,7 +512,6 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'z-image-inpaint',
-    hidden: true,
     sourceModuleId: 'z-image-advanced',
     label: 'Z-Image Inpaint',
     description: 'Auto-mask a face/body/clothes and regenerate it with Z-Image + your character LoRAs.',
@@ -558,7 +555,6 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'sdxl-controlnet-openpose',
-    hidden: true,
     sourceModuleId: 'sdxl-pack',
     label: 'SDXL ControlNet OpenPose',
     description: 'Control exact character poses using OpenPose skeletons.',
@@ -573,7 +569,6 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'wan22-img2vid',
-    hidden: true,
     sourceModuleId: 'wan-video',
     label: 'WAN 2.2 Img2Vid',
     description: 'Animate a still image with WAN 2.2 — single-shot, dual high/low LoRA slots.',
@@ -588,7 +583,6 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'wan22-vid2vid',
-    hidden: true,
     sourceModuleId: 'wan-video',
     label: 'WAN 2.2 Vid2Vid',
     description: 'Transform and extend a video clip.',
@@ -603,7 +597,6 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'wan22-story',
-    hidden: true,
     sourceModuleId: 'wan-video',
     label: 'WAN Story',
     description: 'Chain 1-24 keyframes into one continuous story video - auto-storyboard, per-transition prompts, stitched automatically.',
@@ -611,7 +604,10 @@ export const FEDDA_MODULES: FeddaModule[] = [
     pack: 'booster',
 
     tabs: ['wan22-img2vid-6frames'],
-    workflows: ['wan22-img2vid-6frames'],
+    // The tab id is historical; the page renders one transition at a time
+    // through wan22-flf-segment and stitches them, so that is the graph
+    // this module actually depends on.
+    workflows: ['wan22-flf-segment'],
     defaultTab: 'wan22-img2vid-6frames',
     Icon: Video,
     card: { poster: '/cards/bunny/wan22-story.jpeg' },
@@ -633,7 +629,6 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'wan21-scail2',
-    hidden: true,
     sourceModuleId: 'wan-video',
     label: 'SCAIL-2',
     description: 'Animate a reference photo with dance/pose motion using SCAIL-2 GGUF.',
