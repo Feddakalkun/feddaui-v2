@@ -477,9 +477,51 @@ $VenvPip = Join-Path (Split-Path $EmbedPy) "Scripts\pip.exe"
 
 Write-Step "pip is ready in embedded Python." "Green"
 
-# Helper to run pip
+# ---------------------------------------------------------------------------
+# Astral uv - a resolver written in Rust. Optional on purpose: if the download
+# fails, every install below still runs through pip exactly as before. Speed is
+# worth having; it is not worth an installer that cannot finish without it.
+# ---------------------------------------------------------------------------
+$UvBin = Join-Path $RootPath "uv.exe"
+if (-not (Test-Path $UvBin)) {
+    try {
+        Write-Step "Fetching uv (fast package resolver)..." "Yellow"
+        $UvZip = Join-Path $RootPath "uv.zip"
+        Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip" -OutFile $UvZip
+        Expand-Archive -Path $UvZip -DestinationPath $RootPath -Force
+        Remove-Item $UvZip -Force -ErrorAction SilentlyContinue
+    } catch {
+        Write-Step "uv unavailable, using pip: $($_.Exception.Message)" "Yellow"
+    }
+}
+if (Test-Path $UvBin) {
+    Write-Step "uv ready - package installs will use it." "Green"
+} else {
+    $UvBin = $null
+}
+
+# Helper to run pip - through uv when it is present, pip otherwise.
+#
+# uv is not argument-compatible with pip, and two flags used here are rejected
+# outright rather than ignored: `--no-warn-script-location`, which this helper
+# appends to EVERY call, and `--prefer-binary`, which insightface and
+# llama-cpp-python rely on. Handing uv the pip arguments unchanged fails all
+# twelve call sites with "unexpected argument". Both are safe to drop for uv:
+# the first only silences a pip warning, and uv already prefers wheels.
+#
+# Any uv failure falls back to pip for that command, so a resolver difference
+# costs time rather than the install.
 function Venv-Pip {
     param([string]$PipArgs)
+
+    if ($UvBin) {
+        $UvArgs = $PipArgs -replace '\s--prefer-binary\b', ''
+        $cmd = "& '$UvBin' pip $UvArgs --python '$VenvPy'"
+        Invoke-Expression $cmd
+        if ($LASTEXITCODE -eq 0) { return }
+        Write-Step "uv could not do it, retrying with pip: $PipArgs" "Yellow"
+    }
+
     $cmd = "& '$VenvPy' -m pip $PipArgs --no-warn-script-location"
     Invoke-Expression $cmd
     if ($LASTEXITCODE -ne 0) {

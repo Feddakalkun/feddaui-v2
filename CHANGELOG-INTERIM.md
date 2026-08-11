@@ -1504,3 +1504,70 @@ does not remember.
 the floor for a rabbit query. One weak match in twelve is tolerable; a relevance
 pass over the extracted episodes would fix the cause, which is that several of
 them should never have been stored as memories.
+
+## 2026-08-11 — installer: portable Git/Node, quick launch, uv — folded in, not swapped
+
+**Changed:** `installer/FEDDA_v2.0_Installer.bat` and `scripts/install.ps1`.
+
+**Where this came from.** The user had rewritten both files in `290726\v2\` and
+reported they worked. Two of the ideas were genuinely better than what shipped;
+the rewrite as a whole would have been a serious regression, and the reason it
+looked fine is worth recording.
+
+**The rewritten `install.ps1` never ran.** Line 8 reads
+`$AppDir = Set-Location "$ScriptDir\.." ; Get-Location`. `Set-Location` emits
+nothing, so `$AppDir` is `$null`, and the next line's `Join-Path $AppDir …`
+throws "Cannot bind argument to parameter 'Path' because it is null" — fatal
+under the script's own `$ErrorActionPreference = "Stop"`. Confirmed in
+PowerShell. It dies on line 9 of 116.
+
+It appeared to work because the `.bat` runs `scripts\install.ps1` **from inside
+the freshly cloned app** — the repository's 922-line installer, not the 116-line
+rewrite sitting in `v2\`.
+
+**What the 116-line version would have dropped**, had it been in place: cloning
+ComfyUI at all; installing node packs from `nodes.json` (including the Pixaroma
+and iTools entries added today); per-GPU CUDA wheels — it hardcodes cu121, while
+`install.ps1:518` selects cu128 for RTX 50-series because "cu124 has no kernels
+for it"; and it looks for `custom_nodes` and `requirements.txt` at the app root,
+where neither exists.
+
+**And the `.bat` rewrite dropped the disclaimer** — adults only, responsibility,
+no real people without consent, nothing involving minors, third-party licences.
+For a distributed app shipping uncensored checkpoints that is the one screen that
+cannot go.
+
+**What was folded in instead:**
+- **Quick launch.** An installed copy runs the app and exits. Gated on
+  `ComfyUI\main.py` rather than `node_modules`: the frontend can exist while the
+  half that generates images does not.
+- **Portable Git and Node.** The old requirements screen offered a winget
+  install and **exited** if winget was absent — a developer toolchain required
+  before a first picture. Missing tools are now downloaded into
+  `portable-files\`, and nothing is installed into Windows. The dead winget
+  prompt was removed rather than left to read as if it still applied.
+- Kept: the disclaimer verbatim, `call scripts\install.bat` (which passes
+  `-Unattended`), the install log and `log.md`, and all four generated shortcuts.
+  The rewrite generated only `run.bat`, which together with quick launch would
+  have left an installed user **no way to update at all**.
+
+**uv, with the flag problem the plan would have hit.** The proposal was to route
+`Venv-Pip` through `uv pip install` unchanged. Downloaded uv 0.12.3 and checked:
+it **rejects** `--no-warn-script-location`, which the helper appends to *every*
+call, and `--prefer-binary`, which insightface and llama-cpp-python use —
+`error: unexpected argument`, not a warning. All twelve call sites would have
+failed. Both are safe to drop for uv: the first only silences a pip warning, and
+uv prefers wheels by default. `Venv-Pip` now strips them, and **falls back to pip
+for any command uv cannot complete**, so a resolver difference costs time rather
+than the install. uv itself is optional — if the download fails, everything
+proceeds exactly as before.
+
+**Verified:** `install.ps1` parses; the flag rewrite checked against the real
+call sites; the `.bat` is still CRLF, every `goto` has a label, the disclaimer and
+all four shortcut generators are present.
+
+**Not verified:** no clean install was run. The portable-Git path in particular
+has never been executed — this machine has both tools, so that branch is unvisited.
+
+**Left alone:** the running copy at `H:\Fedda-Hub\290726\FEDDA_v2.0_Installer.bat`
+is now older than the repository's. Copying it over is the user's call.

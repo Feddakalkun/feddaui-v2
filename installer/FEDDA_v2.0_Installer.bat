@@ -4,7 +4,23 @@ title FEDDA v2.0 One-Click Installer
 set "APP_NAME=FEDDA Hub v2.0"
 
 :: ===========================================================================
-::  Front-of-house: welcome, requirements + offer-to-install, disclaimer, info.
+::  Already installed? Then this file is just the launcher. Checked against
+::  ComfyUI\main.py rather than node_modules: the frontend can be present while
+::  the half of the install that actually generates images is not.
+:: ===========================================================================
+set "QUICK_ROOT=%~dp0"
+if "%QUICK_ROOT:~-1%"=="\" set "QUICK_ROOT=%QUICK_ROOT:~0,-1%"
+if exist "%QUICK_ROOT%\app\python_embeded\python.exe" (
+    if exist "%QUICK_ROOT%\app\ComfyUI\main.py" (
+        cd /d "%QUICK_ROOT%\app"
+        call run.bat %*
+        exit /b 0
+    )
+)
+
+:: ===========================================================================
+::  Front-of-house: welcome, requirements, disclaimer, info. The requirements
+::  screen fetches portable Git and Node rather than offering to install them.
 ::  (Prototyped in ghost-installer.bat, ported here 2026-07-24.)
 :: ===========================================================================
 
@@ -33,11 +49,11 @@ echo.
 echo   FEDDA brings its own Python and sets up ComfyUI and PyTorch
 echo   for you - you do NOT need to install those.
 echo.
-echo   You DO need these on your computer first:
+echo   You DO need an NVIDIA GeForce RTX graphics card with a recent driver.
 echo.
-echo     - An NVIDIA GeForce RTX graphics card with a recent driver
-echo     - Git         https://git-scm.com/download/win
-echo     - Node.js LTS https://nodejs.org  (version 18 or newer)
+echo   Git and Node.js are also required - and if they are missing, this
+echo   installer downloads portable copies into portable-files\ rather than
+echo   installing anything into Windows.
 echo.
 echo   Optional: Ollama https://ollama.com  (smarter prompt / vision
 echo   helpers; FEDDA works without it too).
@@ -45,6 +61,9 @@ echo.
 echo   ------------------------------------------------------------
 echo   Quick check on this machine:
 echo   ------------------------------------------------------------
+
+set "INSTALL_ROOT_EARLY=%~dp0"
+if "%INSTALL_ROOT_EARLY:~-1%"=="\" set "INSTALL_ROOT_EARLY=%INSTALL_ROOT_EARLY:~0,-1%"
 
 set "GIT_OK=MISSING"
 where git >nul 2>nul && set "GIT_OK=found"
@@ -56,53 +75,48 @@ echo     Node.js  : %NODE_OK%
 echo.
 if /i "%GIT_OK%"=="found" if /i "%NODE_OK%"=="found" goto REQ_OK
 
-:: --- one or both missing: offer to install them for the user ---
-where winget >nul 2>nul
-if errorlevel 1 goto REQ_MANUAL
+:: --- one or both missing: fetch portable copies ---
+:: Previously this asked winget to install them system-wide, and exited if
+:: winget was absent. Requiring a developer toolchain before a picture can be
+:: generated is the largest barrier this installer had; a local copy under
+:: portable-files\ removes it and touches nothing outside this folder.
+set "PORTABLE_DIR=%INSTALL_ROOT_EARLY%\portable-files"
+if not exist "%PORTABLE_DIR%" mkdir "%PORTABLE_DIR%"
 
-set "WHATLIST="
-if /i not "%GIT_OK%"=="found" set "WHATLIST=Git"
-if /i not "%NODE_OK%"=="found" if defined WHATLIST (set "WHATLIST=%WHATLIST% and Node.js LTS") else (set "WHATLIST=Node.js LTS")
-
-echo   Good news - FEDDA can install the missing tools for you
-echo   using the built-in Windows Package Manager (winget).
-echo.
-echo   This will DOWNLOAD and INSTALL: %WHATLIST%
-echo   Nothing is installed until you confirm below.
-echo.
-
-:ASK_INSTALL
-set "DOINST="
-set /p "DOINST=Install now? Type Y to install, or N to skip: "
-if /i "%DOINST%"=="Y" goto DO_INSTALL
-if /i "%DOINST%"=="N" goto REQ_MANUAL
-echo   Please type Y or N.
-goto ASK_INSTALL
-
-:DO_INSTALL
-echo.
 if /i not "%GIT_OK%"=="found" (
-    echo   Installing Git ...
-    winget install --id Git.Git -e --source winget --accept-source-agreements --accept-package-agreements
+    if not exist "%PORTABLE_DIR%\git\cmd\git.exe" (
+        echo   Downloading portable Git ...
+        powershell -NoProfile -Command "Invoke-WebRequest -UseBasicParsing -Uri 'https://github.com/git-for-windows/git/releases/download/v2.44.0.windows.1/PortableGit-2.44.0-64-bit.7z.exe' -OutFile '%PORTABLE_DIR%\git_installer.exe'"
+        start /wait "" "%PORTABLE_DIR%\git_installer.exe" -y -o"%PORTABLE_DIR%\git"
+        del /f /q "%PORTABLE_DIR%\git_installer.exe" >nul 2>&1
+    )
+    set "PATH=%PORTABLE_DIR%\git\cmd;%PATH%"
 )
+
 if /i not "%NODE_OK%"=="found" (
-    echo   Installing Node.js LTS ...
-    winget install --id OpenJS.NodeJS.LTS -e --source winget --accept-source-agreements --accept-package-agreements
+    if not exist "%PORTABLE_DIR%\node\node.exe" (
+        echo   Downloading portable Node.js 20 LTS ...
+        powershell -NoProfile -Command "Invoke-WebRequest -UseBasicParsing -Uri 'https://nodejs.org/dist/v20.11.1/node-v20.11.1-win-x64.zip' -OutFile '%PORTABLE_DIR%\node.zip'"
+        powershell -NoProfile -Command "Expand-Archive -Path '%PORTABLE_DIR%\node.zip' -DestinationPath '%PORTABLE_DIR%\node_tmp' -Force"
+        xcopy /E /I /Y "%PORTABLE_DIR%\node_tmp\node-v20.11.1-win-x64\*" "%PORTABLE_DIR%\node\" >nul
+        rmdir /s /q "%PORTABLE_DIR%\node_tmp" >nul 2>&1
+        del /f /q "%PORTABLE_DIR%\node.zip" >nul 2>&1
+    )
+    set "PATH=%PORTABLE_DIR%\node;%PATH%"
 )
-echo.
-echo   ------------------------------------------------------------
-echo   Done. Please CLOSE this window and start the installer again
-echo   so the newly installed tools are picked up.
-echo   ------------------------------------------------------------
-echo.
-pause
-exit /b 0
+
+where git >nul 2>nul || goto REQ_MANUAL
+where node >nul 2>nul || goto REQ_MANUAL
+echo   Portable tools ready.
+goto REQ_OK
 
 :REQ_MANUAL
 echo.
-echo   [X] Git and/or Node.js is missing, and FEDDA cannot install
-echo       without them. Install the missing tool from the link
-echo       shown above, then run this installer again.
+echo   [X] Git and/or Node.js could not be found or downloaded, and
+echo       FEDDA cannot install without them. Check your internet
+echo       connection, or install them yourself and run this again:
+echo         Git         https://git-scm.com/download/win
+echo         Node.js LTS https://nodejs.org
 echo.
 pause
 exit /b 1
