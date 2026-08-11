@@ -466,3 +466,15 @@ available short of a clean install.
 **Still held back:** six commits, unpushed. `update.bat` does
 `git reset --hard origin/main`, so pushing publishes to every existing install.
 Nothing goes out without an explicit go-ahead, each time.
+
+### Correction to the entry above — the vendored copies are not byte-identical
+
+I wrote that the vendored packs are "a byte copy of what is running". They are
+not, quite. `core.autocrlf` is `true` and there is no `.gitattributes`, so text
+files are stored LF in the blob and checked out CRLF on Windows. A user's clone
+therefore gets CRLF where this machine has LF.
+
+It changes nothing here — checked afterwards: neither pack contains a shell
+script, a Makefile or anything else that CRLF breaks, and the two packs vendored
+before mine are stored exactly the same way. But the claim as written was wrong,
+and the next person should not rely on it.
