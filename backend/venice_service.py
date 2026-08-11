@@ -213,7 +213,11 @@ EDIT_MODELS = [
     "nano-banana-pro-edit",
     "grok-imagine-quality-edit",
 ]
-DEFAULT_EDIT_MODEL = "qwen-edit-uncensored"
+# FireRed is the general-purpose default: it follows an edit instruction and
+# leaves the rest of the picture alone. qwen-edit-uncensored is kept in the
+# list for the narrower case the user reserves it for - explicit anatomy that
+# other models decline or soften - rather than as the everyday choice.
+DEFAULT_EDIT_MODEL = "firered-image-edit"
 
 
 def image_edit(key: str, image_b64: str, prompt: str, model: str = "",

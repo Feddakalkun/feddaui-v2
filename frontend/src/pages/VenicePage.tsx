@@ -416,7 +416,7 @@ Current context: User is requesting images of Elara at the safari camp, now spec
                 },
                 model: {
                   type: "string",
-                  description: "Optional edit model. qwen-edit-uncensored (default, permissive), firered-image-edit, flux-2-max-edit, nano-banana-pro-edit, seedream-v5-pro-edit."
+                  description: "Optional edit model. Leave unset unless the user names one - the app picks the default. firered-image-edit is the general choice; qwen-edit-uncensored only for explicit anatomy other models refuse."
                 }
               },
               required: ["instruction"]
