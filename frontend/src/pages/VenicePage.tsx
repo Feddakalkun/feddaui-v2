@@ -81,6 +81,11 @@ export function VenicePage() {
 
   // ========== IMAGE GENERATION STATE & LOGIC ==========
   const [imgModel, setImgModel] = useState('chroma');
+  // Venice publishes the real per-model RPM/TPM. The page used to warn about
+  // 429s in prose and name two models as safer, which was a guess written once
+  // and never checked against the account it runs on.
+  const [modelLimits, setModelLimits] = useState<Record<string, { type: string; amount: number }[]>>({});
+  const [veniceTier, setVeniceTier] = useState('');
   const [imgPrompt, setImgPrompt] = useState('a beautiful landscape, highly detailed, cinematic');
   const [negativePrompt, setNegativePrompt] = useState('');
   const [width, setWidth] = useState(1024);
@@ -117,6 +122,24 @@ export function VenicePage() {
           .filter((m: { id: string }) => m.id);
         if (!cancelled && models.length) setLiveModels(models);
       } catch { /* offline or blocked - the fallback list still works */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await veniceCall(BACKEND_API.ENDPOINTS.VENICE_RATE_LIMITS);
+        const rows = data?.data?.rateLimits;
+        if (!Array.isArray(rows) || cancelled) return;
+        const map: Record<string, { type: string; amount: number }[]> = {};
+        for (const row of rows) {
+          if (row?.apiModelId && Array.isArray(row.rateLimits)) map[row.apiModelId] = row.rateLimits;
+        }
+        setModelLimits(map);
+        setVeniceTier(String(data?.data?.apiTier?.id || ''));
+      } catch { /* no key, or Venice is down - the fallback hint still shows */ }
     })();
     return () => { cancelled = true; };
   }, []);
@@ -560,7 +583,18 @@ Current context: User is requesting images of Elara at the safari camp, now spec
                         <option key={m.id} value={m.id}>{m.label}</option>
                       ))}
                     </select>
-                    <div className="text-[10px] text-amber-400/70 mt-1">Popular models can be overloaded — try venice-sd35 or chroma if you see 429 errors.</div>
+                    {modelLimits[imgModel]?.length ? (
+                      <div className="text-[10px] text-white/45 mt-1">
+                        {veniceTier ? `${veniceTier} tier - ` : ''}
+                        {modelLimits[imgModel]
+                          .map(l => `${l.amount.toLocaleString()} ${l.type}`)
+                          .join(' / ')}
+                      </div>
+                    ) : (
+                      <div className="text-[10px] text-amber-400/70 mt-1">
+                        Popular models can be overloaded - try venice-sd35 or chroma if you see 429 errors.
+                      </div>
+                    )}
                   </div>
                   <div className="md:col-span-2">
                     <div className="flex items-center gap-2 mb-2">

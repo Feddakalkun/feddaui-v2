@@ -41,6 +41,7 @@ export const TopSystemStrip = () => {
   // localStorage could never answer.
   const [veniceConfigured, setVeniceConfigured] = useState(false);
   const [veniceValid, setVeniceValid] = useState<boolean | null>(null);
+  const [veniceUsd, setVeniceUsd] = useState<number | null>(null);
   const [veniceSaving, setVeniceSaving] = useState(false);
 
   // Poll hardware + comfy system stats
@@ -88,6 +89,9 @@ export const TopSystemStrip = () => {
           setCivitaiConfigured(!!civitaiData.configured);
           setVeniceConfigured(!!veniceData.configured);
           setVeniceValid(veniceData.configured ? !!veniceData.valid : null);
+          setVeniceUsd(typeof veniceData?.balance?.balances?.usd === 'number'
+            ? veniceData.balance.balances.usd
+            : null);
           // A key saved by an older build still sits in localStorage, where the
           // backend cannot see it. Move it across once rather than making every
           // existing user type it in again, then drop it from the browser.
@@ -250,6 +254,7 @@ export const TopSystemStrip = () => {
         { cache: 'no-store' });
       const state = await check.json();
       setVeniceValid(state?.configured ? !!state.valid : null);
+      setVeniceUsd(typeof state?.balance?.balances?.usd === 'number' ? state.balance.balances.usd : null);
     } catch {
       /* leave it in localStorage so the next load can try again */
     }
@@ -273,12 +278,14 @@ export const TopSystemStrip = () => {
       setVeniceConfigured(ok);
       if (!ok) {
         setVeniceValid(null);
+        setVeniceUsd(null);
       } else {
         const check = await fetch(
           `${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.SETTINGS_VENICE_KEY_STATUS}`,
           { cache: 'no-store' });
         const state = await check.json();
         setVeniceValid(!!state?.valid);
+        setVeniceUsd(typeof state?.balance?.balances?.usd === 'number' ? state.balance.balances.usd : null);
       }
     } catch (err) {
       setVeniceValid(false);
@@ -459,17 +466,37 @@ export const TopSystemStrip = () => {
         Reset UI
       </button>
 
+      {/* "Key Set" answered the wrong question: whether a string is stored,
+          rather than whether Venice accepts it and what is left to spend. A key
+          that has been revoked or drained looked identical to a working one. */}
       <button
         onClick={handleVeniceKey}
-        title="Save your Venice.ai API key (for Venice image + chat)"
-        className={`h-8 px-3 rounded-lg border text-xs font-medium transition-all flex items-center gap-1.5 ${
-          veniceConfigured
-            ? 'border-sky-500/30 bg-sky-500/10 text-sky-300 hover:bg-sky-500/18'
-            : 'border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/18'
+        disabled={veniceSaving}
+        title={
+          !veniceConfigured
+            ? 'Save your Venice.ai API key (for Venice image + chat)'
+            : veniceValid === false
+              ? 'Venice rejected this key - click to replace it'
+              : veniceUsd !== null
+                ? `Venice balance $${veniceUsd.toFixed(2)} - click to replace the key`
+                : 'Venice key saved - click to replace it'
+        }
+        className={`h-8 px-3 rounded-lg border text-xs font-medium transition-all flex items-center gap-1.5 disabled:opacity-40 ${
+          !veniceConfigured || veniceValid === false
+            ? 'border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/18'
+            : veniceUsd !== null && veniceUsd < 1
+              ? 'border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/18'
+              : 'border-sky-500/30 bg-sky-500/10 text-sky-300 hover:bg-sky-500/18'
         }`}
       >
-        <KeyRound className="w-3.5 h-3.5" />
-        {veniceConfigured ? 'Venice Key Set' : 'Venice Key Missing'}
+        {veniceSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <KeyRound className="w-3.5 h-3.5" />}
+        {!veniceConfigured
+          ? 'Venice Key Missing'
+          : veniceValid === false
+            ? 'Venice Key Rejected'
+            : veniceUsd !== null
+              ? `Venice $${veniceUsd.toFixed(2)}`
+              : 'Venice Key Set'}
       </button>
 
       <button

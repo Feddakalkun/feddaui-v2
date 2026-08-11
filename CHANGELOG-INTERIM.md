@@ -627,3 +627,38 @@ proxy was exercised directly.
 **Next, unstarted:** balance and rate limits in the UI (step 2), then Venice
 vision on the caption path (step 3), which is the one that fixes a documented
 defect rather than adding a feature.
+
+## 2026-08-11 — Venice step 2: balance and the account's real rate limits in the UI
+
+**Changed:** `TopSystemStrip.tsx` and `VenicePage.tsx`.
+
+**The top bar pill.** It said "Venice Key Set", which answers a question nobody
+has — whether a string is stored. A revoked or drained key looked identical to a
+working one. It now reads **`Venice $2.01`** when the key works, `Venice Key
+Rejected` when Venice refuses it, and `Venice Key Missing` when there is none,
+and turns amber below a dollar. The balance was already in the status endpoint,
+so this cost one extra field, not a call.
+
+**The model picker.** The page carried a hand-written warning: *"Popular models
+can be overloaded — try venice-sd35 or chroma if you see 429 errors."* That was a
+guess written once and never checked against the account it runs on. Venice
+publishes the real per-model limits — 332 models on this key — so the selected
+model now shows its own, e.g. **`paid tier - 20 RPM`**. The old sentence remains
+as the fallback for when the limits cannot be fetched.
+
+**Verified in the running app**, through the DOM rather than a screenshot, since
+the browser pane would not composite:
+- the picker holds **37 live Venice models** (`venice-sd35 | Venice SD35`,
+  `krea-2-turbo | Krea 2 Turbo`) instead of the 10 hardcoded ones
+- the hint under it reads `paid tier - 20 RPM`
+- the top bar pill reads `Venice $2.01`, tooltip "Venice balance $2.01"
+- `npx vite build` clean
+
+**Worth recording, because it cost time:** `get_page_text` returned a stale
+snapshot twice while the DOM was already correct, which sent me looking for a
+bug in code that was working. Querying the DOM directly is what settled it. If a
+page looks unchanged after an edit that provably reached the dev server, check
+the DOM before doubting the code.
+
+**Not verified:** no image was generated — that spends credit against a $2.01
+balance, and it is the user's to spend.
