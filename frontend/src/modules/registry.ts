@@ -208,7 +208,11 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'reel-machine',
-    hidden: true,
+    // Visible so it can be looked at. Its dependencies are all present -
+    // beat-cut, mux-audio, download-video and upload all answer, and both
+    // workflows it submits (qwen-rapid-edit-v23, ltx-flf) are registered
+    // against graphs that exist. `wip` stays until a full run is watched
+    // end to end; present dependencies are not the same as a working reel.
     sourceModuleId: 'core-shell',
     label: 'Reel Machine',
     description: 'Photo + sound in, finished viral reel out — outfit switches cut on every beat, or a full transformation morph. Fully automatic.',

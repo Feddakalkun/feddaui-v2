@@ -6,12 +6,13 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { Clapperboard, Download, Film, Link2, Loader2, Music, X } from 'lucide-react';
+import { Clapperboard, Download, Film, HelpCircle, Link2, Loader2, Music, X } from 'lucide-react';
 import { BACKEND_API } from '../../config/api';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { useToast } from '../../components/ui/Toast';
 import { consumeHandoff } from '../../utils/workflowHandoff';
 import { WorkflowShell, WorkflowSection } from '../../components/layout/WorkflowShell';
+import { Tour, type TourStep } from '../../components/ui/Tour';
 import { UploadSlot, SliderField } from '../../components/ui/WorkflowControls';
 import { cn, inputBase } from '../../lib/styles';
 import { getLtxDimensions, getSafeLtxAspect } from '../../config/ltx';
@@ -28,6 +29,47 @@ const outfitEditPrompt = (outfit: string) =>
   + 'color grade and grain as the original photo. '
   + 'Keep the exact same pose, same face, same body position, same camera framing and same background.';
 
+const TOUR_STEPS: TourStep[] = [
+  {
+    title: 'Reel Machine, in four moves',
+    body: 'A photo, a sound, a style, and one button. Everything after that runs on its own - '
+      + 'the outfits generate one at a time and the cuts land on the beat. Two minutes here saves '
+      + 'guessing at the settings later.',
+  },
+  {
+    target: 'reel-photo',
+    title: 'The photo decides the pose',
+    body: 'Every outfit in the reel is this exact frame re-dressed - same pose, same face, same '
+      + 'framing, same background. So pick one where the pose reads well on its own: a clear body '
+      + 'position beats a pretty crop, because the pose is the one thing that never changes.',
+    placement: 'right',
+  },
+  {
+    target: 'reel-sound',
+    title: 'The sound decides the cuts',
+    body: 'Paste a link or drop a file. The track is analysed for its beat, and every outfit '
+      + 'change lands on one - so a song with an obvious pulse cuts far better than something '
+      + 'loose. Start time lets you skip the intro and land on the drop.',
+    placement: 'right',
+  },
+  {
+    target: 'reel-style',
+    title: 'Two formats, very different costs',
+    body: 'Beat Switch hard-cuts between outfits - roughly three minutes, and the reliable one. '
+      + 'Transformation morphs between them with real motion, which looks better and takes a lot '
+      + 'longer. Start with Beat Switch; you will know within one reel whether the photo works.',
+    placement: 'right',
+  },
+  {
+    target: 'reel-make',
+    title: 'Then leave it alone',
+    body: 'Each outfit is generated in turn before anything is cut together, so nothing appears '
+      + 'for the first while - that is the slow part working, not a stall. Keep the tab open until '
+      + 'the reel plays on the right.',
+    placement: 'top',
+  },
+];
+
 const shuffled = <T,>(arr: T[]): T[] => {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -39,6 +81,7 @@ const shuffled = <T,>(arr: T[]): T[] => {
 
 export const ReelMachinePage = () => {
   const { toast } = useToast();
+  const [tourOpen, setTourOpen] = useState(false);
 
   // Step 1 — photo
   const [photoFile, setPhotoFile] = usePersistentState<string | null>('reelm_photo', null);
@@ -363,7 +406,7 @@ export const ReelMachinePage = () => {
 
         {/* ── STEPS ── */}
         <div className="space-y-4">
-          <WorkflowSection title="1 · Photo">
+          <WorkflowSection title="1 · Photo" dataTour="reel-photo">
             <UploadSlot
               preview={photoPreview}
               uploading={photoUploading}
@@ -375,7 +418,7 @@ export const ReelMachinePage = () => {
             />
           </WorkflowSection>
 
-          <WorkflowSection title="2 · Sound">
+          <WorkflowSection title="2 · Sound" dataTour="reel-sound">
             <div className="space-y-2.5">
               <div className="flex gap-2">
                 <div className="relative flex-1">
@@ -432,7 +475,7 @@ export const ReelMachinePage = () => {
             </div>
           </WorkflowSection>
 
-          <WorkflowSection title="3 · Style">
+          <WorkflowSection title="3 · Style" dataTour="reel-style">
             <div className="space-y-3">
               <div className="flex gap-2">
                 <button
@@ -514,6 +557,7 @@ export const ReelMachinePage = () => {
 
               <button
                 type="button"
+                data-tour="reel-make"
                 onClick={makeReel}
                 disabled={!canMake}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-3.5 text-sm font-black uppercase tracking-widest text-white transition-all hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-40"
@@ -528,6 +572,19 @@ export const ReelMachinePage = () => {
           </WorkflowSection>
         </div>
       </div>
+      {tourOpen
+        ? <Tour steps={TOUR_STEPS} storageKey="reel-machine" open onClose={() => setTourOpen(false)} />
+        : <Tour steps={TOUR_STEPS} storageKey="reel-machine" />}
+
+      <button
+        type="button"
+        onClick={() => setTourOpen(true)}
+        title="Show the walkthrough again"
+        className="fixed bottom-5 right-5 z-40 flex items-center gap-1.5 rounded-full border border-white/10 bg-[#0b0c12]/90 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white/45 shadow-lg backdrop-blur transition hover:border-violet-400/40 hover:text-white/85"
+      >
+        <HelpCircle className="h-3.5 w-3.5" />
+        How it works
+      </button>
     </WorkflowShell>
   );
 };

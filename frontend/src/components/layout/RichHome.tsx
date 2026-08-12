@@ -125,12 +125,16 @@ function HomeCard({ module, onSelect }: { module: FeddaModule; onSelect: (id: st
   );
 }
 
-// Portrait (9:16) card for the top "Automations" row. Renders an active
+// Landscape (16:9) card for the top "Automations" row. Renders an active
 // module or a "coming soon" placeholder.
+//
+// Was portrait, four across. Two wide ones read better for what these are:
+// a pipeline is a sequence, and a row of tall narrow posters said nothing
+// about that while taking the full width to say it.
 function AutomationCard({ module, onSelect }: { module?: FeddaModule; onSelect: (id: string) => void }) {
   if (!module) {
     return (
-      <div className="relative aspect-[9/16] overflow-hidden rounded-xl border border-dashed border-white/10 bg-gradient-to-b from-white/[0.04] to-transparent">
+      <div className="relative aspect-[16/9] overflow-hidden rounded-xl border border-dashed border-white/10 bg-gradient-to-b from-white/[0.04] to-transparent">
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03]">
             <Sparkles className="h-5 w-5 text-white/25" />
@@ -146,7 +150,7 @@ function AutomationCard({ module, onSelect }: { module?: FeddaModule; onSelect: 
     <button
       onClick={() => onSelect(module.defaultTab)}
       aria-label={module.label}
-      className="group relative aspect-[9/16] overflow-hidden rounded-xl border border-violet-500/25 bg-[#08090d] transition-all hover:-translate-y-0.5 hover:border-violet-400/50"
+      className="group relative aspect-[16/9] overflow-hidden rounded-xl border border-violet-500/25 bg-[#08090d] transition-all hover:-translate-y-0.5 hover:border-violet-400/50"
     >
       {module.card?.poster ? (
         <img src={module.card.poster} alt="" className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
@@ -189,8 +193,8 @@ export const RichHome = ({ onSelect }: RichHomeProps) => {
   const bottomCards = cards.slice(2);
   const bottomCols = BOTTOM_COLS[Math.min(bottomCards.length, 6)] ?? 'lg:grid-cols-4';
   const automations = availableModules.filter((module) => module.area === 'automation' && !module.hidden);
-  // Pad to 4 slots (undefined = "coming soon" placeholder)
-  const automationSlots: (FeddaModule | undefined)[] = [...automations, undefined, undefined, undefined, undefined].slice(0, 4);
+  // Pad to 2 slots (undefined = "coming soon" placeholder)
+  const automationSlots: (FeddaModule | undefined)[] = [...automations, undefined, undefined].slice(0, 2);
 
   // The home fits the viewport instead of scrolling: the two card rows share
   // whatever height is left over, so zooming in or out reflows rather than
@@ -215,7 +219,7 @@ export const RichHome = ({ onSelect }: RichHomeProps) => {
         {automations.length > 0 && (
           <section className="flex shrink-0 flex-col items-center space-y-2">
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/40">Automations</p>
-            <div className="grid w-full max-w-2xl gap-3 grid-cols-4">
+            <div className="grid w-full max-w-3xl gap-3 grid-cols-2">
               {automationSlots.map((module, i) => (
                 <AutomationCard key={module?.id ?? `soon-${i}`} module={module} onSelect={onSelect} />
               ))}

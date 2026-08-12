@@ -104,11 +104,15 @@ interface WorkflowSectionProps {
   actions?: ReactNode;
   children: ReactNode;
   className?: string;
+  /** Anchor name for a Tour step. */
+  dataTour?: string;
 }
 
-export const WorkflowSection = ({ title, actions, children, className = '' }: WorkflowSectionProps) => {
+export const WorkflowSection = ({ title, actions, children, className = '', dataTour }: WorkflowSectionProps) => {
   return (
-    <section className={`workflow-section ${className}`.trim()}>
+    // data-tour is what Tour anchors on. An attribute rather than a class or a
+    // DOM path, so restyling a section cannot quietly break a walkthrough.
+    <section className={`workflow-section ${className}`.trim()} data-tour={dataTour}>
       {(title || actions) && (
         <div className="workflow-section-header">
           {title ? <div className="workflow-section-title">{title}</div> : <span />}
