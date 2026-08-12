@@ -177,7 +177,11 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'media-downloader',
-    hidden: true,
+    // Was hidden while the rest of the tools area was in progress. Unlike
+    // its neighbours it carries no `wip` flag, and nothing about it is
+    // unfinished: the page is complete, /api/media/download-video answers
+    // with exactly the fields it reads, and it needs no nodes beyond
+    // core-shell. It was simply never switched on.
     sourceModuleId: 'core-shell',
     label: 'Media Downloader',
     description: 'Download TikTok, YouTube, Instagram and any yt-dlp URL. Send videos directly to WAN or LTX workflows.',
