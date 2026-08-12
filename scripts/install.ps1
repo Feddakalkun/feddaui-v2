@@ -828,8 +828,29 @@ if (Test-Path $FrontendDir) {
     Set-Location $FrontendDir
     if (-not (Test-Path "node_modules")) {
         Write-Step "Running npm install (this can take 1-2 minutes)..." "Yellow"
-        & npm install
-        Write-Step "Frontend dependencies installed." "Green"
+        # To the log, like every other step. --no-fund and --no-audit drop the
+        # two blocks that alarmed a tester: every advisory npm reports here is
+        # in the build toolchain - vite, rollup, postcss, babel - which runs on
+        # this machine over this project's own source and is absent from the
+        # built app. `npm audit` still answers if anyone wants the detail, and
+        # `npm audit fix` is worth avoiding: it moves vite across a major
+        # version to patch something that was never exposed.
+        #
+        # ErrorActionPreference is relaxed for the call because npm writes
+        # progress to stderr, and redirecting that under Stop turns ordinary
+        # output into a terminating NativeCommandError.
+        $NpmLog = Join-Path $LogsDir "npm_install.log"
+        if (-not (Test-Path $LogsDir)) { New-Item -ItemType Directory -Path $LogsDir -Force | Out-Null }
+        $PrevEap = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        & npm install --no-fund --no-audit 2>&1 | Out-File -FilePath $NpmLog -Encoding utf8
+        $NpmCode = $LASTEXITCODE
+        $ErrorActionPreference = $PrevEap
+        if ($NpmCode -eq 0) {
+            Write-Step "Frontend dependencies installed." "Green"
+        } else {
+            Write-Step "npm install failed (exit $NpmCode) - see logs\npm_install.log" "Red"
+        }
     } else {
         Write-Step "node_modules already exists." "Green"
     }
