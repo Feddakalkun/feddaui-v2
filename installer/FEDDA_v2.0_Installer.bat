@@ -4,19 +4,61 @@ title FEDDA v2.0 One-Click Installer
 set "APP_NAME=FEDDA Hub v2.0"
 
 :: ===========================================================================
-::  Already installed? Then this file is just the launcher. Checked against
-::  ComfyUI\main.py rather than node_modules: the frontend can be present while
-::  the half of the install that actually generates images is not.
+::  Already installed? Then this file is just the launcher.
+::
+::  The test is logs\install_report.txt, which install.ps1 writes as its very
+::  last act. Nothing else here proves an install finished.
+::
+::  This used to check that python_embeded\python.exe and ComfyUI\main.py both
+::  existed. ComfyUI is cloned in step 2 of 7 and PyTorch arrives in step 3, so
+::  a run that died during the multi-gigabyte torch download - a dropped
+::  connection, a closed window - left both files sitting there with no torch
+::  behind them. Every later double-click then skipped the install and launched
+::  straight into the wreck, ComfyUI crashed on `import torch`, and the app said
+::  only that it could not reach port 8199. Re-running the installer, the
+::  obvious thing to try, was the one thing guaranteed not to help.
+::
+::  A false negative costs a re-run that mostly no-ops (the steps below skip
+::  what is already present). A false positive strands the user for good. So
+::  when in doubt, install.
 :: ===========================================================================
 set "QUICK_ROOT=%~dp0"
 if "%QUICK_ROOT:~-1%"=="\" set "QUICK_ROOT=%QUICK_ROOT:~0,-1%"
-if exist "%QUICK_ROOT%\app\python_embeded\python.exe" (
-    if exist "%QUICK_ROOT%\app\ComfyUI\main.py" (
-        cd /d "%QUICK_ROOT%\app"
-        call run.bat %*
-        exit /b 0
-    )
+set "QUICK_REPORT=%QUICK_ROOT%\app\logs\install_report.txt"
+if not exist "%QUICK_REPORT%" goto QUICK_NO
+if not exist "%QUICK_ROOT%\app\run.bat" goto QUICK_NO
+
+:: The report exists even when the install failed - install.ps1 writes it either
+:: way and records the verdict inside. PASSED is the only thing worth trusting.
+findstr /R /C:"Smoke Test: *PASSED" "%QUICK_REPORT%" >nul 2>&1
+if errorlevel 1 goto QUICK_BROKEN
+
+cd /d "%QUICK_ROOT%\app"
+call "%QUICK_ROOT%\app\run.bat" %*
+exit /b 0
+
+:QUICK_BROKEN
+echo.
+echo   The last installation ran to the end but its self-test FAILED,
+echo   so FEDDA has not been started. Repairing it now.
+echo.
+echo   (the previous result is in app\logs\install_report.txt)
+echo.
+timeout /t 6 >nul 2>&1
+goto QUICK_CONTINUE
+
+:QUICK_NO
+:: Half an install is worse than none, because it looks like one. Say so, so
+:: the second run does not look like the installer ignoring the first.
+if exist "%QUICK_ROOT%\app\ComfyUI\main.py" (
+    echo.
+    echo   A previous installation was started here but never finished.
+    echo   Continuing it now - already-installed parts are kept.
+    echo.
+    timeout /t 4 >nul 2>&1
 )
+
+:QUICK_CONTINUE
 
 :: ===========================================================================
 ::  Front-of-house: welcome, requirements, disclaimer, info. The requirements
@@ -308,16 +350,32 @@ if exist "%APP_DIR%\logs\install_report.txt" (
     type "%APP_DIR%\logs\install_report.txt" >> "%INSTALL_LOG%"
 )
 
+:: Two things have to be clean, not one. The exit code misses the common case:
+:: Venv-Pip warns and continues when a package fails, so install.ps1 can reach
+:: its end - exit 0 - with no working torch, and record that as
+:: "Smoke Test: FAILED" in the report. Checking only the exit code is how a
+:: broken install used to reach the "ALL DONE" screen.
+set "INSTALL_OK=1"
+if %INNER_EXIT% neq 0 set "INSTALL_OK=0"
+if exist "%APP_DIR%\logs\install_report.txt" (
+    findstr /R /C:"Smoke Test: *PASSED" "%APP_DIR%\logs\install_report.txt" >nul 2>&1
+    if errorlevel 1 set "INSTALL_OK=0"
+) else (
+    set "INSTALL_OK=0"
+)
+
 if %INNER_EXIT% neq 0 (
     echo.
     echo [WARN] Inner installer exited with code %INNER_EXIT%.
-    echo        You may need to run it again manually.
-    echo        See app\scripts\install.bat for options.
     echo [WARN] Inner installer exited with code %INNER_EXIT% >> "%INSTALL_LOG%"
 ) else (
     echo.
     echo [2/3] Inner installer completed successfully.
     echo [2/3] Inner installer completed successfully. >> "%INSTALL_LOG%"
+)
+if "%INSTALL_OK%"=="0" (
+    echo [WARN] The install self-test did not pass.
+    echo [WARN] The install self-test did not pass. >> "%INSTALL_LOG%"
 )
 
 :: --- Create convenience launchers in the install root ---
@@ -403,6 +461,8 @@ echo [INFO] Generating log.md with the install log...
 echo [INFO] log.md created successfully at %INSTALL_ROOT%\log.md
 echo [INFO] log.md created successfully at %INSTALL_ROOT%\log.md >> "%INSTALL_LOG%"
 
+if "%INSTALL_OK%"=="0" goto FINISH_FAILED
+
 echo.
 echo   ============================================================
 echo      ALL DONE  -  FEDDA is installed
@@ -426,3 +486,28 @@ echo.
 echo   Press any key to close this window...
 pause
 exit /b 0
+
+:FINISH_FAILED
+echo.
+echo   ============================================================
+echo      SETUP DID NOT FINISH
+echo   ============================================================
+echo.
+echo   Part of the installation failed, so FEDDA is not ready to
+echo   run yet. Starting it now would only show "ComfyUI is not
+echo   reachable" - the setup, not the app, is what needs fixing.
+echo.
+echo   What to look at, in order:
+echo.
+echo     app\logs\install_report.txt   the summary and the self-test
+echo     app\logs\install_fast_log.txt every step in full
+echo     log.md                        all of the above in one file
+echo.
+echo   The most common cause is a dropped connection during the
+echo   PyTorch download, which is several gigabytes. Running this
+echo   installer again resumes where it stopped and keeps whatever
+echo   already installed correctly.
+echo.
+echo   Press any key to close this window...
+pause
+exit /b 1
