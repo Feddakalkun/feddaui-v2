@@ -524,6 +524,14 @@ if (-not (Test-Path $UvBin)) {
 }
 if (Test-Path $UvBin) {
     Write-Step "uv ready - package installs will use it." "Green"
+    # uv keeps its cache under %LOCALAPPDATA% on C:, and FEDDA is usually
+    # installed on a second drive. Hardlinks cannot cross a filesystem, so uv
+    # falls back to copying and warns about it - on every single call, which is
+    # a dozen paragraphs of yellow across one install for something that is
+    # working as intended. Saying so up front is uv's own suggested answer.
+    # The cost is real and small: copying files that are already on disk, next
+    # to a download measured in gigabytes.
+    $env:UV_LINK_MODE = "copy"
 } else {
     $UvBin = $null
 }
