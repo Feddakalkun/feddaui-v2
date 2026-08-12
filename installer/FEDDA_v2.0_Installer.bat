@@ -205,32 +205,25 @@ echo      keeps getting better over time.
 echo.
 echo   ------------------------------------------------------------
 echo.
-:: A screen is not consent. `pause` returns immediately when stdin is
-:: empty - piped, redirected, run from a script or a service - so every
-:: one of these notices, this one included, used to scroll past unread.
-:: Found by accident: a probe with no stdin ran the whole front-of-house
-:: and started installing.
+:: Enter accepts, N cancels.
 ::
-:: Typing is required instead. With no stdin the variable stays empty and
-:: the install refuses, which is the correct answer: terms nobody read
-:: have not been accepted. There is deliberately no environment variable
-:: to bypass this - that would rebuild the hole.
+:: `set /p` leaves the variable alone when the answer is empty, so seeding it
+:: first is what makes a bare Enter mean yes. Briefly this asked the reader to
+:: type "I AGREE", which also refused a run with no stdin at all - but it turned
+:: a one-key prompt into something that rejects an ordinary Enter, so it is out.
+:: The trade coming back with it: a piped or redirected run continues without
+:: anyone having read the terms, exactly as `pause` did.
 :ASK_AGREE
-set "AGREE="
-set /p "AGREE=Type  I AGREE  to accept these terms, or N to cancel: "
+set "AGREE=yes"
+set /p "AGREE=Press Enter to accept these terms and continue, or type N to cancel: "
 if /i "%AGREE%"=="N" goto DECLINED
-if /i "%AGREE%"=="I AGREE" goto AGREED
-if not defined AGREE goto DECLINED
-echo   Please type  I AGREE  exactly, or N to cancel.
-goto ASK_AGREE
+goto AGREED
 
 :DECLINED
 echo.
 echo   ------------------------------------------------------------
 echo   The terms were not accepted, so nothing has been installed.
-echo.
-echo   If you are running this from a script or a pipe, run it in a
-echo   console instead - these terms have to be read by a person.
+echo   Run this installer again if you change your mind.
 echo   ------------------------------------------------------------
 echo.
 pause
