@@ -11,6 +11,7 @@ import base64
 import hashlib
 import subprocess
 import sys
+import tempfile
 import sqlite3
 import shutil
 import uuid
@@ -1664,6 +1665,113 @@ async def list_tts_voices():
         return {"success": True, "voices": voices}
     except Exception as e:
         return {"success": False, "error": str(e), "voices": []}
+
+
+class VoiceFromUrlRequest(BaseModel):
+    url: str
+    start: float = 0.0
+    end: float = 0.0
+    name: str = ""
+    cookies_browser: str = ""
+
+
+@app.post("/api/tts/voices/from-url")
+async def save_tts_voice_from_url(req: VoiceFromUrlRequest):
+    """Pull a stretch of audio out of a public video and keep it as a named voice.
+
+    Downloads audio only - no video stream is ever fetched - then cuts
+    [start, end) out of it. end=0 means "to the end of the clip", which is
+    almost never what you want for a voice reference and is allowed anyway
+    because a short video may need no trimming at all.
+    """
+    parsed = urlparse((req.url or "").strip())
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise HTTPException(status_code=400, detail="Enter a valid http(s) video URL")
+
+    start = max(0.0, float(req.start or 0))
+    end = float(req.end or 0)
+    if end and end <= start:
+        raise HTTPException(
+            status_code=400,
+            detail=f"The end ({end:g}s) has to come after the start ({start:g}s)",
+        )
+    if end and (end - start) > 300:
+        raise HTTPException(status_code=400, detail="Keep the clip under 5 minutes")
+
+    try:
+        import yt_dlp
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"yt-dlp is not installed: {exc}")
+
+    CHATTERBOX_VOICES_DIR.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+        opts = {
+            "format": "bestaudio/best",
+            "outtmpl": str(tmp_dir / "src.%(ext)s"),
+            "noplaylist": True,
+            "quiet": True,
+            "no_warnings": True,
+            "overwrites": True,
+        }
+        # No FFmpegExtractAudio postprocessor. It needs a directory holding both
+        # ffmpeg.exe and ffprobe.exe; imageio-ffmpeg ships one version-named
+        # binary and no ffprobe at all, so yt-dlp answered "ffprobe and ffmpeg
+        # not found" and threw away a completed download. The single ffmpeg call
+        # below has to run anyway to trim, and converts in the same pass.
+        browser = (req.cookies_browser or "").strip().lower()
+        if browser in {"chrome", "edge", "firefox", "brave", "opera", "vivaldi"}:
+            opts["cookiesfrombrowser"] = (browser,)
+        else:
+            cookie_file = CONFIG_DIR / "cookies.txt"
+            if cookie_file.is_file():
+                opts["cookiefile"] = str(cookie_file)
+
+        try:
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(req.url.strip(), download=True)
+        except Exception as exc:
+            msg = str(exc)
+            if any(t in msg.lower() for t in ("login", "cookies", "not available", "private", "rate-limit")):
+                msg += (" | This one needs a logged-in session. Pick a browser under Cookies, "
+                        "or export a cookies.txt into config/cookies.txt.")
+            raise HTTPException(status_code=400, detail=f"Could not fetch that audio: {msg}")
+
+        # Whatever container bestaudio arrived in - webm, m4a - ffmpeg reads it.
+        sources = sorted(tmp_dir.glob("src.*"))
+        source = sources[0] if sources else None
+        if source is None:
+            raise HTTPException(status_code=400, detail="Nothing was downloaded from that URL")
+
+        # A voice reference wants one speaker, mono, at a sane rate. 24 kHz is
+        # what the TTS side resamples to anyway.
+        base = (req.name or (info or {}).get("title") or "voice").strip()
+        base = re.sub(r"[^\w\- ]+", "", base).strip()[:48] or "voice"
+        target = CHATTERBOX_VOICES_DIR / f"{base}.wav"
+        n = 2
+        while target.exists():
+            target = CHATTERBOX_VOICES_DIR / f"{base} ({n}).wav"
+            n += 1
+
+        args = ["-y"]
+        if start:
+            args += ["-ss", f"{start:g}"]
+        args += ["-i", str(source)]
+        if end:
+            args += ["-t", f"{end - start:g}"]
+        args += ["-ac", "1", "-ar", "24000", "-vn", str(target)]
+        _run_ffmpeg(args)
+
+        if not target.is_file() or target.stat().st_size < 2048:
+            if target.is_file():
+                target.unlink(missing_ok=True)
+            raise HTTPException(
+                status_code=400,
+                detail="That range produced no audio - check the start and end against the video's length",
+            )
+
+    return {"success": True, "voice": {"id": f"VOICES/{target.name}", "name": target.stem},
+            "source": (info or {}).get("title") or req.url}
 
 
 @app.post("/api/tts/voices")

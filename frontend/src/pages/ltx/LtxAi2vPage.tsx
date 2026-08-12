@@ -75,6 +75,14 @@ export const LtxAi2vPage = () => {
   const [vnVoice, setVnVoice] = usePersistentState('ltx_ai2v_venice_voice_v2', 'bf_lily');
   const [ttsCbVoice, setTtsCbVoice] = usePersistentState('ltx_ai2v_tts_cb_voice', '');
   const [ttsGenerating, setTtsGenerating] = useState(false);
+  // Clone a voice out of a stretch of a public video. The range matters more
+  // than the URL: a clone wants one speaker for a few clean seconds, and a
+  // whole track with music under it produces a worse voice than ten good ones.
+  const [cloneUrl, setCloneUrl] = usePersistentState('ltx_ai2v_clone_url', '');
+  const [cloneStart, setCloneStart] = usePersistentState('ltx_ai2v_clone_start', 0);
+  const [cloneEnd, setCloneEnd] = usePersistentState('ltx_ai2v_clone_end', 12);
+  const [cloneName, setCloneName] = usePersistentState('ltx_ai2v_clone_name', '');
+  const [cloning, setCloning] = useState(false);
   // Lipsync has had these since it was written; this page never got them,
   // so the same backend fields sat unused behind an identical voice picker.
   const [ttsRate, setTtsRate] = usePersistentState('ltx_ai2v_tts_rate', 1.0);
@@ -290,6 +298,38 @@ export const LtxAi2vPage = () => {
     return null;
   };
 
+  /** Fetch the range, keep it as a named voice, and select it. */
+  const cloneVoiceFromUrl = async () => {
+    if (!cloneUrl.trim() || cloning) return;
+    setCloning(true);
+    try {
+      const res = await fetch(`${BACKEND_API.BASE_URL}/api/tts/voices/from-url`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: cloneUrl.trim(),
+          start: cloneStart,
+          end: cloneEnd,
+          name: cloneName.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data?.success === false) {
+        throw new Error(data?.detail || data?.error || 'Could not clone that voice');
+      }
+      // Refresh the list before selecting, or the new id has nothing to match.
+      const listed = await fetch(`${BACKEND_API.BASE_URL}/api/tts/voices`).then((r) => r.json());
+      setCbVoices(listed?.voices || []);
+      setTtsEngine('chatterbox');
+      setTtsCbVoice(data.voice.id);
+      toast(`Voice "${data.voice.name}" cloned and selected`, 'success');
+    } catch (err: any) {
+      toast(err.message || 'Could not clone that voice', 'error');
+    } finally {
+      setCloning(false);
+    }
+  };
+
   const buildParams = (promptText: string) => ({
     image: imageFilename,
     audio: audioFilename,
@@ -406,7 +446,7 @@ export const LtxAi2vPage = () => {
                 <select
                   value={ttsEngine}
                   onChange={(e) => setTtsEngine(e.target.value as 'edge' | 'chatterbox' | 'venice')}
-                  className={cn(inputBase, 'w-[130px] text-[11px]')}
+                  className={cn(inputBase, 'min-w-0 flex-1 basis-0 text-[11px]')}
                 >
                   <option value="edge">Edge (fast)</option>
                   <option value="chatterbox">Chatterbox (natural)</option>
@@ -442,7 +482,7 @@ export const LtxAi2vPage = () => {
                   <select
                     value={ttsCbVoice}
                     onChange={(e) => setTtsCbVoice(e.target.value)}
-                    className={cn(inputBase, 'flex-1 text-[11px]')}
+                    className={cn(inputBase, 'min-w-0 flex-1 basis-0 text-[11px]')}
                   >
                     <option value="">Default — natural female</option>
                     {cbVoices.map((v) => (
@@ -483,7 +523,7 @@ export const LtxAi2vPage = () => {
                       exact at any width, and the arrow keys still nudge. */}
                   {([
                     ['Speed', ttsRate, setTtsRate, 0.75, 1.25, 0.01, 'x'],
-                    ['Pitch', ttsPitch, setTtsPitch, -25, 25, 1, 'Hz'],
+                    ['Pitch', ttsPitch, setTtsPitch, -25, 25, 0.01, 'Hz'],
                   ] as const).map(([label, val, set, min, max, step, unit]) => (
                     <label key={label} className="block">
                       <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
@@ -527,6 +567,66 @@ export const LtxAi2vPage = () => {
                   {(ttsGenerating || run.isGenerating) ? <Loader2 className="h-3 w-3 animate-spin" /> : <Music className="h-3 w-3" />}
                   Voice + Video
                 </button>
+              </div>
+
+              <div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-2.5">
+                <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                  Clone a voice from a video
+                </div>
+                <input
+                  value={cloneUrl}
+                  onChange={(e) => setCloneUrl(e.target.value)}
+                  placeholder="YouTube or other video URL…"
+                  className={cn(inputBase, 'text-[11px]')}
+                />
+                <div className="mt-2 flex items-end gap-2">
+                  {([
+                    ['Start', cloneStart, setCloneStart],
+                    ['End', cloneEnd, setCloneEnd],
+                  ] as const).map(([label, val, set]) => (
+                    <label key={label} className="block w-[74px] shrink-0">
+                      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                        {label}
+                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        step={0.1}
+                        value={val}
+                        onChange={(e) => {
+                          const n = Number(e.target.value);
+                          if (Number.isFinite(n)) set(Math.max(0, n));
+                        }}
+                        className={cn(inputBase, 'text-[11px]')}
+                      />
+                    </label>
+                  ))}
+                  <label className="block min-w-0 flex-1">
+                    <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                      Name
+                    </span>
+                    <input
+                      value={cloneName}
+                      onChange={(e) => setCloneName(e.target.value)}
+                      placeholder="from the video title"
+                      className={cn(inputBase, 'text-[11px]')}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => { void cloneVoiceFromUrl(); }}
+                    disabled={!cloneUrl.trim() || cloning}
+                    className="flex shrink-0 items-center gap-1.5 rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-violet-300 transition-all hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {cloning ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+                    Clone
+                  </button>
+                </div>
+                <p className="mt-1.5 text-[10px] leading-relaxed text-zinc-600">
+                  Seconds. Only the audio is downloaded. Pick a stretch where one
+                  person is speaking with nothing under it — ten clean seconds make
+                  a better voice than a whole track. End 0 takes all of it.
+                </p>
               </div>
             </div>
           </WorkflowSection>
