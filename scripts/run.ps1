@@ -108,6 +108,51 @@ $ComfyProc   = $null
 $BackendProc = $null
 $ViteProc    = $null
 $TailJobs    = @()
+$ColorMap    = @{}; foreach ($s in $Services) { $ColorMap[$s.Tag] = $s.Color }
+
+# Drain whatever the tail jobs have buffered and print it with its tag.
+# Returns $true if anything was printed, which the pump loop uses to decide
+# whether to sleep.
+function Show-ServiceOutput {
+    $printed = $false
+    foreach ($j in $TailJobs) {
+        foreach ($line in (Receive-Job -Job $j -ErrorAction SilentlyContinue)) {
+            if ($null -ne $line -and "$line" -ne "") {
+                Write-Host "[$($j.Name)] " -NoNewline -ForegroundColor $ColorMap[$j.Name]
+                Write-Host "$line"
+                $printed = $true
+            }
+        }
+    }
+    return $printed
+}
+
+<#
+    Print the tail of a service's log after it failed to come up.
+
+    Reads the files rather than the tail jobs: a service can die before its job
+    has attached, and this has to work in exactly that case. The jobs are
+    drained first so the two do not interleave.
+#>
+function Show-StartupFailure {
+    param([string]$Name, [string]$OutLog, [string]$ErrLog)
+    Write-Host ""
+    Write-Host "  ------------------------------------------------------------" -ForegroundColor Red
+    Write-Host "   $Name did not start. Last lines of its log:" -ForegroundColor Red
+    Write-Host "  ------------------------------------------------------------" -ForegroundColor Red
+    foreach ($f in @($ErrLog, $OutLog)) {
+        $lines = @(Get-Content -LiteralPath $f -Tail 25 -ErrorAction SilentlyContinue |
+                   Where-Object { "$_" -ne "" })
+        if ($lines.Count) {
+            Write-Host "  --- $(Split-Path $f -Leaf) ---" -ForegroundColor DarkGray
+            foreach ($l in $lines) { Write-Host "  $l" -ForegroundColor Gray }
+        }
+    }
+    Write-Host ""
+    Write-Host "   Full log: $ErrLog" -ForegroundColor Yellow
+    Write-Host "  ------------------------------------------------------------" -ForegroundColor Red
+    Write-Host ""
+}
 
 # Kill stale FEDDA services from a previous session (e.g. launcher window was
 # closed with X, which couldn't tear down its children). Only touches
@@ -126,6 +171,28 @@ foreach ($StalePort in 8199, 8000) {
 }
 
 try {
+    <#
+        Attach the tails BEFORE anything starts.
+
+        These used to be created after the last service launched, with `-Tail 0`
+        - which skips everything already in the file. ComfyUI is waited on for up
+        to 120s before that point, so its whole startup, traceback included, was
+        captured to disk and then never shown. A tester saw a UI full of "ComfyUI
+        is not reachable" and a launcher window with no [COMFY] line in it at all.
+
+        The files were truncated above, so -Tail 0 is now genuinely "from the
+        start". Nothing drains the jobs until the pump loop, but PowerShell
+        buffers job output, so it is held rather than lost.
+    #>
+    foreach ($s in $Services) {
+        foreach ($f in @($s.Out, $s.Err)) {
+            $TailJobs += Start-Job -Name $s.Tag -ArgumentList $f -ScriptBlock {
+                param($Path)
+                Get-Content -LiteralPath $Path -Wait -Tail 0 -ErrorAction SilentlyContinue
+            }
+        }
+    }
+
     # -NoNewWindow keeps services attached to THIS console, so closing the
     # window (X) takes them down with it instead of orphaning hidden children.
     Write-Host "  [1/3] Starting ComfyUI on port 8199..." -ForegroundColor White
@@ -152,10 +219,15 @@ try {
     $backendOk = Wait-Port -Port 8000 -Name "backend" -Proc $BackendProc -TimeoutSec 30
 
     if (-not $comfyOk) {
-        Write-Host "  [WARN] ComfyUI did not respond - the UI may show errors until it's ready." -ForegroundColor Yellow
+        Show-ServiceOutput | Out-Null
+        Show-StartupFailure -Name "ComfyUI" -OutLog $Services[0].Out -ErrLog $Services[0].Err
+        Write-Host "  Nothing that generates an image will work until this is fixed." -ForegroundColor Yellow
+        Write-Host "  The rest of the app (Venice, gallery, settings) still loads." -ForegroundColor DarkGray
+        Write-Host ""
     }
     if (-not $backendOk) {
-        Write-Host "  [WARN] Backend did not respond - some features may be unavailable." -ForegroundColor Yellow
+        Show-ServiceOutput | Out-Null
+        Show-StartupFailure -Name "The backend" -OutLog $Services[1].Out -ErrLog $Services[1].Err
     }
 
     Write-Host "  [3/3] Starting frontend (vite)..." -ForegroundColor White
@@ -165,16 +237,6 @@ try {
         -PassThru -NoNewWindow `
         -RedirectStandardOutput $Services[2].Out -RedirectStandardError $Services[2].Err
 
-    # Tail all service logs back into this window
-    foreach ($s in $Services) {
-        foreach ($f in @($s.Out, $s.Err)) {
-            $TailJobs += Start-Job -Name $s.Tag -ArgumentList $f -ScriptBlock {
-                param($Path)
-                Get-Content -LiteralPath $Path -Wait -Tail 0 -ErrorAction SilentlyContinue
-            }
-        }
-    }
-
     Write-Host ""
     Write-Host "  All services live in this window:" -ForegroundColor White
     Write-Host "    [COMFY] ComfyUI :8199   [BACK] backend :8000   [VITE] frontend :5173" -ForegroundColor DarkGray
@@ -182,19 +244,8 @@ try {
     Write-Host ""
 
     # Pump service output until the frontend exits or Ctrl+C
-    $ColorMap = @{}; foreach ($s in $Services) { $ColorMap[$s.Tag] = $s.Color }
     while ($true) {
-        $gotOutput = $false
-        foreach ($j in $TailJobs) {
-            $lines = Receive-Job -Job $j -ErrorAction SilentlyContinue
-            foreach ($line in $lines) {
-                if ($null -ne $line -and "$line" -ne "") {
-                    Write-Host "[$($j.Name)] " -NoNewline -ForegroundColor $ColorMap[$j.Name]
-                    Write-Host "$line"
-                    $gotOutput = $true
-                }
-            }
-        }
+        $gotOutput = Show-ServiceOutput
         if ($ViteProc.HasExited) {
             Write-Host "  Frontend exited (code $($ViteProc.ExitCode)) - shutting down." -ForegroundColor Yellow
             break

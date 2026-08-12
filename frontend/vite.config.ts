@@ -42,9 +42,16 @@ const viteLogger = createLogger()
 const originalError = viteLogger.error
 viteLogger.error = (msg, options) => {
   const text = String(msg ?? '')
+  // Match without the `[vite]` prefix. Vite hands this function the bare
+  // message - "http proxy error: /api/tags\nError: connect ECONNREFUSED ..." -
+  // and its own logger adds the prefix and timestamp afterwards, on the way to
+  // the terminal. Testing for `[vite] http proxy error` therefore never matched
+  // anything. Only the port-8199 clause below did, which is why ComfyUI's
+  // startup race was quiet while Ollama's poll (every 10s, forever, on any
+  // machine without Ollama) filled the launcher window.
   if (
-    text.includes('[vite] http proxy error') ||
-    text.includes('[vite] ws proxy error') ||
+    text.includes('http proxy error') ||
+    text.includes('ws proxy error') ||
     text.includes('ECONNREFUSED 127.0.0.1:8199')
   ) {
     return

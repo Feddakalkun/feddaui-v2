@@ -124,12 +124,17 @@ OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 AGENT_DB_PATH = CONFIG_DIR / "agent_memory.db"
 
 def _comfy_proxy_error() -> str:
+    # There is no separate console. run.ps1 starts all three services -NoNewWindow
+    # in the one launcher window and tags their output [COMFY] / [BACK] / [VITE].
+    # This message used to send people looking for a 'FEDDA ComfyUI Console'
+    # window that no launcher in this repo has ever created.
     return (
         "ComfyUI is not reachable on 127.0.0.1:8199. "
-        "The separate 'FEDDA ComfyUI Console' cmd window must remain open. "
-        "Wait for it to print 'Starting server' followed by 'To see the GUI go to: http://127.0.0.1:8199' "
-        "(this can take 30-120s on first launch while loading custom nodes). "
-        "If you see errors or the window closed, restart via run.bat."
+        "It runs inside the FEDDA launcher window, tagged [COMFY], and can take 30-120s "
+        "on first launch while it loads custom nodes. "
+        "If that window never printed 'To see the GUI go to: http://127.0.0.1:8199', "
+        "ComfyUI failed to start - the reason is at the end of logs\\comfyui_live.err.log. "
+        "Close the launcher window and run run.bat again."
     )
 WORKFLOW_MEMORY_PATH = CONFIG_DIR / "workflow_memory.json"
 MEMORY_REFRESH_EVERY_TURNS = 2
