@@ -23,6 +23,9 @@ interface Props {
   /** Absolute end position in seconds; 0 means play to the end. */
   end: number;
   onChange: (start: number, end: number) => void;
+  /** The clip's real length, once decoded. Lets a caller check its own
+   *  start/end against something other than a guess. */
+  onDuration?: (seconds: number) => void;
 }
 
 const HEIGHT = 72;
@@ -35,7 +38,7 @@ function fmt(s: number): string {
   return `${m}:${String(r).padStart(2, '0')}`;
 }
 
-export function AudioTimeline({ src, start, end, onChange }: Props) {
+export function AudioTimeline({ src, start, end, onChange, onDuration }: Props) {
   const [peaks, setPeaks] = useState<number[] | null>(null);
   const [duration, setDuration] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -82,6 +85,7 @@ export function AudioTimeline({ src, start, end, onChange }: Props) {
         const max = Math.max(...out, 0.01);
         setPeaks(out.map((v) => v / max));
         setDuration(decoded.duration);
+        onDuration?.(decoded.duration);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Could not read that audio');
       } finally {

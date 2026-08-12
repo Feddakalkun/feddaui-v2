@@ -52,6 +52,9 @@ export const LtxAi2vPage = () => {
   // default 0 = match the full audio length (new key resets the old stuck default of 5)
   const [duration, setDuration] = usePersistentState('ltx_ai2v_duration_v2', 0);
   const [audioStart, setAudioStart] = usePersistentState('ltx_ai2v_audio_start', 0);
+  // Measured by AudioTimeline once it decodes the clip. Null until then, which
+  // is why every check below is written to pass when it is not known yet.
+  const [audioSeconds, setAudioSeconds] = useState<number | null>(null);
   const [width, setWidth] = usePersistentState('ltx_ai2v_width', '1024');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -261,6 +264,32 @@ export const LtxAi2vPage = () => {
     }
   };
 
+  /**
+   * An offset chosen for a previous clip is not a setting worth keeping.
+   *
+   * It persists, so it outlives the audio it made sense for. Silently starting
+   * from 0 would be surprising; leaving it produces an empty waveform and a
+   * tensor-shape error several nodes downstream. Reset, and say why.
+   */
+  useEffect(() => {
+    if (audioSeconds === null || audioStart === 0) return;
+    if (audioStart < audioSeconds) return;
+    setAudioStart(0);
+    toast(
+      `Audio start was ${audioStart}s, but this clip is only ${audioSeconds.toFixed(1)}s long - reset to 0`,
+      'info',
+    );
+  }, [audioSeconds, audioStart]);
+
+  /** Why this run cannot work, or null if it can. */
+  const audioProblem = (): string | null => {
+    if (audioSeconds === null) return null;
+    if (audioStart >= audioSeconds) {
+      return `Audio start (${audioStart}s) is at or past the end of a ${audioSeconds.toFixed(1)}s clip - there would be no audio to animate`;
+    }
+    return null;
+  };
+
   const buildParams = (promptText: string) => ({
     image: imageFilename,
     audio: audioFilename,
@@ -276,6 +305,8 @@ export const LtxAi2vPage = () => {
 
   const handleGenerate = () => {
     if (!imageFilename || !audioFilename || !prompt.trim() || run.isGenerating) return;
+    const problem = audioProblem();
+    if (problem) { toast(problem, 'error'); return; }
     run.start(buildParams(prompt));
   };
 
@@ -285,6 +316,8 @@ export const LtxAi2vPage = () => {
       toast('Upload a reference image and an audio clip first', 'error');
       return;
     }
+    const problem = audioProblem();
+    if (problem) { toast(problem, 'error'); return; }
     void run.startBatch(prompts.map(buildParams));
   };
 
@@ -615,6 +648,7 @@ export const LtxAi2vPage = () => {
                   the phrase you are aiming at is visible before it costs a
                   generation. `duration` keeps its meaning: 0 is "to the end". */}
               <AudioTimeline
+                onDuration={setAudioSeconds}
                 src={audioPreview}
                 start={audioStart}
                 end={duration === 0 ? 0 : audioStart + duration}
