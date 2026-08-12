@@ -38,25 +38,85 @@ call "%QUICK_ROOT%\app\run.bat" %*
 exit /b 0
 
 :QUICK_BROKEN
+cls
 echo.
-echo   The last installation ran to the end but its self-test FAILED,
-echo   so FEDDA has not been started. Repairing it now.
+echo   ============================================================
+echo      THE LAST INSTALLATION DID NOT SUCCEED
+echo   ============================================================
 echo.
-echo   (the previous result is in app\logs\install_report.txt)
+echo   FEDDA is installed in this folder, but setup's own self-test
+echo   did not pass. Starting the app now would only show
+echo   "ComfyUI is not reachable on 127.0.0.1:8199" - it is the
+echo   installation that needs fixing, not the app.
 echo.
-timeout /t 6 >nul 2>&1
-goto QUICK_CONTINUE
+echo   This is what the last run recorded:
+echo   ------------------------------------------------------------
+findstr /C:"Install Time:" /C:"PyTorch:" /C:"Smoke Test:" "%QUICK_REPORT%"
+echo   ------------------------------------------------------------
+echo.
+echo   The usual cause is a dropped connection during the PyTorch
+echo   download, which is several gigabytes.
+echo.
+echo   WHAT A REPAIR DOES
+echo     - runs setup again over the folder that is already here
+echo     - keeps whatever installed correctly and re-fetches only
+echo       what is missing or broken
+echo     - leaves your models, outputs and settings alone
+echo     - needs an internet connection, and can take a while
+echo.
+echo   Full detail: app\logs\install_report.txt
+echo                app\logs\install_fast_log.txt
+echo.
+echo   Nothing has been changed yet.
+echo.
+goto ASK_REPAIR
 
 :QUICK_NO
-:: Half an install is worse than none, because it looks like one. Say so, so
-:: the second run does not look like the installer ignoring the first.
-if exist "%QUICK_ROOT%\app\ComfyUI\main.py" (
-    echo.
-    echo   A previous installation was started here but never finished.
-    echo   Continuing it now - already-installed parts are kept.
-    echo.
-    timeout /t 4 >nul 2>&1
-)
+:: Half an install is worse than none, because it looks like one: the files are
+:: there, so nothing announces that the install is unfinished. A folder with no
+:: ComfyUI in it is simply a new install and needs no explanation.
+if not exist "%QUICK_ROOT%\app\ComfyUI\main.py" goto QUICK_CONTINUE
+cls
+echo.
+echo   ============================================================
+echo      AN EARLIER INSTALLATION WAS NEVER FINISHED
+echo   ============================================================
+echo.
+echo   There are FEDDA files in this folder, but setup never reached
+echo   the end - it left no installation report behind. That usually
+echo   means the window was closed, or the connection dropped, part
+echo   of the way through.
+echo.
+echo   A part-installed FEDDA cannot generate anything. Starting it
+echo   would only show "ComfyUI is not reachable on 127.0.0.1:8199".
+echo.
+echo   WHAT CONTINUING DOES
+echo     - picks the installation up from where it stopped
+echo     - keeps whatever was already downloaded correctly
+echo     - leaves any models, outputs and settings in app\ alone
+echo     - needs an internet connection, and can take a while
+echo.
+echo   Nothing has been changed yet.
+echo.
+goto ASK_REPAIR
+
+:ASK_REPAIR
+:: Same Enter/N as the disclaimer: seeding the variable is what makes a bare
+:: Enter mean yes, because set /p leaves it alone on an empty answer.
+set "REPAIR=yes"
+set /p "REPAIR=Press Enter to continue and repair, or type N to cancel: "
+if /i "%REPAIR%"=="N" goto REPAIR_DECLINED
+goto QUICK_CONTINUE
+
+:REPAIR_DECLINED
+echo.
+echo   ------------------------------------------------------------
+echo   Cancelled. Nothing on disk has been changed.
+echo   Run this file again whenever you want to repair it.
+echo   ------------------------------------------------------------
+echo.
+pause
+exit /b 1
 
 :QUICK_CONTINUE
 
@@ -269,9 +329,120 @@ set "LOGS_DIR=%INSTALL_ROOT%\logs"
 set "REPO_URL=https://github.com/Feddakalkun/Fedda_hub_v2.0.git"
 set "INSTALL_LOG=%LOGS_DIR%\install.log"
 
-echo Install root     : %INSTALL_ROOT%
-echo Target app dir   : %APP_DIR%
-echo Git remote       : %REPO_URL%
+:: ===========================================================================
+::  Preflight. Nothing has been downloaded at this point, so a machine that
+::  cannot finish says so now rather than after several gigabytes.
+::
+::  Plain text on purpose. An earlier version coloured the results with ANSI
+::  escapes captured via `prompt $E`; the captured value expanded inside
+::  ordinary words and turned "Everything" into garbage. A checklist that
+::  mangles its own labels is worse than one that is not green.
+:: ===========================================================================
+set "PREFLIGHT_BAD=0"
+
+cls
+echo.
+echo   ============================================================
+echo      CHECKING THIS COMPUTER
+echo   ============================================================
+echo.
+
+<nul set /p "=Windows . . . . . . . . . . . "
+for /F "tokens=*" %%v in ('ver') do set "WINVER=%%v"
+echo [ OK ]  !WINVER!
+
+<nul set /p "=Graphics card . . . . . . . . "
+set "GPUNAME="
+for /F "tokens=*" %%g in ('nvidia-smi --query-gpu^=name --format^=csv^,noheader 2^>nul') do set "GPUNAME=%%g"
+if defined GPUNAME (
+    echo [ OK ]  !GPUNAME!
+) else (
+    echo [WARN]  no NVIDIA driver found - FEDDA needs an RTX card
+)
+
+<nul set /p "=Free disk space . . . . . . . "
+set "FREEGB=0"
+for /F %%d in ('powershell -NoProfile -Command "[int]((Get-PSDrive ('%INSTALL_ROOT%').Substring(0,1)).Free/1GB)" 2^>nul') do set "FREEGB=%%d"
+if !FREEGB! GEQ 40 (
+    echo [ OK ]  !FREEGB! GB available
+) else (
+    echo [WARN]  only !FREEGB! GB free - 40 GB or more is recommended
+)
+
+<nul set /p "=Internet connection . . . . . "
+ping -n 1 -w 4000 github.com >nul 2>&1
+if not errorlevel 1 (
+    echo [ OK ]  github.com reachable
+) else (
+    echo [FAIL]  cannot reach github.com - everything is downloaded from there
+    set "PREFLIGHT_BAD=1"
+)
+
+<nul set /p "=Git . . . . . . . . . . . . . "
+set "GITVER="
+for /F "tokens=3" %%g in ('git --version 2^>nul') do set "GITVER=%%g"
+if defined GITVER (
+    echo [ OK ]  !GITVER!
+) else (
+    echo [FAIL]  not available
+    set "PREFLIGHT_BAD=1"
+)
+
+<nul set /p "=Node.js . . . . . . . . . . . "
+set "NODEVER="
+for /F "tokens=*" %%n in ('node --version 2^>nul') do set "NODEVER=%%n"
+if defined NODEVER (
+    echo [ OK ]  !NODEVER!
+) else (
+    echo [FAIL]  not available
+    set "PREFLIGHT_BAD=1"
+)
+
+<nul set /p "=Write access here . . . . . . "
+set "WRITE_OK="
+>"%INSTALL_ROOT%\.fedda_write_test" echo x 2>nul && set "WRITE_OK=1"
+del /f /q "%INSTALL_ROOT%\.fedda_write_test" >nul 2>&1
+if defined WRITE_OK (
+    echo [ OK ]
+) else (
+    echo [FAIL]  cannot write here - move this out of Program Files
+    set "PREFLIGHT_BAD=1"
+)
+
+<nul set /p "=Ollama, optional . . . . . .  "
+ollama --version >nul 2>&1
+if not errorlevel 1 (
+    echo [ OK ]  installed
+) else (
+    echo [ -- ]  not installed - FEDDA works without it
+)
+
+echo.
+if "!PREFLIGHT_BAD!"=="1" (
+    echo   ------------------------------------------------------------
+    echo   Something above has to be fixed before FEDDA can install.
+    echo   Nothing has been downloaded or changed. Sort out the [FAIL]
+    echo   lines and run this installer again.
+    echo   ------------------------------------------------------------
+    echo.
+    pause
+    exit /b 1
+)
+
+echo   Everything needed is present.
+echo.
+echo   Installing into:  %APP_DIR%
+echo   From:             %REPO_URL%
+echo.
+set "GO=yes"
+set /p "GO=Press Enter to start the installation, or type N to cancel: "
+if /i "!GO!"=="N" (
+    echo.
+    echo   Cancelled. Nothing has been changed.
+    echo.
+    pause
+    exit /b 1
+)
 echo.
 
 :: --- Prepare log file ---
