@@ -38,14 +38,26 @@ $ErrorActionPreference = "Stop"
     Out-String keeps the text and drops the pretence.
 #>
 function Invoke-Pip {
-    param([string]$PyExe, [string[]]$PipArgs)
+    param([string]$PyExe, [string[]]$PipArgs, [string]$Label = "pip")
     $prev = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
     try {
-        # No 2>&1. The redirection is what makes Windows PowerShell wrap each
-        # stderr line in an ErrorRecord; left alone, pip's warnings print as
-        # plain text and the run stops looking like it is failing.
-        & $PyExe @PipArgs
+        # Captured, not printed. A failed source build answers with ninety
+        # lines of compiler output, and an update that touches forty nodes
+        # buries its own progress in them - which is what the console looked
+        # like before this. The detail still exists, in logs\update_pip.log.
+        #
+        # 2>&1 is safe now that the result goes into Out-String: the
+        # ErrorRecords PowerShell wraps stderr in are rendered as their own
+        # text there, so none of them reach the console as red blocks. That
+        # wrapping, not the redirection itself, was the original complaint.
+        $out = & $PyExe @PipArgs 2>&1 | Out-String
+        $code = $LASTEXITCODE
+        if ($script:PipDetailLog) {
+            Add-Content -LiteralPath $script:PipDetailLog -ErrorAction SilentlyContinue `
+                -Value ("`r`n===== $Label =====`r`n" + $out)
+        }
+        return $code
     } finally {
         $ErrorActionPreference = $prev
     }
@@ -89,6 +101,11 @@ Set-Location $RootPath
 $LogDir = Join-Path $RootPath "logs"
 if (-not (Test-Path $LogDir)) { New-Item -ItemType Directory -Path $LogDir -Force | Out-Null }
 $LogFile = Join-Path $LogDir "update.log"
+# Where Invoke-Pip puts the output it no longer prints. Separate from update.log
+# so the readable account of the run stays readable.
+$script:PipDetailLog = Join-Path $LogDir "update_pip.log"
+Set-Content -LiteralPath $script:PipDetailLog -Value "FEDDA update - pip detail - $(Get-Date)" -ErrorAction SilentlyContinue
+$script:PipFailures = @()
 if (-not $FeddaTranscriptOwner) {
     try { Start-Transcript -Path $LogFile -Append -Force | Out-Null } catch {}
 }
@@ -342,7 +359,7 @@ if ($NeedNodeUpdate -or $HasMissing) {
 
             $ReqFile = Join-Path $NodeDir_Install "requirements.txt"
             if ((Test-Path $ReqFile) -and (-not $skipDeps)) {
-                Write-Host "  [$($Node.name)] Syncing dependencies..." -ForegroundColor Gray
+                Write-Host ("  [{0}] dependencies . . . " -f $Node.name) -NoNewline -ForegroundColor Gray
                 $SkipPkgs = @('^\s*insightface','^\s*byaldi','^\s*nano-graphrag','^\s*kaleido','^\s*qwen-vl-utils','^\s*fastparquet')
                 $ReqContent = Get-Content $ReqFile
                 $Filtered = $ReqContent
@@ -350,8 +367,15 @@ if ($NeedNodeUpdate -or $HasMissing) {
                 $TmpReq = Join-Path $NodeDir_Install "_req_filtered.txt"
                 Set-Content -Path $TmpReq -Value $Filtered
                 $ErrorActionPreference = "Continue"
-                Invoke-Pip -PyExe $PyExe -PipArgs @("-m","pip","install","-q","-r","$TmpReq","--no-warn-script-location")
+                $PipCode = Invoke-Pip -PyExe $PyExe -Label $Node.name `
+                    -PipArgs @("-m","pip","install","-q","-r","$TmpReq","--no-warn-script-location")
                 $ErrorActionPreference = "Stop"
+                if ($PipCode -eq 0) {
+                    Write-Host "OK" -ForegroundColor DarkGray
+                } else {
+                    Write-Host "FAILED - see logs\update_pip.log" -ForegroundColor Yellow
+                    $script:PipFailures += $Node.name
+                }
                 Remove-Item $TmpReq -Force -ErrorAction SilentlyContinue
             } elseif ($skipDeps) {
                 Write-Host "  [$($Node.name)] Deps skipped (heavy node - already satisfied)" -ForegroundColor DarkGray
@@ -571,6 +595,16 @@ if (Test-Path $PreviewSetupScript) {
 # DONE
 # ============================================================================
 if (-not $FeddaTranscriptOwner) {
+    if ($script:PipFailures.Count -gt 0) {
+        Write-Host ""
+        Write-Host "  These nodes had dependency problems:" -ForegroundColor Yellow
+        foreach ($f in ($script:PipFailures | Sort-Object -Unique)) {
+            Write-Host "    - $f" -ForegroundColor Yellow
+        }
+        Write-Host "  Full output: logs\update_pip.log" -ForegroundColor DarkGray
+        Write-Host "  FEDDA still runs; the nodes above may be missing a feature." -ForegroundColor DarkGray
+        Write-Host ""
+    }
     try { Stop-Transcript | Out-Null } catch {}
 }
 

@@ -427,6 +427,34 @@ if (-not (Test-Path $PyEmbedExe)) {
             Set-Content -Path $PthFile -Value $Content
         }
 
+        # The embeddable distribution ships no C headers and no import
+        # library. Anything that has to be compiled - a package with no wheel
+        # for cp311/win_amd64 - then fails on "Cannot open include file:
+        # 'Python.h'", which reads like a broken toolchain and is not: the
+        # toolchain is fine, the interpreter is missing half of itself.
+        # Surfaced by stringzilla during a node update, but it was every
+        # source build. The nuget build of the same version carries both.
+        $IncDir = Join-Path $PyEmbedDir "Include"
+        $LibDir = Join-Path $PyEmbedDir "libs"
+        if (-not (Test-Path (Join-Path $IncDir "Python.h"))) {
+            Write-Step "Adding Python headers (so packages with no wheel can build)..." "Yellow"
+            try {
+                $NuPkg = Join-Path $RootPath "python_nuget.zip"
+                $NuDir = Join-Path $RootPath "_python_nuget"
+                & curl.exe -L -s -o "$NuPkg" "https://www.nuget.org/api/v2/package/python/3.11.9" --retry 3 --retry-delay 2
+                if ($LASTEXITCODE -ne 0) { throw "download failed" }
+                Expand-Archive -Path $NuPkg -DestinationPath $NuDir -Force
+                New-Item -ItemType Directory -Path $IncDir, $LibDir -Force | Out-Null
+                Copy-Item (Join-Path $NuDir "tools\include\*") $IncDir -Recurse -Force
+                Copy-Item (Join-Path $NuDir "tools\libs\*")    $LibDir -Recurse -Force
+                Remove-Item $NuDir -Recurse -Force -ErrorAction SilentlyContinue
+                Remove-Item $NuPkg -Force -ErrorAction SilentlyContinue
+                Write-Step "Python headers installed." "Green"
+            } catch {
+                Write-Step "Could not add Python headers - packages with no wheel will fail to build." "Yellow"
+            }
+        }
+
         # Install pip into embedded Python
         Write-Step "Installing pip into embedded Python..." "Yellow"
         $GetPip = Join-Path $RootPath "get-pip.py"
