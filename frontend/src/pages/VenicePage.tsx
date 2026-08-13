@@ -618,7 +618,11 @@ Current context: User is requesting images of Elara at the safari camp, now spec
       const decoder = new TextDecoder();
       let assistantContent = '';
       let done = false;
-      let toolCallAccumulator = null;
+      // One entry per tool call. The model may emit several - four book
+      // covers arrive as four - streamed interleaved and told apart only by
+      // tc.index. A single buffer ran their arguments together into
+      // {...}{...}{...} and JSON.parse died at the end of the first.
+      const toolCalls: Array<{ id: string; name: string; arguments: string }> = [];
 
       const assistantMsgIndex = newMessages.length;
       setChatMessages([...newMessages, { role: 'assistant', content: '' }]);
@@ -655,20 +659,21 @@ Current context: User is requesting images of Elara at the safari camp, now spec
 
                 // Accumulate tool calls for image generation etc.
                 if (delta?.tool_calls && delta.tool_calls.length > 0) {
-                  const tc = delta.tool_calls[0];
-                  if (!toolCallAccumulator) {
-                    toolCallAccumulator = {
-                      id: tc.id || '',
-                      name: tc.function?.name || '',
-                      arguments: ''
-                    };
-                  }
-                  if (tc.function?.arguments) {
-                    toolCallAccumulator.arguments += tc.function.arguments;
+                  // Every entry in the delta, not just the first: a chunk can
+                  // carry fragments of two different calls.
+                  for (const tc of delta.tool_calls) {
+                    const at = typeof tc.index === 'number' ? tc.index : 0;
+                    if (!toolCalls[at]) toolCalls[at] = { id: '', name: '', arguments: '' };
+                    // id and name arrive once, on that call's opening chunk;
+                    // the arguments dribble in across the rest.
+                    if (tc.id) toolCalls[at].id = tc.id;
+                    if (tc.function?.name) toolCalls[at].name = tc.function.name;
+                    if (tc.function?.arguments) toolCalls[at].arguments += tc.function.arguments;
                   }
                   // Optionally show "Generating image..." in UI
-                  if ((toolCallAccumulator.name === 'generate_image'
-                    || toolCallAccumulator.name === 'edit_image') && !assistantContent) {
+                  const firstCall = toolCalls.find(Boolean);
+                  if (firstCall && (firstCall.name === 'generate_image'
+                    || firstCall.name === 'edit_image') && !assistantContent) {
                     assistantContent = 'Generating image...';
                     setChatMessages(prev => {
                       const updated = [...prev];
@@ -684,6 +689,12 @@ Current context: User is requesting images of Elara at the safari camp, now spec
       }
 
       // Execute tool calls if detected (e.g. image generation)
+      // Parameters are named for what the body below already refers to, so
+      // running several calls needed no change to the code that runs one.
+      const runToolCall = async (
+        toolCallAccumulator: { id: string; name: string; arguments: string },
+        assistantMsgIndex: number,
+      ) => {
       if (toolCallAccumulator && toolCallAccumulator.name === 'edit_image') {
         try {
           const args = JSON.parse(toolCallAccumulator.arguments || '{}');
@@ -888,6 +899,22 @@ Current context: User is requesting images of Elara at the safari camp, now spec
           });
         }
       }
+      };
+
+      // In turn, each into its own message. Sharing one would leave the last
+      // cover standing where four were asked for - a run that looks like it
+      // worked and quietly returns a quarter of the job.
+      const pending = toolCalls.filter(Boolean);
+      for (let i = 0; i < pending.length; i++) {
+        if (i > 0) {
+          // The agent's preamble belongs to the first result only; repeated
+          // over four it reads as four copies of the same answer.
+          assistantContent = '';
+          setChatMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
+        }
+        await runToolCall(pending[i], assistantMsgIndex + i);
+      }
+
       // A reply that reasoned and then ran out of budget leaves content empty.
       // Saying so beats an empty bubble the user cannot interpret.
       if (!assistantContent && assistantReasoning) {
