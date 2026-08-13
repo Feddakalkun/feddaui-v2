@@ -512,6 +512,17 @@ class LoRAService:
                 continue  # root LoRAs are never characters
             by_folder.setdefault(folder, []).append(info)
 
+        # characters/<Name> folders exist as soon as the sheet is written, and
+        # may hold no LoRAs directly - they live in the family folders below.
+        try:
+            croot = self._lora_fs_path("characters")
+            if croot.is_dir():
+                for child in croot.iterdir():
+                    if child.is_dir():
+                        by_folder.setdefault("characters/" + child.name, [])
+        except OSError:
+            pass
+
         # A character whose LoRAs all live elsewhere. Since a sheet can claim
         # paths from any folder, a person can exist with an empty folder and a
         # sheet naming weights under zimage_turbo/ or wan22/ - and that folder
@@ -548,7 +559,17 @@ class LoRAService:
             parts = folder.split("/")
             under_app = len(parts) == 2 and parts[0].lower() == "app"
             has_lone_sheet = len(mds) == 1
-            if not (under_app or has_lone_sheet):
+
+            # characters/<Name>/... — the layout LoRAs are being moved into. The
+            # name folder carries the sheet and no weights; the family folders
+            # beneath it carry weights and no sheet, so neither rule above sees
+            # one. Anything under the name folder belongs to that person, which
+            # is what lets the family level be organisation rather than meaning.
+            under_characters = len(parts) >= 2 and parts[0].lower() == "characters"
+            if under_characters and len(parts) > 2:
+                continue  # counted under its character, not as one of its own
+
+            if not (under_app or under_characters or has_lone_sheet):
                 continue
 
             sheet = mds[0] if has_lone_sheet else None
@@ -557,6 +578,13 @@ class LoRAService:
             # path because ComfyUI reports separators per folder, not per
             # platform - see the note in CLAUDE.md.
             owned = list(loras)
+            if folder.split("/")[0].lower() == "characters":
+                prefix = folder.lower() + "/"
+                owned = [
+                    i for i in installed.values()
+                    if (i.get("path") or "").replace("\\", "/").lower().startswith(prefix)
+                ]
+
             missing: List[str] = []
             if sheet:
                 have = {(l.get("path") or "").replace("\\", "/").lower() for l in owned}
