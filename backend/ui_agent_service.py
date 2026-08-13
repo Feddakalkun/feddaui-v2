@@ -142,7 +142,9 @@ V1_WORKFLOW_CONFIG: Dict[str, Dict[str, Any]] = {
             "cfg": 1,
             "seed": -1,
         },
-        "lora_prefixes": ["zimage_turbo/", "zimage-turbo/"],
+        # Family tokens, matched as substrings - characters live at
+        # characters/<Name>/zimage/, not under a zimage_turbo/ root.
+        "lora_prefixes": ["zimage_turbo/", "zimage-turbo/", "/zimage/"],
     },
     "flux2klein-txt2img": {
         "label": "FLUX2-KLEIN",
@@ -160,7 +162,7 @@ V1_WORKFLOW_CONFIG: Dict[str, Dict[str, Any]] = {
             "seed": -1,
             "sampler_name": "euler",
         },
-        "lora_prefixes": ["flux2klein/"],
+        "lora_prefixes": ["flux2klein/", "/flux2klein/"],
     },
     "firered-image-edit": {
         "label": "FireRed Edit",
@@ -268,6 +270,24 @@ def _extract_json_object(text: str) -> Dict[str, Any]:
         return parsed if isinstance(parsed, dict) else {}
     except Exception:
         return {}
+
+
+def _family_matchers(prefixes: List[str]) -> List[str]:
+    """Normalise a workflow's lora_prefixes into things to look for in a path."""
+    out = []
+    for prefix in prefixes:
+        norm = _normalize_lora_path(prefix)
+        out.append(norm if norm.endswith("/") else norm + "/")
+    return out
+
+
+def _in_family(norm_path: str, matchers: List[str]) -> bool:
+    """A root prefix or a family folder anywhere in the path.
+
+    Anywhere, because a character LoRA sits at characters/<Name>/<family>/ and
+    anchoring at the start would reject every one of them.
+    """
+    return any(norm_path.startswith(m) or m in norm_path for m in matchers)
 
 
 def _words(text: str) -> List[str]:
@@ -606,10 +626,10 @@ class UIAgentService:
         terms = [w for w in _words(query) if w not in STOPWORDS]
 
         scored: List[tuple[int, str]] = []
-        normalized_prefixes = [_normalize_lora_path(prefix) + ("" if prefix.endswith("/") else "/") for prefix in prefixes]
+        normalized_prefixes = _family_matchers(prefixes)
         for lora in installed_loras:
             norm = _normalize_lora_path(lora)
-            if not any(norm.startswith(prefix) for prefix in normalized_prefixes):
+            if not _in_family(norm, normalized_prefixes):
                 continue
             score = sum(1 for term in terms if term in norm)
             if score:
@@ -675,7 +695,7 @@ class UIAgentService:
         if not isinstance(value, list) or not prefixes:
             return []
         installed = {_normalize_lora_path(name): name for name in self._installed_loras()}
-        normalized_prefixes = [_normalize_lora_path(prefix) + ("" if prefix.endswith("/") else "/") for prefix in prefixes]
+        normalized_prefixes = _family_matchers(prefixes)
         valid: List[Dict[str, Any]] = []
         for item in value:
             if not isinstance(item, dict):
@@ -684,7 +704,7 @@ class UIAgentService:
             norm = _normalize_lora_path(raw_name)
             if not norm or norm not in installed:
                 continue
-            if not any(norm.startswith(prefix) for prefix in normalized_prefixes):
+            if not _in_family(norm, normalized_prefixes):
                 continue
             strength = _coerce_number(item.get("strength"), 1.0, 0, 2)
             valid.append({"name": installed[norm], "strength": strength})

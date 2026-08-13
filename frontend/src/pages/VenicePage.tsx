@@ -6,6 +6,8 @@ import { triggerMediaDownload } from '../utils/mediaStore';
 import { BACKEND_API } from '../config/api';
 import { PipelineCancelled, pollGeneration, stageAsInput, submitGenerate, viewUrl } from './tools/reelPipeline';
 import { usePersistentState } from '../hooks/usePersistentState';
+import { characterMatchesFamily, fetchCharacters, loadSheet, type Character, type Sheet } from '../lib/characters';
+import { matchesFamily } from '../lib/loraLabel';
 import { Sparkles, Download, ImageIcon, Loader2, AlertCircle, Hash, Sliders, Send, Trash2, Globe, Settings } from 'lucide-react';
 
 /**
@@ -80,16 +82,22 @@ const saveToGlobalGallery = (urls: string[], source = 'venice') => {
  * of the three ways wiring fails in CLAUDE.md - so krea2 saying false here is
  * what stops a negative prompt being written and quietly ignored.
  */
-interface LocalModel { id: string; label: string; negative: boolean }
+interface LocalModel {
+  id: string;
+  label: string;
+  negative: boolean;
+  /** Which LoRA family this workflow can load, for filtering characters. */
+  family: string[];
+}
 
 const LOCAL_IMAGE_MODELS: LocalModel[] = [
-  { id: 'z-image', label: 'Z-Image Turbo', negative: true },
-  { id: 'krea2-turbo-txt2img', label: 'Krea2 Turbo', negative: false },
-  { id: 'qwen-txt2img', label: 'Qwen Text to Image', negative: true },
+  { id: 'z-image', label: 'Z-Image Turbo', negative: true, family: ['zimage', 'z-image'] },
+  { id: 'krea2-turbo-txt2img', label: 'Krea2 Turbo', negative: false, family: ['krea2', 'krea'] },
+  { id: 'qwen-txt2img', label: 'Qwen Text to Image', negative: true, family: ['qwen'] },
 ];
 
 const LOCAL_EDIT_MODELS: LocalModel[] = [
-  { id: 'qwen-rapid-edit-v23', label: 'Qwen Rapid Edit v23', negative: true },
+  { id: 'qwen-rapid-edit-v23', label: 'Qwen Rapid Edit v23', negative: true, family: ['qwen'] },
 ];
 
 // Image Models
@@ -199,6 +207,28 @@ export function VenicePage() {
   // last chosen.
   const [localImgModel, setLocalImgModel] = usePersistentState('venice_local_img_model', '');
   const [localEditModel, setLocalEditModel] = usePersistentState('venice_local_edit_model', '');
+
+  // FEDDA's own people. Only meaningful alongside a local model - Venice has
+  // no way to load a LoRA, so a character is a local-only idea.
+  const [feddaChars, setFeddaChars] = useState<Character[]>([]);
+  const [localCharacter, setLocalCharacter] = usePersistentState('venice_local_character', '');
+  const [charSheet, setCharSheet] = useState<Sheet | null>(null);
+
+  useEffect(() => {
+    fetchCharacters().then(setFeddaChars).catch(() => setFeddaChars([]));
+  }, []);
+
+  // The sheet carries the trigger word and the appearance, which is most of
+  // what makes the picture be of them. Cleared when no one is picked so a
+  // stale description cannot ride along on the next prompt.
+  useEffect(() => {
+    const c = feddaChars.find((x) => x.name === localCharacter);
+    if (!c) { setCharSheet(null); return; }
+    let cancelled = false;
+    loadSheet(c).then((sh) => { if (!cancelled) setCharSheet(sh); })
+                .catch(() => { if (!cancelled) setCharSheet(null); });
+    return () => { cancelled = true; };
+  }, [localCharacter, feddaChars]);
 
   const generateImage = async () => {
     if (!imgPrompt.trim()) { toast('Prompt is required', 'error'); return; }
@@ -748,8 +778,21 @@ Current context: User is requesting images of Elara at the safari camp, now spec
           if (localImg) {
             const workflowId = localImg.id;
             try {
+              // The character, if one is picked and has weights this workflow
+              // can load. The trigger goes first - a LoRA trained on a token
+              // does almost nothing until the token is in the prompt - and the
+              // appearance after, covering what the weights do not carry.
+              const chosen = feddaChars.find((c) => c.name === localCharacter);
+              const charLora = chosen?.loras.find((l) => matchesFamily(l.path, localImg.family));
+              const bits = [
+                charSheet?.trigger?.trim() || (charLora ? chosen!.name.toLowerCase() : ''),
+                imagePrompt,
+                charSheet?.appearance?.trim() || '',
+              ].filter(Boolean);
+
               const promptId = await submitGenerate(workflowId, {
-                prompt: imagePrompt,
+                prompt: charLora ? bits.join(', ') : imagePrompt,
+                ...(charLora ? { loras: [{ name: charLora.path, strength: 1.0 }] } : {}),
                 // Only when the graph has somewhere to put it.
                 ...(localImg.negative && args.negative_prompt
                   ? { negative: args.negative_prompt } : {}),
@@ -769,7 +812,7 @@ Current context: User is requesting images of Elara at the safari camp, now spec
                   role: 'assistant',
                   content: assistantContent && assistantContent !== 'Generating image...'
                     ? assistantContent
-                    : `Generated on your GPU with ${localImg.label}.`,
+                    : `Generated on your GPU with ${localImg.label}${charLora ? ` as ${chosen!.name}` : ''}.`,
                   images: urls,
                 };
                 return updated;
@@ -1205,6 +1248,38 @@ Current context: User is requesting images of Elara at the safari camp, now spec
                       {LOCAL_IMAGE_MODELS.map((m) => (
                         <option key={m.id} value={m.id}>{m.label}</option>
                       ))}
+                    </select>
+                  </label>
+                  {/* Only the ones whose weights this workflow can load. A
+                      character with nothing but wan22 LoRAs has nothing to give
+                      a z-image run, and offering them returns a stranger from a
+                      generation that looked like it worked. */}
+                  <label className="flex items-center gap-1.5 whitespace-nowrap text-[11px] text-emerald-300/60">
+                    Character
+                    <select
+                      value={localCharacter}
+                      onChange={(e) => setLocalCharacter(e.target.value)}
+                      disabled={!localImgModel}
+                      title={localImgModel
+                        ? 'Generate as one of your own characters, using their LoRA and sheet.'
+                        : 'Pick a local image model first - Venice cannot load a LoRA.'}
+                      className="max-w-[150px] rounded-lg fedda-input px-2 py-1 text-[11px] focus:border-emerald-500/40 disabled:opacity-40"
+                    >
+                      <option value="">Nobody</option>
+                      {feddaChars
+                        .filter((c) => {
+                          const m = LOCAL_IMAGE_MODELS.find((x) => x.id === localImgModel);
+                          return m ? characterMatchesFamily(c, m.family) : false;
+                        })
+                        .map((c) => (
+                          // Flagged, not hidden. Without a sheet there is no
+                          // trigger word and the name alone is a guess, which
+                          // is the difference between their face and a
+                          // stranger wearing the prompt.
+                          <option key={c.name} value={c.name}>
+                            {c.has_sheet ? c.name : c.name + '  (no sheet)'}
+                          </option>
+                        ))}
                     </select>
                   </label>
                   <label className="flex items-center gap-1.5 whitespace-nowrap text-[11px] text-emerald-300/60">
