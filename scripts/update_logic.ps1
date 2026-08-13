@@ -325,7 +325,14 @@ if ($NeedNodeUpdate -or $HasMissing) {
                 $InstalledCount++
                 Write-Host "  [$($Node.name)] Installed OK (vendored)" -ForegroundColor Green
                 $ReqFile = Join-Path $NodeDir_Install "requirements.txt"
-                if (Test-Path $ReqFile) { & $PyExe -m pip install -r "$ReqFile" --no-warn-script-location --quiet 2>&1 | Out-Null }
+                # Through Invoke-Pip like every other pip call here. Called
+                # directly it answered a failed build inside one node's
+                # requirements with a PowerShell stack trace naming this
+                # file and line, printed between two node names.
+                if (Test-Path $ReqFile) {
+                    Invoke-Pip -PyExe $PyExe -Label $Node.name `
+                        -PipArgs @("-m","pip","install","-r","$ReqFile","--no-warn-script-location","--quiet") | Out-Null
+                }
                 continue
             }
             Write-Host "  [$($Node.name)] Installing..." -ForegroundColor White

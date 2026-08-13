@@ -107,6 +107,32 @@ $ErrorActionPreference = "Continue"
 
 if (Test-ComfyImports) {
     Write-Host "  ComfyUI imports." -ForegroundColor Green
+
+    # comfy-kitchen is wherever the last attempt above left it, which has
+    # nothing to do with what this ComfyUI wants. Put it back to what the
+    # version now checked out pins, and only if that still imports - the
+    # working state is worth more than a tidy version number.
+    $Req = Join-Path $ComfyDir "requirements.txt"
+    if (Test-Path $Req) {
+        $Pin = Select-String -Path $Req -Pattern '^comfy-kitchen==' -ErrorAction SilentlyContinue |
+               Select-Object -First 1
+        if ($Pin) {
+            $Want = $Pin.Line.Trim()
+            Write-Host "  Restoring $Want for this ComfyUI..." -NoNewline -ForegroundColor Yellow
+            $Before = (& $Py -c "import importlib.metadata as m; print(m.version('comfy-kitchen'))" 2>$null)
+            $ErrorActionPreference = "Continue"
+            & $Py -m pip install $Want --no-input --no-warn-script-location 2>&1 | Out-Null
+            if (Test-ComfyImports) {
+                Write-Host " done." -ForegroundColor Green
+            } else {
+                Write-Host " it stopped importing - putting the working one back." -ForegroundColor Yellow
+                if ($Before) {
+                    & $Py -m pip install ("comfy-kitchen==" + $Before.Trim()) --no-input --no-warn-script-location 2>&1 | Out-Null
+                }
+            }
+        }
+    }
+
     Write-Host ""
     Write-Host "  It is now on the version a fresh install uses. Newer ComfyUI needs a" -ForegroundColor DarkGray
     Write-Host "  newer PyTorch than the cu124 wheels provide - see CLAUDE.md." -ForegroundColor DarkGray
