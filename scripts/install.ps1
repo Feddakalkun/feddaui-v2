@@ -956,10 +956,20 @@ Write-Step "Running smoke test (PyTorch + CUDA import check)..." "Cyan"
 $SmokeExitCode = $LASTEXITCODE
 Remove-Item $SmokeFile -Force
 
+# The frontend is half the install and the smoke test only imports torch.
+# A tester got "Smoke Test: PASSED" over a failed npm install, and the
+# launcher then refused to start for want of node_modules - which is what
+# run.ps1 checks, so it is what the verdict has to check too.
+$FrontendOk = Test-Path (Join-Path $RootPath "frontend\node_modules")
+
 if ($SmokeExitCode -eq 0) {
     Write-Step "All core imports verified!" "Green"
 } else {
     Write-Step "Some imports failed - check output above." "Yellow"
+}
+if (-not $FrontendOk) {
+    Write-Step "frontend\node_modules is missing - the app cannot start." "Red"
+    Write-Step "See logs\npm_install.log, then run this installer again." "Yellow"
 }
 
 # ============================================================================
@@ -987,7 +997,15 @@ try {
 } catch {}
 
 $InstallReport += ""
-if ($SmokeExitCode -eq 0) { $InstallReport += "Smoke Test:      PASSED" } else { $InstallReport += "Smoke Test:      FAILED" }
+# One line, both halves. The quick-launch gate reads this and nothing else,
+# so a PASSED here has to mean the whole install and not just the Python.
+if ($SmokeExitCode -eq 0 -and $FrontendOk) {
+    $InstallReport += "Smoke Test:      PASSED"
+} else {
+    $InstallReport += "Smoke Test:      FAILED"
+    if ($SmokeExitCode -ne 0) { $InstallReport += "  - Python imports failed" }
+    if (-not $FrontendOk)     { $InstallReport += "  - frontend/node_modules missing (see logs/npm_install.log)" }
+}
 
 $InstallReport += ""
 $InstallReport += "Log Files:"
