@@ -741,7 +741,8 @@ Current context: User is requesting images of Elara at the safari camp, now spec
                 return updated;
               });
             }
-            setIsChatLoading(false);
+            // The finally at the end of sendChat clears the generating
+            // flag; returning here skips the Venice call, not the cleanup.
             return;
           }
 
