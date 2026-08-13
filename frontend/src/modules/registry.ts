@@ -268,7 +268,10 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'z-image-dual-lora',
-    hidden: true,
+    // Hidden since before the dual-LoRA consolidation, while the visible
+    // entry was z-image-2loras-v2 - which that consolidation removed. So
+    // the family had a workflow, a page and a registration, and nothing
+    // in the UI leading to any of it.
     sourceModuleId: 'z-image-advanced',
     label: 'Z-Image Dual LoRA',
     description: 'Two-person LoRA image with selected-person refinement.',
