@@ -4,6 +4,7 @@ import { useToast } from '../components/ui/Toast';
 import { Lightbox } from '../components/ui/Lightbox';
 import { triggerMediaDownload } from '../utils/mediaStore';
 import { BACKEND_API } from '../config/api';
+import { PipelineCancelled, pollGeneration, submitGenerate, viewUrl } from './tools/reelPipeline';
 import { Sparkles, Download, ImageIcon, Loader2, AlertCircle, Hash, Sliders, Send, Trash2, Globe, Settings } from 'lucide-react';
 
 /**
@@ -67,6 +68,21 @@ const saveToGlobalGallery = (urls: string[], source = 'venice') => {
     console.warn('Failed to save to gallery', e);
   }
 };
+
+/**
+ * Models that run here instead of on Venice.
+ *
+ * The `local:` prefix carries the routing. It is not a separate switch because
+ * it is not a separate decision - "which model draws this" is one question, and
+ * splitting it across two controls would mean picking Venice's Flux while a
+ * local toggle quietly overrode it.
+ *
+ * The suffix is a FEDDA workflow id, so adding one is a line here rather than
+ * anything in the branch that runs them.
+ */
+const LOCAL_IMAGE_MODELS = [
+  { id: 'local:z-image', label: 'Z-Image Turbo — on your GPU (free)' },
+];
 
 // Image Models
 const VENICE_IMAGE_MODELS = [
@@ -168,7 +184,10 @@ export function VenicePage() {
     return () => { cancelled = true; };
   }, []);
 
-  const imageModels = liveModels ?? VENICE_IMAGE_MODELS;
+  // Prepended rather than appended to the constant: Venice replaces the whole
+  // list with its live one once the key answers, and a local entry inside that
+  // constant would disappear at that moment.
+  const imageModels = [...LOCAL_IMAGE_MODELS, ...(liveModels ?? VENICE_IMAGE_MODELS)];
 
   const generateImage = async () => {
     if (!imgPrompt.trim()) { toast('Prompt is required', 'error'); return; }
@@ -682,6 +701,49 @@ Current context: User is requesting images of Elara at the safari camp, now spec
           // tab never applied to anything the agent generated in chat - and the
           // chat's own select is the text model, which is a different thing.
           const imgModelToUse = args.model || imgModel || 'flux-2-pro';
+
+          if (imgModelToUse.startsWith('local:')) {
+            const workflowId = imgModelToUse.slice('local:'.length);
+            try {
+              const promptId = await submitGenerate(workflowId, {
+                prompt: imagePrompt,
+                negative: args.negative_prompt || '',
+                width: args.width || 1024,
+                height: args.height || 1024,
+                // Not exposed to the model. It asks for a picture; how many
+                // steps that takes is not a thing to negotiate in chat.
+                seed: Math.floor(Math.random() * 1_000_000_000),
+              });
+              const files = await pollGeneration({
+                promptId, workflowId, resultKey: 'images',
+              });
+              const urls = files.map(viewUrl);
+              setChatMessages(prev => {
+                const updated = [...prev];
+                updated[assistantMsgIndex] = {
+                  role: 'assistant',
+                  content: assistantContent && assistantContent !== 'Generating image...'
+                    ? assistantContent
+                    : `Generated locally with ${workflowId}.`,
+                  images: urls,
+                };
+                return updated;
+              });
+              saveToGlobalGallery(urls, 'venice-local');
+            } catch (localErr: any) {
+              const why = localErr instanceof PipelineCancelled
+                ? 'Cancelled.'
+                : `Local generation failed: ${localErr?.message || localErr}`;
+              toast(why, 'error');
+              setChatMessages(prev => {
+                const updated = [...prev];
+                updated[assistantMsgIndex] = { role: 'assistant', content: why };
+                return updated;
+              });
+            }
+            setIsChatLoading(false);
+            return;
+          }
 
           const imgBody: any = {
             model: imgModelToUse,
