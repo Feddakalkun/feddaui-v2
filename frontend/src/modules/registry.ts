@@ -267,20 +267,6 @@ export const FEDDA_MODULES: FeddaModule[] = [
     card: { poster: '/cards/bunny/z-image-basic.jpeg' },
   },
   {
-    id: 'z-image-2loras-v2',
-    sourceModuleId: 'z-image-advanced',
-    label: 'Two People',
-    description: 'Two characters, two LoRAs — one drives the image, the other detail-passes its own face.',
-    area: 'image',
-    pack: 'booster',
-
-    tabs: ['z-image-2loras-v2'],
-    workflows: ['z-image-2loras-v2'],
-    defaultTab: 'z-image-2loras-v2',
-    Icon: Users,
-    card: { poster: '/cards/bunny/z-image-2loras-v2.jpeg' },
-  },
-  {
     id: 'z-image-dual-lora',
     hidden: true,
     sourceModuleId: 'z-image-advanced',
@@ -291,7 +277,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
 
     tabs: ['z-image-dual-lora'],
     // Two graphs behind one page: 'Both faces' and the phrase-detected variant.
-    workflows: ['z-image-dual-lora', 'z-image-dual-lora-v2'],
+    workflows: ['z-image-dual-lora'],
     defaultTab: 'z-image-dual-lora',
     Icon: Sparkles,
     card: { poster: '/cards/bunny/z-image-dual-lora.jpeg' },

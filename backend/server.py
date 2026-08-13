@@ -5253,7 +5253,10 @@ def _zimage_required_models(workflow_id: str, params: Dict[str, Any]) -> List[st
     """
     Resolve which Z-Image core models must exist before prompt validation.
     """
-    zimage_ids = {"z-image", "z-image-dual-lora", "z-image-dual-base", "z-image-dual-detail", "z-image-controlnet-pose"}
+    # dual-base and dual-detail were two halves of a pipeline whose
+    # graphs are gone; one dual-LoRA workflow replaced both.
+    zimage_ids = {"z-image", "z-image-dual-lora", "z-image-inpaint-automask",
+                  "z-image-controlnet-pose"}
     if workflow_id not in zimage_ids:
         return []
 

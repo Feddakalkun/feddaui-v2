@@ -129,649 +129,90 @@
       }
     }
   },
-  "z-image-dual-base": {
-    "name": "Z-Image Dual LoRA (Base + Detect)",
-    "filename": "z-image/z-image-dual-lora-base.json",
-    "description": "Stage 1: dual-person base generation with detection outputs for person selection.",
-    "inputs": {
-      "main_prompt": {
-        "node_id": "8",
-        "input_key": "text",
-        "type": "string",
-        "label": "Main Prompt"
-      },
-      "detail_prompt": {
-        "node_id": "9",
-        "input_key": "text",
-        "type": "string",
-        "label": "Detail Prompt"
-      },
-      "negative": {
-        "node_id": "10",
-        "input_key": "text",
-        "type": "string",
-        "label": "Negative Prompt"
-      },
-      "seed": {
-        "node_id": "15",
-        "input_key": "seed",
-        "type": "number",
-        "label": "Seed"
-      },
-      "detection_phrase": {
-        "node_id": "18",
-        "input_key": "text_input",
-        "type": "string",
-        "label": "Detection Phrase"
-      },
-      "selected_box_index": {
-        "node_id": "19",
-        "input_key": "index",
-        "type": "number",
-        "label": "Selected Box Index"
-      },
-      "unet_name": {
-        "node_id": "1",
-        "input_key": "unet_name",
-        "type": "string",
-        "label": "UNET"
-      },
-      "clip_name": {
-        "node_id": "2",
-        "input_key": "clip_name",
-        "type": "string",
-        "label": "CLIP"
-      },
-      "vae_name": {
-        "node_id": "3",
-        "input_key": "vae_name",
-        "type": "string",
-        "label": "VAE"
-      },
-      "lora_main_name": {
-        "node_id": "4",
-        "input_key": "lora_name",
-        "type": "string",
-        "label": "Main LoRA"
-      },
-      "lora_main_strength": {
-        "node_id": "4",
-        "input_keys": [
-          "strength_model",
-          "strength_clip"
-        ],
-        "type": "number",
-        "label": "Main LoRA Strength"
-      },
-      "lora_detail_name": {
-        "node_id": "5",
-        "input_key": "lora_name",
-        "type": "string",
-        "label": "Detail LoRA"
-      },
-      "lora_detail_strength": {
-        "node_id": "5",
-        "input_keys": [
-          "strength_model",
-          "strength_clip"
-        ],
-        "type": "number",
-        "label": "Detail LoRA Strength"
-      }
-    }
-  },
-  "z-image-dual-detail": {
-    "name": "Z-Image Dual LoRA (Detail Pass)",
-    "filename": "z-image/z-image-dual-lora-detail.json",
-    "description": "Stage 2: selected-person inpaint/detail pass using locked seed and LoRA #2.",
-    "inputs": {
-      "main_prompt": {
-        "node_id": "8",
-        "input_key": "text",
-        "type": "string",
-        "label": "Main Prompt"
-      },
-      "detail_prompt": {
-        "node_id": "9",
-        "input_key": "text",
-        "type": "string",
-        "label": "Detail Prompt"
-      },
-      "negative": {
-        "node_id": "10",
-        "input_key": "text",
-        "type": "string",
-        "label": "Negative Prompt"
-      },
-      "seed": {
-        "node_ids": [
-          "15",
-          "25"
-        ],
-        "input_key": "seed",
-        "type": "number",
-        "label": "Seed"
-      },
-      "detection_phrase": {
-        "node_id": "18",
-        "input_key": "text_input",
-        "type": "string",
-        "label": "Detection Phrase"
-      },
-      "selected_box_index": {
-        "node_id": "19",
-        "input_key": "index",
-        "type": "number",
-        "label": "Selected Box Index"
-      },
-      "unet_name": {
-        "node_id": "1",
-        "input_key": "unet_name",
-        "type": "string",
-        "label": "UNET"
-      },
-      "clip_name": {
-        "node_id": "2",
-        "input_key": "clip_name",
-        "type": "string",
-        "label": "CLIP"
-      },
-      "vae_name": {
-        "node_id": "3",
-        "input_key": "vae_name",
-        "type": "string",
-        "label": "VAE"
-      },
-      "lora_main_name": {
-        "node_id": "4",
-        "input_key": "lora_name",
-        "type": "string",
-        "label": "Main LoRA"
-      },
-      "lora_main_strength": {
-        "node_id": "4",
-        "input_keys": [
-          "strength_model",
-          "strength_clip"
-        ],
-        "type": "number",
-        "label": "Main LoRA Strength"
-      },
-      "lora_detail_name": {
-        "node_id": "5",
-        "input_key": "lora_name",
-        "type": "string",
-        "label": "Detail LoRA"
-      },
-      "lora_detail_strength": {
-        "node_id": "5",
-        "input_keys": [
-          "strength_model",
-          "strength_clip"
-        ],
-        "type": "number",
-        "label": "Detail LoRA Strength"
-      },
-      "detail_denoise": {
-        "node_id": "25",
-        "input_key": "denoise",
-        "type": "number",
-        "label": "Change Strength"
-      }
-    }
-  },
   "z-image-dual-lora": {
     "name": "Z-Image Dual LoRA",
-    "filename": "z-image/z-image-dual-lora.json",
+    "filename": "z-image/01-2loras.json",
     "description": "Single-run two-person generation with selected left/right person refinement.",
     "inputs": {
-      "main_prompt": {
-        "node_id": "8",
+      "prompt": {
+        "node_id": "248",
         "input_key": "text",
-        "type": "string",
-        "label": "Full Scene Prompt"
+        "label": "Prompt"
       },
-      "negative": {
-        "node_id": "10",
+      "style": {
+        "node_id": "118",
         "input_key": "text",
-        "type": "string",
-        "label": "Negative Prompt"
-      },
-      "seed": {
-        "node_ids": [
-          "15",
-          "40",
-          "41"
-        ],
-        "input_key": "seed",
-        "type": "number",
-        "label": "Seed"
-      },
-      "unet_name": {
-        "node_id": "1",
-        "input_key": "unet_name",
-        "type": "string",
-        "label": "UNET"
-      },
-      "clip_name": {
-        "node_id": "2",
-        "input_key": "clip_name",
-        "type": "string",
-        "label": "CLIP"
-      },
-      "vae_name": {
-        "node_id": "3",
-        "input_key": "vae_name",
-        "type": "string",
-        "label": "VAE"
-      },
-      "lora_main_name": {
-        "node_id": "4",
-        "input_key": "lora_name",
-        "type": "string",
-        "label": "Person 1 LoRA"
-      },
-      "lora_main_strength": {
-        "node_id": "4",
-        "input_key": "strength_model",
-        "type": "number",
-        "label": "Person 1 LoRA Strength"
-      },
-      "lora_detail_name": {
-        "node_id": "5",
-        "input_key": "lora_name",
-        "type": "string",
-        "label": "Person 2 LoRA"
-      },
-      "lora_detail_strength": {
-        "node_id": "5",
-        "input_key": "strength_model",
-        "type": "number",
-        "label": "Person 2 LoRA Strength"
-      },
-      "detail_denoise": {
-        "node_ids": [
-          "40",
-          "41"
-        ],
-        "input_key": "denoise",
-        "type": "number",
-        "label": "Change Strength"
-      },
-      "scene_cfg": {
-        "node_id": "15",
-        "input_key": "cfg",
-        "type": "number",
-        "label": "Scene CFG"
-      },
-      "swap_cfg": {
-        "node_ids": [
-          "40",
-          "41"
-        ],
-        "input_key": "cfg",
-        "type": "number",
-        "label": "Refine CFG"
-      },
-      "dual_steps": {
-        "node_ids": [
-          "15",
-          "40",
-          "41"
-        ],
-        "input_key": "steps",
-        "type": "number",
-        "label": "Steps"
-      },
-      "mask_feather": {
-        "node_ids": [
-          "40",
-          "41"
-        ],
-        "input_key": "noise_mask_feather",
-        "type": "number",
-        "label": "Mask feather"
-      },
-      "edge_feather": {
-        "node_ids": [
-          "40",
-          "41"
-        ],
-        "input_key": "feather",
-        "type": "number",
-        "label": "Edge feather"
-      },
-      "detail_size": {
-        "node_ids": [
-          "40",
-          "41"
-        ],
-        "input_key": "guide_size",
-        "type": "number",
-        "label": "Detail size"
-      },
-      "person_a_prompt": {
-        "node_id": "42",
-        "input_key": "text",
-        "type": "string",
-        "label": "Left person"
-      },
-      "person_b_prompt": {
-        "node_id": "43",
-        "input_key": "text",
-        "type": "string",
-        "label": "Right person"
-      },
-      "detect_model": {
-        "node_id": "30",
-        "input_key": "model_name",
-        "type": "string",
-        "label": "Detector"
-      },
-      "detect_labels": {
-        "node_id": "31",
-        "input_key": "labels",
-        "type": "string",
-        "label": "Detect labels"
-      },
-      "person1_face_index": {
-        "node_id": "32",
-        "input_key": "take_start",
-        "type": "number",
-        "label": "Person 1 face pick (0=left)"
-      },
-      "person2_face_index": {
-        "node_id": "33",
-        "input_key": "take_start",
-        "type": "number",
-        "label": "Person 2 face pick (1=right)"
-      }
-    }
-  },
-  "z-image-dual-lora-upload": {
-    "name": "Z-Image Dual LoRA (Upload)",
-    "filename": "z-image/z-image-dual-lora-upload.json",
-    "description": "Refine two people in an uploaded photo with two LoRAs (no base generation).",
-    "inputs": {
-      "image": {
-        "node_id": "60",
-        "input_key": "image",
-        "type": "string",
-        "label": "Uploaded photo"
-      },
-      "negative": {
-        "node_id": "10",
-        "input_key": "text",
-        "type": "string",
-        "label": "Negative Prompt"
-      },
-      "lora_main_name": {
-        "node_id": "4",
-        "input_key": "lora_name",
-        "type": "string",
-        "label": "Person 1 LoRA"
-      },
-      "lora_main_strength": {
-        "node_id": "4",
-        "input_key": "strength_model",
-        "type": "number",
-        "label": "Person 1 LoRA Strength"
-      },
-      "lora_detail_name": {
-        "node_id": "5",
-        "input_key": "lora_name",
-        "type": "string",
-        "label": "Person 2 LoRA"
-      },
-      "lora_detail_strength": {
-        "node_id": "5",
-        "input_key": "strength_model",
-        "type": "number",
-        "label": "Person 2 LoRA Strength"
-      },
-      "person_a_prompt": {
-        "node_id": "42",
-        "input_key": "text",
-        "type": "string",
-        "label": "Left person"
-      },
-      "person_b_prompt": {
-        "node_id": "43",
-        "input_key": "text",
-        "type": "string",
-        "label": "Right person"
-      },
-      "detail_denoise": {
-        "node_ids": [
-          "40",
-          "41"
-        ],
-        "input_key": "denoise",
-        "type": "number",
-        "label": "Change Strength"
-      },
-      "swap_cfg": {
-        "node_ids": [
-          "40",
-          "41"
-        ],
-        "input_key": "cfg",
-        "type": "number",
-        "label": "Refine CFG"
-      },
-      "dual_steps": {
-        "node_ids": [
-          "40",
-          "41"
-        ],
-        "input_key": "steps",
-        "type": "number",
-        "label": "Steps"
-      },
-      "mask_feather": {
-        "node_ids": [
-          "40",
-          "41"
-        ],
-        "input_key": "noise_mask_feather",
-        "type": "number",
-        "label": "Mask feather"
-      },
-      "edge_feather": {
-        "node_ids": [
-          "40",
-          "41"
-        ],
-        "input_key": "feather",
-        "type": "number",
-        "label": "Edge feather"
-      },
-      "detail_size": {
-        "node_ids": [
-          "40",
-          "41"
-        ],
-        "input_key": "guide_size",
-        "type": "number",
-        "label": "Detail size"
-      },
-      "seed": {
-        "node_ids": [
-          "40",
-          "41"
-        ],
-        "input_key": "seed",
-        "type": "number",
-        "label": "Seed"
-      },
-      "detect_model": {
-        "node_id": "30",
-        "input_key": "model_name",
-        "type": "string",
-        "label": "Detector"
-      },
-      "detect_labels": {
-        "node_id": "31",
-        "input_key": "labels",
-        "type": "string",
-        "label": "Detect labels"
-      },
-      "person1_face_index": {
-        "node_id": "32",
-        "input_key": "take_start",
-        "type": "number",
-        "label": "Person 1 face pick"
-      },
-      "person2_face_index": {
-        "node_id": "33",
-        "input_key": "take_start",
-        "type": "number",
-        "label": "Person 2 face pick"
-      }
-    }
-  },
-  "z-image-dual-lora-v2": {
-    "name": "Z-Image Dual LoRA v2 (Segment Detailer)",
-    "filename": "z-image/z-image-duallora_v2.json",
-    "description": "Two people, one LoRA each. The scene is generated with the main LoRA, then Florence2 finds the person named in Detect phrase, SAM2 masks them, and that region alone is redrawn with the second LoRA - so the two identities do not blend.",
-    "inputs": {
-      "main_prompt": {
-        "node_id": "5",
-        "input_key": "text",
-        "type": "string",
-        "label": "Full Scene Prompt"
+        "label": "Style / extra"
       },
       "detail_prompt": {
-        "node_id": "65",
+        "node_id": "119",
         "input_key": "text",
-        "type": "string",
-        "label": "Detailed person prompt"
+        "label": "Detail Prompt"
       },
       "negative": {
         "node_id": "6",
         "input_key": "text",
-        "type": "string",
         "label": "Negative Prompt"
-      },
-      "detection_phrase": {
-        "node_id": "53",
-        "input_key": "text_input",
-        "type": "string",
-        "label": "Detect phrase"
-      },
-      "selected_box_index": {
-        "node_id": "136",
-        "input_key": "string",
-        "type": "string",
-        "label": "Selected box index"
-      },
-      "seed": {
-        "node_ids": [
-          "46",
-          "102"
-        ],
-        "input_key": "seed",
-        "type": "number",
-        "label": "Seed"
-      },
-      "dual_steps": {
-        "node_ids": [
-          "46",
-          "102"
-        ],
-        "input_key": "steps",
-        "type": "number",
-        "label": "Steps"
-      },
-      "scene_cfg": {
-        "node_id": "46",
-        "input_key": "cfg",
-        "type": "number",
-        "label": "Scene CFG"
-      },
-      "swap_cfg": {
-        "node_id": "102",
-        "input_key": "cfg",
-        "type": "number",
-        "label": "Refine CFG"
       },
       "width": {
         "node_id": "19",
         "input_key": "width",
-        "type": "number",
         "label": "Width"
       },
       "height": {
         "node_id": "19",
         "input_key": "height",
-        "type": "number",
         "label": "Height"
+      },
+      "seed": {
+        "node_id": "46",
+        "input_key": "seed",
+        "label": "Seed"
+      },
+      "steps": {
+        "node_id": "46",
+        "input_key": "steps",
+        "label": "Steps"
+      },
+      "cfg": {
+        "node_id": "46",
+        "input_key": "cfg",
+        "label": "CFG Scale"
+      },
+      "lora_main_name": {
+        "node_id": "249",
+        "input_key": "lora_name",
+        "label": "Main LoRA"
+      },
+      "lora_main_strength": {
+        "node_id": "249",
+        "input_key": "strength_model",
+        "label": "Main LoRA Strength"
+      },
+      "lora_detail_name": {
+        "node_id": "250",
+        "input_key": "lora_name",
+        "label": "Detail LoRA"
+      },
+      "lora_detail_strength": {
+        "node_id": "250",
+        "input_key": "strength_model",
+        "label": "Detail LoRA Strength"
+      },
+      "detect_phrase": {
+        "node_id": "53",
+        "input_key": "text_input",
+        "label": "What to detail"
       },
       "detail_denoise": {
         "node_id": "102",
         "input_key": "denoise",
-        "type": "number",
-        "label": "Change Strength"
+        "label": "Detail Strength"
       },
       "detail_size": {
         "node_id": "102",
         "input_key": "guide_size",
-        "type": "number",
-        "label": "Detail size"
-      },
-      "mask_feather": {
-        "node_id": "102",
-        "input_key": "noise_mask_feather",
-        "type": "number",
-        "label": "Mask feather"
-      },
-      "edge_feather": {
-        "node_id": "102",
-        "input_key": "feather",
-        "type": "number",
-        "label": "Edge feather"
-      },
-      "lora_main_name": {
-        "node_id": "125",
-        "input_key": "lora_name",
-        "type": "string",
-        "label": "Person 1 LoRA (whole scene)"
-      },
-      "lora_main_strength": {
-        "node_id": "125",
-        "input_key": "strength_model",
-        "type": "number",
-        "label": "Person 1 LoRA Strength"
-      },
-      "lora_detail_name": {
-        "node_id": "124",
-        "input_key": "lora_name",
-        "type": "string",
-        "label": "Person 2 LoRA (detailed)"
-      },
-      "lora_detail_strength": {
-        "node_id": "124",
-        "input_key": "strength_model",
-        "type": "number",
-        "label": "Person 2 LoRA Strength"
-      },
-      "unet_name": {
-        "node_id": "142",
-        "input_key": "unet_name",
-        "type": "string",
-        "label": "UNET"
-      },
-      "clip_name": {
-        "node_id": "143",
-        "input_key": "clip_name",
-        "type": "string",
-        "label": "CLIP"
-      },
-      "vae_name": {
-        "node_id": "141",
-        "input_key": "vae_name",
-        "type": "string",
-        "label": "VAE"
+        "label": "Detail Size"
       }
     }
   },
@@ -3617,97 +3058,6 @@
         "input_key": "strength_model",
         "type": "number",
         "label": "Consistency LoRA"
-      }
-    }
-  },
-  "z-image-2loras-v2": {
-    "name": "Z-Image - Two People (2 LoRAs)",
-    "filename": "z-image/2loras_v2.json",
-    "description": "Two characters in one image: person 1's LoRA drives the main sampler, person 2's LoRA drives a detailer pass over their face.",
-    "inputs": {
-      "prompt": {
-        "node_id": "146",
-        "input_key": "wildcard_text",
-        "type": "string",
-        "label": "Scene"
-      },
-      "prompt_populated": {
-        "node_id": "146",
-        "input_key": "populated_text",
-        "type": "string",
-        "label": "Scene (resolved)"
-      },
-      "person1_prompt": {
-        "node_id": "118",
-        "input_key": "text",
-        "type": "string",
-        "label": "Person 1 details"
-      },
-      "person2_prompt": {
-        "node_id": "119",
-        "input_key": "text",
-        "type": "string",
-        "label": "Person 2 details"
-      },
-      "negative": {
-        "node_id": "6",
-        "input_key": "text",
-        "type": "string",
-        "label": "Negative"
-      },
-      "lora_person1": {
-        "node_id": "125",
-        "input_key": "lora_name",
-        "type": "string",
-        "label": "Person 1 LoRA"
-      },
-      "lora_person1_str": {
-        "node_id": "125",
-        "input_key": "strength_model",
-        "type": "number",
-        "label": "Person 1 strength"
-      },
-      "lora_person2": {
-        "node_id": "124",
-        "input_key": "lora_name",
-        "type": "string",
-        "label": "Person 2 LoRA"
-      },
-      "lora_person2_str": {
-        "node_id": "124",
-        "input_key": "strength_model",
-        "type": "number",
-        "label": "Person 2 strength"
-      },
-      "seed": {
-        "node_id": "46",
-        "input_key": "seed",
-        "type": "number",
-        "label": "Seed"
-      },
-      "steps": {
-        "node_id": "46",
-        "input_key": "steps",
-        "type": "number",
-        "label": "Steps"
-      },
-      "cfg": {
-        "node_id": "46",
-        "input_key": "cfg",
-        "type": "number",
-        "label": "CFG"
-      },
-      "width": {
-        "node_id": "19",
-        "input_key": "width",
-        "type": "number",
-        "label": "Width"
-      },
-      "height": {
-        "node_id": "19",
-        "input_key": "height",
-        "type": "number",
-        "label": "Height"
       }
     }
   },

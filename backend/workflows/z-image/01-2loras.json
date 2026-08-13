@@ -1,9 +1,25 @@
 {
+  "4": {
+    "inputs": {
+      "shift": 3,
+      "model": [
+        "142",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingAuraFlow",
+    "_meta": {
+      "title": "ModelSamplingAuraFlow"
+    }
+  },
   "5": {
     "inputs": {
-      "text": "",
+      "text": [
+        "114",
+        0
+      ],
       "clip": [
-        "125",
+        "249",
         1
       ]
     },
@@ -16,7 +32,7 @@
     "inputs": {
       "text": "",
       "clip": [
-        "125",
+        "249",
         1
       ]
     },
@@ -54,14 +70,14 @@
   },
   "46": {
     "inputs": {
-      "seed": 615954797696781,
+      "seed": 1044134430203646,
       "steps": 9,
       "cfg": 1.1,
       "sampler_name": "euler",
       "scheduler": "simple",
       "denoise": 1,
       "model": [
-        "125",
+        "249",
         0
       ],
       "positive": [
@@ -86,7 +102,7 @@
     "inputs": {
       "model": "gokaygokay/Florence-2-SD3-Captioner",
       "precision": "bf16",
-      "convert_to_safetensors": "sdpa"
+      "convert_to_safetensors": false
     },
     "class_type": "DownloadAndLoadFlorence2Model",
     "_meta": {
@@ -102,8 +118,8 @@
       "max_new_tokens": 1024,
       "num_beams": 3,
       "do_sample": false,
-      "output_mask_select": "0",
-      "seed": 797498970955799,
+      "output_mask_select": "1",
+      "seed": 624313889333622,
       "image": [
         "13",
         0
@@ -120,9 +136,12 @@
   },
   "65": {
     "inputs": {
-      "text": "",
+      "text": [
+        "119",
+        0
+      ],
       "clip": [
-        "124",
+        "250",
         1
       ]
     },
@@ -165,6 +184,25 @@
       "title": "Sam2Segmentation"
     }
   },
+  "84": {
+    "inputs": {
+      "mask_opacity": 0.8,
+      "mask_color": "100,15,240",
+      "pass_through": false,
+      "image": [
+        "53",
+        0
+      ],
+      "mask": [
+        "107",
+        0
+      ]
+    },
+    "class_type": "ImageAndMaskPreview",
+    "_meta": {
+      "title": "ImageAndMaskPreview"
+    }
+  },
   "85": {
     "inputs": {
       "index": [
@@ -196,7 +234,37 @@
     },
     "class_type": "MaskFix+",
     "_meta": {
-      "title": "🔧 Mask Fix"
+      "title": "\ud83d\udd27 Mask Fix"
+    }
+  },
+  "101": {
+    "inputs": {
+      "rgthree_comparer": {
+        "images": [
+          {
+            "name": "A",
+            "selected": true,
+            "url": "/api/view?filename=rgthree.compare._temp_ibvci_00009_.png&type=temp&subfolder=&rand=0.8917399885922934"
+          },
+          {
+            "name": "B",
+            "selected": true,
+            "url": "/api/view?filename=rgthree.compare._temp_ibvci_00010_.png&type=temp&subfolder=&rand=0.832458433885822"
+          }
+        ]
+      },
+      "image_a": [
+        "13",
+        0
+      ],
+      "image_b": [
+        "102",
+        0
+      ]
+    },
+    "class_type": "Image Comparer (rgthree)",
+    "_meta": {
+      "title": "Image Comparer (rgthree)"
     }
   },
   "102": {
@@ -204,7 +272,7 @@
       "guide_size": 768,
       "guide_size_for": true,
       "max_size": 1024,
-      "seed": 577750195680723,
+      "seed": 32752106458930,
       "steps": 9,
       "cfg": 1,
       "sampler_name": "euler",
@@ -228,7 +296,7 @@
         0
       ],
       "model": [
-        "124",
+        "250",
         0
       ],
       "clip": [
@@ -298,42 +366,70 @@
       "title": "GrowMask"
     }
   },
-  "124": {
+  "114": {
     "inputs": {
-      "lora_name": "Antigravity\\z-image\\Froy\\froy.safetensors",
-      "strength_model": 1,
-      "strength_clip": 1,
-      "model": [
-        "142",
+      "delimiter": ", ",
+      "clean_whitespace": "true",
+      "text_a": [
+        "248",
         0
       ],
-      "clip": [
-        "143",
+      "text_b": [
+        "118",
         0
       ]
     },
-    "class_type": "LoraLoader",
+    "class_type": "Text Concatenate",
     "_meta": {
-      "title": "Person 2"
+      "title": "Text Concatenate"
     }
   },
-  "125": {
+  "118": {
     "inputs": {
-      "lora_name": "characters\\Meg\\zimage\\meg_zimage.safetensors",
-      "strength_model": 1,
-      "strength_clip": 1,
-      "model": [
-        "142",
+      "text": ""
+    },
+    "class_type": "Text Multiline",
+    "_meta": {
+      "title": "Additional info picture 1"
+    }
+  },
+  "119": {
+    "inputs": {
+      "text": ""
+    },
+    "class_type": "Text Multiline",
+    "_meta": {
+      "title": "Additional info picture 2"
+    }
+  },
+  "130": {
+    "inputs": {
+      "rgthree_comparer": {
+        "images": [
+          {
+            "name": "A",
+            "selected": true,
+            "url": "/api/view?filename=rgthree.compare._temp_nospl_00009_.png&type=temp&subfolder=&rand=0.14462452178486607"
+          },
+          {
+            "name": "B",
+            "selected": true,
+            "url": "/api/view?filename=rgthree.compare._temp_nospl_00010_.png&type=temp&subfolder=&rand=0.7951950271140752"
+          }
+        ]
+      },
+      "image_a": [
+        "102",
         0
       ],
-      "clip": [
-        "143",
+      "image_b": [
+        "13",
         0
       ]
     },
-    "class_type": "LoraLoader",
+    "class_type": "Image Comparer (rgthree)",
     "_meta": {
-      "title": "Person 1"
+      "title": "Image Comparer (rgthree)"
     }
   },
   "136": {
@@ -377,7 +473,7 @@
   },
   "145": {
     "inputs": {
-      "filename_prefix": "final_refined",
+      "filename_prefix": "IMAGE/ZIMAGE/0",
       "images": [
         "102",
         0
@@ -388,17 +484,68 @@
       "title": "Save Image"
     }
   },
-  "147": {
+  "247": {
     "inputs": {
-      "filename_prefix": "main_before_detail",
-      "images": [
-        "13",
+      "download_links": "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors clip\nhttps://huggingface.co/Kijai/sam2-safetensors/resolve/main/sam2_hiera_base_plus.safetensors sam2\nhttps://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/vae/ae.safetensors vae z-image-vae.safetensors\nhttps://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/diffusion_models/z_image_turbo_bf16.safetensors unet",
+      "auto_download": true,
+      "max_concurrent_downloads": 3,
+      "max_download_speed_mbps": 0,
+      "enable_resume": true,
+      "validate_files": false,
+      "enable_notifications": true,
+      "auto_organize": false,
+      "hf_token": ""
+    },
+    "class_type": "HuggingFaceDownloader",
+    "_meta": {
+      "title": "FEDDA model downloader"
+    }
+  },
+  "248": {
+    "inputs": {
+      "text": "[YOUR MAIN PROMPT HERE - describe the full scene with two people]"
+    },
+    "class_type": "Text Multiline",
+    "_meta": {
+      "title": "Main prompt"
+    }
+  },
+  "249": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "142",
+        0
+      ],
+      "clip": [
+        "143",
         0
       ]
     },
-    "class_type": "SaveImage",
+    "class_type": "LoraLoader",
     "_meta": {
-      "title": "Save Image"
+      "title": "4. LoRA Slot 1 - Main Generation (e.g. character for full scene)"
+    }
+  },
+  "250": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "142",
+        0
+      ],
+      "clip": [
+        "143",
+        0
+      ]
+    },
+    "class_type": "LoraLoader",
+    "_meta": {
+      "title": "5. LoRA Slot 2 - Detailer / Inpaint (e.g. character for the woman)"
     }
   }
 }

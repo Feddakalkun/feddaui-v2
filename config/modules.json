@@ -86,11 +86,6 @@
       ],
       "workflows": [
         "z-image-dual-lora",
-        "z-image-dual-lora-v2",
-        "z-image-2loras-v2",
-        "z-image-dual-lora-upload",
-        "z-image-dual-base",
-        "z-image-dual-detail",
         "z-image-controlnet-pose",
         "z-image-inpaint-automask"
       ],
