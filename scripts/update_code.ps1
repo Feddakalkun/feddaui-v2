@@ -82,6 +82,24 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw "git fetch failed"
     }
+    # Commits that exist here and nowhere else. On an install there are none
+    # and this costs a millisecond; on the machine the work is done on, a
+    # reset --hard would erase them, and this update already did exactly that
+    # to three of them while printing "Code updated successfully".
+    $Ahead = & $GitExe rev-list --count origin/main..HEAD 2>$null
+    if ($LASTEXITCODE -eq 0 -and $Ahead -and [int]$Ahead -gt 0) {
+        $ErrorActionPreference = "Stop"
+        if (-not $SilentMode) {
+            Write-Host ""
+            Write-Host "  [STOP] This clone has $Ahead commit(s) that are not on GitHub." -ForegroundColor Yellow
+            Write-Host "         Updating would reset the code and destroy them." -ForegroundColor Yellow
+            Write-Host "         Push or remove them first, then update again." -ForegroundColor Yellow
+            & $GitExe --no-pager log --oneline "origin/main..HEAD"
+            Write-Host ""
+        }
+        return
+    }
+
     & $GitExe reset --hard origin/main 2>&1 | Out-Null
     if ($LASTEXITCODE -ne 0) {
         throw "git reset failed"
