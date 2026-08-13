@@ -97,7 +97,9 @@ try {
             & $GitExe --no-pager log --oneline "origin/main..HEAD"
             Write-Host ""
         }
-        return
+        # Not 0. Returning plainly here reads as success to the caller,
+        # and the launcher went on to say the update had finished.
+        exit 2
     }
 
     & $GitExe reset --hard origin/main 2>&1 | Out-Null

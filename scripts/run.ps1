@@ -71,10 +71,25 @@ function Test-FeddaUpdate {
             }
             Write-Host ""
             & cmd /c "`"$Updater`""
+            $updateCode = $LASTEXITCODE
             Write-Host ""
-            Write-Host "  ------------------------------------------------------------" -ForegroundColor Green
-            Write-Host "   Update finished. Start FEDDA again to run the new version." -ForegroundColor Green
-            Write-Host "  ------------------------------------------------------------" -ForegroundColor Green
+            if ($updateCode -eq 2) {
+                # Refused rather than failed: the updater printed why, and
+                # saying "finished" over the top of that is how an outcome
+                # gets announced without being checked.
+                Write-Host "  ------------------------------------------------------------" -ForegroundColor Yellow
+                Write-Host "   Nothing was updated. See the reason above." -ForegroundColor Yellow
+                Write-Host "  ------------------------------------------------------------" -ForegroundColor Yellow
+            } elseif ($updateCode -ne 0) {
+                Write-Host "  ------------------------------------------------------------" -ForegroundColor Red
+                Write-Host "   The update failed (exit $updateCode). FEDDA is unchanged." -ForegroundColor Red
+                Write-Host "   Detail: logs\update.log" -ForegroundColor DarkGray
+                Write-Host "  ------------------------------------------------------------" -ForegroundColor Red
+            } else {
+                Write-Host "  ------------------------------------------------------------" -ForegroundColor Green
+                Write-Host "   Update finished. Start FEDDA again to run the new version." -ForegroundColor Green
+                Write-Host "  ------------------------------------------------------------" -ForegroundColor Green
+            }
             Write-Host ""
             Read-Host "  Press Enter to close"
             exit 0
