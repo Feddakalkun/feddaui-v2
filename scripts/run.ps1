@@ -64,9 +64,9 @@ function Test-FeddaUpdate {
                 return
             }
 
-            $Updater = Join-Path $Root "scriptsun_update.bat"
+            $Updater = Join-Path $Root "scripts\run_update.bat"
             if (-not (Test-Path $Updater)) {
-                Write-Host "  [WARN] scriptsun_update.bat is missing - update by hand." -ForegroundColor Yellow
+                Write-Host "  [WARN] scripts\run_update.bat is missing - update by hand." -ForegroundColor Yellow
                 return
             }
             Write-Host ""
