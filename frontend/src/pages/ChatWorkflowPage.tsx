@@ -38,6 +38,29 @@ type Msg = {
   text: string;
   image?: string;
   pending?: boolean;
+  /** A result that could become the next source, once the user says so. */
+  chained?: { filename: string; subfolder?: string; type?: string };
+};
+
+/**
+ * What the agent says before anything has happened.
+ *
+ * It used to be "<workflow>. What are we making?" for every workflow, which
+ * reads as an invitation to describe a picture - wrong when the workflow
+ * cannot start until a photo is dropped in, and the reason a first-time user
+ * types a description and gets asked for a file instead.
+ *
+ * Derived from the schema rather than written per workflow: whatever the
+ * backend says is required and unfillable by typing is what gets asked for.
+ */
+const openingLine = (name: string, fields: Field[]): string => {
+  const needed = fields.filter((f) => f.required && f.control === 'file');
+  if (!needed.length) return `${name}. Describe what you want and I'll make it.`;
+  const what = needed
+    .map((f) => f.label.toLowerCase())
+    .join(' and ');
+  return `${name}. Drop in ${needed.length > 1 ? '' : 'a '}${what} - paste, drag it anywhere, `
+    + `or use the slot below - then tell me what to change.`;
 };
 
 const viewUrl = (filename: string, subfolder = '', type = 'output') =>
@@ -149,7 +172,7 @@ export const ChatWorkflowPage = ({ workflowId, openId = null, onSaved }: Props) 
           }
         }
         setValues(seeded);
-        if (!openId) setMessages([{ role: 'agent', text: `${data.name}. What are we making?` }]);
+        if (!openId) setMessages([{ role: 'agent', text: openingLine(data.name, data.fields || []) }]);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));
       }
@@ -367,6 +390,25 @@ export const ChatWorkflowPage = ({ workflowId, openId = null, onSaved }: Props) 
     return data.filename as string;
   };
 
+  /**
+   * Take a result as the source for what comes next.
+   *
+   * The import is the necessary half: results are written to output/ and
+   * LoadImage only reads input/, so an output name fed back fails with
+   * "no image came back".
+   */
+  const useAsSource = async (img: { filename: string; subfolder?: string; type?: string }) => {
+    if (!loopField) return;
+    try {
+      const inputName = await importToInput(img);
+      setHistory((h) => [...h, values]);
+      setValues((v) => ({ ...v, [loopField]: inputName }));
+      setDims(await measure(viewUrl(inputName, '', 'input')));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
   const run = async (override?: Record<string, string | number>) => {
     const base = override ?? values;
     if (fields.some((f) => f.required && !base[f.key]) || running) return;
@@ -412,18 +454,18 @@ export const ChatWorkflowPage = ({ workflowId, openId = null, onSaved }: Props) 
 
         let shown: string | undefined;
         let nextValues = sized;
+        // Set when the result could become the next source, so the message can
+        // offer it. Offering is all it does.
+        let chained: { filename: string; subfolder?: string; type?: string } | undefined;
         if (picked) {
-          if (loopField) {
-            // Feed it forward so the next message edits this result.
-            const inputName = await importToInput(picked);
-            setHistory((h) => [...h, base]);
-            nextValues = { ...sized, [loopField]: inputName };
-            setValues(nextValues);
-            setDims(await measure(viewUrl(inputName, '', 'input')));
-            shown = viewUrl(inputName, '', 'input');
-          } else {
-            shown = viewUrl(picked.filename, picked.subfolder || '', picked.type || 'output');
-          }
+          // Shown, not adopted. This used to import the result and put it in
+          // the source slot straight away, so the next instruction silently
+          // applied to the edit rather than the photo - fine when you are
+          // stacking changes, wrong when you want to try something else
+          // against the original, and there was no way to say which. The
+          // "Use as source" button under the result is that choice.
+          shown = viewUrl(picked.filename, picked.subfolder || '', picked.type || 'output');
+          if (loopField) chained = picked;
         } else if (videos.length) {
           shown = viewUrl(videos[0].filename, videos[0].subfolder || '', videos[0].type || 'output');
         }
@@ -432,7 +474,7 @@ export const ChatWorkflowPage = ({ workflowId, openId = null, onSaved }: Props) 
         setMessages((m) => {
           const next = [...m];
           const idx = next.findIndex((x) => x.pending);
-          if (idx >= 0) next[idx] = { role: 'agent', text, image: shown };
+          if (idx >= 0) next[idx] = { role: 'agent', text, image: shown, chained };
           return next;
         });
         void persist([...messages, { role: 'agent', text, image: shown }], nextValues);
@@ -525,7 +567,7 @@ export const ChatWorkflowPage = ({ workflowId, openId = null, onSaved }: Props) 
           )}
         >
           {filled
-            ? <img src={viewUrl(String(value), '', 'input')} alt="" className="h-7 w-7 rounded object-cover" />
+            ? <img src={viewUrl(String(value), '', 'input')} alt="" className="h-14 w-14 rounded-md object-cover" />
             : <Upload className="h-3.5 w-3.5" />}
           <span>{f.label}{f.required && !filled ? ' *' : ''}</span>
           <input
@@ -673,6 +715,16 @@ export const ChatWorkflowPage = ({ workflowId, openId = null, onSaved }: Props) 
                   </>
                 )}
                 {m.image && <ChatImage src={m.image} />}
+                {m.chained && (
+                  <button
+                    type="button"
+                    onClick={() => { void useAsSource(m.chained!); }}
+                    title="Edit this result instead of the original"
+                    className="mt-1.5 rounded-lg border border-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white/40 transition hover:border-cyan-400/40 hover:text-cyan-200"
+                  >
+                    Use as source
+                  </button>
+                )}
               </div>
             </div>
           ))}
