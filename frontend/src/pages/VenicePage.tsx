@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { FeddaButton, FeddaPanel } from '../components/ui/FeddaPrimitives';
 import { useToast } from '../components/ui/Toast';
 import { Lightbox } from '../components/ui/Lightbox';
@@ -7,7 +7,7 @@ import { BACKEND_API } from '../config/api';
 import { PipelineCancelled, pollGeneration, stageAsInput, submitGenerate, viewUrl } from './tools/reelPipeline';
 import { usePersistentState } from '../hooks/usePersistentState';
 import { characterMatchesFamily, fetchCharacters, loadSheet, type Character, type Sheet } from '../lib/characters';
-import { matchesFamily } from '../lib/loraLabel';
+import { matchesFamily, loraFileName } from '../lib/loraLabel';
 import { Sparkles, Download, ImageIcon, Loader2, AlertCircle, Hash, Sliders, Send, Trash2, Globe, Settings } from 'lucide-react';
 
 /**
@@ -251,6 +251,23 @@ export function VenicePage() {
   const [feddaChars, setFeddaChars] = useState<Character[]>([]);
   const [localCharacter, setLocalCharacter] = usePersistentState('venice_local_character', '');
   const [charSheet, setCharSheet] = useState<Sheet | null>(null);
+  const [localCharLora, setLocalCharLora] = usePersistentState('venice_local_char_lora', '');
+
+  // The character's LoRAs this workflow can actually load. Several is normal -
+  // they are checkpoints from one training run - and which one is loaded
+  // changes the likeness, so it is a choice rather than an implementation
+  // detail to settle by sort order.
+  const charLoraOptions = useMemo(() => {
+    const model = LOCAL_IMAGE_MODELS.find((x) => x.id === localImgModel);
+    const person = feddaChars.find((x) => x.name === localCharacter);
+    if (!model || !person) return [];
+    return person.loras.filter((l) => matchesFamily(l.path, model.family));
+  }, [feddaChars, localCharacter, localImgModel]);
+
+  // The remembered one if it is still on offer, otherwise the first. A saved
+  // choice must not follow a character to someone who does not have that file.
+  const activeCharLora = charLoraOptions.find((l) => l.path === localCharLora)
+    || charLoraOptions[0];
 
   useEffect(() => {
     fetchCharacters().then(setFeddaChars).catch(() => setFeddaChars([]));
@@ -836,7 +853,7 @@ Current context: User is requesting images of Elara at the safari camp, now spec
               // does almost nothing until the token is in the prompt - and the
               // appearance after, covering what the weights do not carry.
               const chosen = feddaChars.find((c) => c.name === localCharacter);
-              const charLora = chosen?.loras.find((l) => matchesFamily(l.path, localImg.family));
+              const charLora = activeCharLora;
               const bits = [
                 charSheet?.trigger?.trim() || (charLora ? chosen!.name.toLowerCase() : ''),
                 imagePrompt,
@@ -864,7 +881,9 @@ Current context: User is requesting images of Elara at the safari camp, now spec
                 updated[assistantMsgIndex] = {
                   role: 'assistant',
                   content: agentText(assistantContent)
-                    || `Generated on your GPU with ${localImg.label}${charLora ? ` as ${chosen!.name}` : ''}.`,
+                    || `Generated on your GPU with ${localImg.label}`
+                      + (charLora ? ` as ${chosen!.name} (${loraFileName(charLora.path)})` : '')
+                      + '.',
                   images: urls,
                 };
                 return updated;
@@ -1349,6 +1368,23 @@ Current context: User is requesting images of Elara at the safari camp, now spec
                         ))}
                     </select>
                   </label>
+                  {/* Only worth showing when there is something to choose
+                      between. One file is not a decision. */}
+                  {charLoraOptions.length > 1 && (
+                    <label className="flex items-center gap-1.5 whitespace-nowrap text-[11px] text-emerald-300/60">
+                      LoRA
+                      <select
+                        value={activeCharLora?.path || ''}
+                        onChange={(e) => setLocalCharLora(e.target.value)}
+                        title="Which of this character's LoRAs to load."
+                        className="max-w-[190px] rounded-lg fedda-input px-2 py-1 text-[11px] focus:border-emerald-500/40"
+                      >
+                        {charLoraOptions.map((l) => (
+                          <option key={l.path} value={l.path}>{loraFileName(l.path)}</option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
                   <label className="flex items-center gap-1.5 whitespace-nowrap text-[11px] text-emerald-300/60">
                     Local&nbsp;edit
                     <select
