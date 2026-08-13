@@ -319,7 +319,7 @@
   },
   "125": {
     "inputs": {
-      "lora_name": "app\\Meg\\meg_zimage.safetensors",
+      "lora_name": "characters\\Meg\\zimage\\meg_zimage.safetensors",
       "strength_model": 1,
       "strength_clip": 1,
       "model": [

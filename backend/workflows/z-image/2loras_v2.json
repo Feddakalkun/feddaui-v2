@@ -484,7 +484,7 @@
   },
   "124": {
     "inputs": {
-      "lora_name": "zimage_turbo\\Sara_zimage1.safetensors",
+      "lora_name": "characters\\Sara\\zimage\\Sara_zimage1.safetensors",
       "strength_model": 0.95,
       "strength_clip": 1,
       "model": [
@@ -503,7 +503,7 @@
   },
   "125": {
     "inputs": {
-      "lora_name": "zimage_turbo\\sara_ultimate_zimage_copy_copy_000002200.safetensors",
+      "lora_name": "characters\\Sara\\zimage\\sara_ultimate_zimage_copy_copy_000002200.safetensors",
       "strength_model": 1,
       "strength_clip": 1,
       "model": [
