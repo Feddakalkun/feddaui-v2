@@ -216,7 +216,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     sourceModuleId: 'core-shell',
     label: 'Reel Machine',
     description: 'Photo + sound in, finished viral reel out — outfit switches cut on every beat, or a full transformation morph. Fully automatic.',
-    area: 'automation',
+    area: 'video',
     pack: 'core',
     tabs: ['reel-machine'],
     defaultTab: 'reel-machine',

@@ -3295,6 +3295,13 @@ async def chat_workflow_turn(req: ChatWorkflowRequest):
            if missing else "Everything required is filled - offer to run it.\n")
     )
 
+    # What is already known about the user, recalled against what they just
+    # said. Reached chat_edit_turn and the prompt agent but not this one -
+    # this page replaced the Qwen-only edit page that owned chat_edit_turn,
+    # and the memory did not come with it. So the agent people actually talk
+    # to has been asking about things it had already been told.
+    system += _memory_block(req.message or "")
+
     # An image just landed. The vision model that read it is a captioner: it
     # answers with its own comma-separated tag list whatever it is asked, so the
     # plain-language version has to be written here, by the model that does
