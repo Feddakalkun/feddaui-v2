@@ -454,8 +454,47 @@ if (Test-Path $ComfyReq) {
     if ($Stale.Count -gt 0) {
         Write-Host "  Syncing $($Stale.Count) pinned ComfyUI dependencies..." -ForegroundColor White
         foreach ($Pin in $Stale) { Write-Host "    $Pin" -ForegroundColor DarkGray }
-        & $PyExe -m pip install --no-input --no-warn-script-location @Stale 2>&1 | Out-Null
-        Write-Host "  ComfyUI pins synced OK" -ForegroundColor Green
+
+        # What is being replaced, so it can be put back. A pin is only an
+        # improvement if ComfyUI still starts afterwards, and one of these
+        # already did not: master pins comfy-kitchen 0.2.31, which types a
+        # custom op `list[int]`, and torch 2.6 rejects PEP 585 generics - so
+        # `import comfy.utils` failed outright where 0.2.26 had imported with
+        # fp8 and fp4 turned off. A missing feature beats a dead install.
+        $Previous = @{}
+        foreach ($Pin in $Stale) {
+            $Name = ($Pin -split '==', 2)[0]
+            $Was = & $PyExe -c "import importlib.metadata as m; print(m.version('$Name'))" 2>$null
+            if ($LASTEXITCODE -eq 0 -and $Was) { $Previous[$Name] = $Was.Trim() }
+        }
+
+        Invoke-Pip -PyExe $PyExe -Label "ComfyUI pins" `
+            -PipArgs (@("-m","pip","install","--no-input","--no-warn-script-location") + $Stale) | Out-Null
+
+        # Ask ComfyUI itself. Nothing here knows which package is risky; any
+        # pin that cannot run on the installed torch fails the same check.
+        $ComfyDirCheck = Join-Path $RootPath "ComfyUI"
+        & $PyExe -c "import sys; sys.path.insert(0, r'$ComfyDirCheck'); import comfy.utils" 2>$null | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "  ComfyUI pins synced OK" -ForegroundColor Green
+        } else {
+            Write-Host "  [WARN] ComfyUI could not start with the new pins - putting them back." -ForegroundColor Yellow
+            $Restore = @()
+            foreach ($Name in $Previous.Keys) { $Restore += "$Name==$($Previous[$Name])" }
+            if ($Restore.Count -gt 0) {
+                foreach ($R in $Restore) { Write-Host "    $R" -ForegroundColor DarkGray }
+                Invoke-Pip -PyExe $PyExe -Label "ComfyUI pin rollback" `
+                    -PipArgs (@("-m","pip","install","--no-input","--no-warn-script-location") + $Restore) | Out-Null
+                & $PyExe -c "import sys; sys.path.insert(0, r'$ComfyDirCheck'); import comfy.utils" 2>$null | Out-Null
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Host "  Restored. ComfyUI starts; a feature the new pin adds is unavailable." -ForegroundColor Yellow
+                } else {
+                    Write-Host "  [WARN] Still failing after restore - see logs\update_pip.log." -ForegroundColor Red
+                }
+            } else {
+                Write-Host "  [WARN] Nothing recorded to restore - see logs\update_pip.log." -ForegroundColor Red
+            }
+        }
     } else {
         Write-Host "  ComfyUI pinned dependencies OK" -ForegroundColor Green
     }
