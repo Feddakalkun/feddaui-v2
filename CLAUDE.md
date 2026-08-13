@@ -91,6 +91,33 @@ pack means editing both `modules.json` and `nodes.json`.
 - Model downloads: use the backend's download button (~105 MB/s), not the
   ComfyUI node (~7.4 MB/s).
 
+## The ComfyUI version is three different things
+
+`install.ps1` pins `a2840e75` with the comment "Pinned stable". A fresh
+install therefore gets **v0.18.1**, dated 10 April. `update_logic.ps1` then does
+`git reset --hard origin/master` on ComfyUI, so the first `update.bat` throws the
+pin away and lands on whatever master is that day. Two people on the same FEDDA
+release can be a dozen minor versions apart, and the machine this was written on
+was on v0.30.0 while a clean install beside it was on v0.18.1.
+
+**cu124 is a dead end, and that is the real ceiling.** ComfyUI 0.32.0 will not
+start on torch 2.6.0: `comfy_kitchen` registers a custom op typed
+`kernel_size: list[int]`, and `torch.library.infer_schema` in 2.6 rejects PEP 585
+generics. It is not a comfy-kitchen version problem - 0.2.30, which 0.32.0 pins,
+and 0.2.31 both fail identically. And 2.6.0 is the newest torch the cu124 channel
+has, while cu126 has 2.13.0 and cu128 has 2.11.0.
+
+`install.ps1` already routes **RTX 50-series to cu128** and everything else to
+cu124, so a 50-series install is on a torch new enough for current ComfyUI and a
+3090 is not. Moving 20/30/40-series off cu124 drags xformers, sageattention and
+insightface with it, all built against that torch. Nothing forces it today, but
+cu124 receives no newer torch, so it arrives eventually whatever prompts it.
+
+Investigated 2026-08-12 while looking at LTX-2.5, which needs ComfyUI 0.32.0 and
+is therefore parked behind all of the above. The LTX-2.5 weights themselves are
+seven files in the gated `Lightricks/LTX-2.5` repo; FEDDA already stores an
+`hf_token`, which is what a gated repo needs.
+
 ## Local models
 
 `_get_ollama_text_model()` / `_get_ollama_vision_model()` pick from installed
