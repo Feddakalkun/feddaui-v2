@@ -223,6 +223,16 @@ export const WorkflowSwitcher = () => {
                   : 'ring-white/10 hover:ring-white/40',
               )}
             >
+              {/* No art for this module yet. The captions live inside the
+                  pictures, so a card without one used to render as an empty
+                  rectangle with nothing to read and no way to tell which
+                  workflow it was. The label is not as nice as the art and it
+                  is always better than a blank. */}
+              {!src(e) && (
+                <span className="flex h-full w-full items-center justify-center px-1 text-center text-[8px] font-bold uppercase leading-tight tracking-wide text-white/45">
+                  {e.label}
+                </span>
+              )}
               {src(e) && (
                 <img
                   src={src(e)}
