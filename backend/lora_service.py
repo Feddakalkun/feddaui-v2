@@ -512,6 +512,28 @@ class LoRAService:
                 continue  # root LoRAs are never characters
             by_folder.setdefault(folder, []).append(info)
 
+        # A character whose LoRAs all live elsewhere. Since a sheet can claim
+        # paths from any folder, a person can exist with an empty folder and a
+        # sheet naming weights under zimage_turbo/ or wan22/ - and that folder
+        # holds no LoRAs, so the loop above never sees it.
+        #
+        # Restricted to app/, which is already the convention for "this folder
+        # is a person": the same rule applied everywhere would turn any folder
+        # that happens to contain a markdown file into a character.
+        try:
+            app_dir = self._lora_fs_path("app")
+            if app_dir.is_dir():
+                for child in app_dir.iterdir():
+                    if not child.is_dir():
+                        continue
+                    key = "app/" + child.name
+                    if key in by_folder:
+                        continue
+                    if any(p.is_file() for p in child.glob("*.md")):
+                        by_folder[key] = []
+        except OSError:
+            pass
+
         characters: List[Dict[str, Any]] = []
         for folder, loras in by_folder.items():
             fs_dir = self._lora_fs_path(folder)
