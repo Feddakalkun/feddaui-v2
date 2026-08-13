@@ -175,12 +175,43 @@ try {
     $ErrorActionPreference = "Continue"
     # ComfyUI is installed at a pinned commit (detached HEAD), so we can't
     # just `git pull`. Fetch latest master and reset hard to it instead.
+    # Where it is now, so it can be put back. Recorded as a hash because the
+    # install leaves ComfyUI on a detached HEAD.
+    $ComfyWas = (& $GitExe rev-parse HEAD 2>$null)
     & $GitExe fetch origin master 2>&1 | Out-Null
     & $GitExe checkout master 2>&1 | Out-Null
     & $GitExe reset --hard origin/master 2>&1 | Out-Null
     $ErrorActionPreference = "Stop"
     Set-Location $RootPath
-    Write-Host "  ComfyUI core updated to latest master." -ForegroundColor Green
+
+    # Does it still start? Newer ComfyUI needs a newer torch than the cu124
+    # channel can give a 20/30/40-series card, and today's update left the app
+    # dead on exactly that: master calls comfy_kitchen.int8_attention_is_available,
+    # which the installable comfy-kitchen for torch 2.6 does not have.
+    #
+    # comfy.ldm.modules.attention, not comfy.utils. utils was tried first and
+    # passed while the app was broken - the failing call is in attention, and
+    # utils never reaches it.
+    & $PyExe -c "import sys; sys.path.insert(0, r'$ComfyDir'); import comfy.model_base, comfy.ldm.modules.attention" 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "  ComfyUI core updated to latest master." -ForegroundColor Green
+    } elseif ($ComfyWas) {
+        Write-Host "  [WARN] The newer ComfyUI will not start on this PyTorch - going back." -ForegroundColor Yellow
+        $ErrorActionPreference = "Continue"
+        Set-Location $ComfyDir
+        & $GitExe reset --hard $ComfyWas 2>&1 | Out-Null
+        $ErrorActionPreference = "Stop"
+        Set-Location $RootPath
+        & $PyExe -c "import sys; sys.path.insert(0, r'$ComfyDir'); import comfy.model_base, comfy.ldm.modules.attention" 2>$null | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "  ComfyUI restored to the version that runs here. FEDDA still works;" -ForegroundColor Yellow
+            Write-Host "  newer ComfyUI features wait on a PyTorch upgrade." -ForegroundColor DarkGray
+        } else {
+            Write-Host "  [WARN] ComfyUI still will not start - see logs\comfyui_live.err.log." -ForegroundColor Red
+        }
+    } else {
+        Write-Host "  [WARN] ComfyUI will not start and there was nothing to go back to." -ForegroundColor Red
+    }
 } catch {
     Set-Location $RootPath
     Write-Host "  [WARNING] ComfyUI core update failed (non-fatal): $_" -ForegroundColor Yellow
@@ -474,7 +505,7 @@ if (Test-Path $ComfyReq) {
         # Ask ComfyUI itself. Nothing here knows which package is risky; any
         # pin that cannot run on the installed torch fails the same check.
         $ComfyDirCheck = Join-Path $RootPath "ComfyUI"
-        & $PyExe -c "import sys; sys.path.insert(0, r'$ComfyDirCheck'); import comfy.utils" 2>$null | Out-Null
+        & $PyExe -c "import sys; sys.path.insert(0, r'$ComfyDirCheck'); import comfy.model_base, comfy.ldm.modules.attention" 2>$null | Out-Null
         if ($LASTEXITCODE -eq 0) {
             Write-Host "  ComfyUI pins synced OK" -ForegroundColor Green
         } else {
@@ -485,7 +516,7 @@ if (Test-Path $ComfyReq) {
                 foreach ($R in $Restore) { Write-Host "    $R" -ForegroundColor DarkGray }
                 Invoke-Pip -PyExe $PyExe -Label "ComfyUI pin rollback" `
                     -PipArgs (@("-m","pip","install","--no-input","--no-warn-script-location") + $Restore) | Out-Null
-                & $PyExe -c "import sys; sys.path.insert(0, r'$ComfyDirCheck'); import comfy.utils" 2>$null | Out-Null
+                & $PyExe -c "import sys; sys.path.insert(0, r'$ComfyDirCheck'); import comfy.model_base, comfy.ldm.modules.attention" 2>$null | Out-Null
                 if ($LASTEXITCODE -eq 0) {
                     Write-Host "  Restored. ComfyUI starts; a feature the new pin adds is unavailable." -ForegroundColor Yellow
                 } else {
