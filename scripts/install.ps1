@@ -843,7 +843,14 @@ if (Test-Path $FrontendDir) {
         if (-not (Test-Path $LogsDir)) { New-Item -ItemType Directory -Path $LogsDir -Force | Out-Null }
         $PrevEap = $ErrorActionPreference
         $ErrorActionPreference = "Continue"
-        & npm install --no-fund --no-audit 2>&1 | Out-File -FilePath $NpmLog -Encoding utf8
+        # npm.cmd by name, not "npm". PowerShell resolves a bare npm to
+        # npm.ps1 - ExternalScript outranks Application - and a tester on
+        # npm 11.5.1 got "Unknown command: pm" from that shim, an argument
+        # arriving with its first character gone. The .cmd shim is what cmd
+        # itself would run and takes its arguments verbatim.
+        $NpmExe = (Get-Command npm.cmd -ErrorAction SilentlyContinue).Source
+        if (-not $NpmExe) { $NpmExe = "npm" }
+        & $NpmExe install --no-fund --no-audit 2>&1 | Out-File -FilePath $NpmLog -Encoding utf8
         $NpmCode = $LASTEXITCODE
         $ErrorActionPreference = $PrevEap
         if ($NpmCode -eq 0) {
