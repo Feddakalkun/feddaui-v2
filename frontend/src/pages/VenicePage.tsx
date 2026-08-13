@@ -4,7 +4,8 @@ import { useToast } from '../components/ui/Toast';
 import { Lightbox } from '../components/ui/Lightbox';
 import { triggerMediaDownload } from '../utils/mediaStore';
 import { BACKEND_API } from '../config/api';
-import { PipelineCancelled, pollGeneration, submitGenerate, viewUrl } from './tools/reelPipeline';
+import { PipelineCancelled, pollGeneration, stageAsInput, submitGenerate, viewUrl } from './tools/reelPipeline';
+import { usePersistentState } from '../hooks/usePersistentState';
 import { Sparkles, Download, ImageIcon, Loader2, AlertCircle, Hash, Sliders, Send, Trash2, Globe, Settings } from 'lucide-react';
 
 /**
@@ -70,18 +71,25 @@ const saveToGlobalGallery = (urls: string[], source = 'venice') => {
 };
 
 /**
- * Models that run here instead of on Venice.
+ * Models that run here instead of on Venice. The id is a FEDDA workflow id,
+ * so adding one is a line in a list rather than anything in the branch that
+ * runs them.
  *
- * The `local:` prefix carries the routing. It is not a separate switch because
- * it is not a separate decision - "which model draws this" is one question, and
- * splitting it across two controls would mean picking Venice's Flux while a
- * local toggle quietly overrode it.
- *
- * The suffix is a FEDDA workflow id, so adding one is a line here rather than
- * anything in the branch that runs them.
+ * `negative` says whether the graph declares that input. It matters: a value
+ * sent to an input a workflow does not have is dropped in silence - the second
+ * of the three ways wiring fails in CLAUDE.md - so krea2 saying false here is
+ * what stops a negative prompt being written and quietly ignored.
  */
-const LOCAL_IMAGE_MODELS = [
-  { id: 'local:z-image', label: 'Z-Image Turbo — on your GPU (free)' },
+interface LocalModel { id: string; label: string; negative: boolean }
+
+const LOCAL_IMAGE_MODELS: LocalModel[] = [
+  { id: 'z-image', label: 'Z-Image Turbo', negative: true },
+  { id: 'krea2-turbo-txt2img', label: 'Krea2 Turbo', negative: false },
+  { id: 'qwen-txt2img', label: 'Qwen Text to Image', negative: true },
+];
+
+const LOCAL_EDIT_MODELS: LocalModel[] = [
+  { id: 'qwen-rapid-edit-v23', label: 'Qwen Rapid Edit v23', negative: true },
 ];
 
 // Image Models
@@ -184,10 +192,13 @@ export function VenicePage() {
     return () => { cancelled = true; };
   }, []);
 
-  // Prepended rather than appended to the constant: Venice replaces the whole
-  // list with its live one once the key answers, and a local entry inside that
-  // constant would disappear at that moment.
-  const imageModels = [...LOCAL_IMAGE_MODELS, ...(liveModels ?? VENICE_IMAGE_MODELS)];
+  const imageModels = liveModels ?? VENICE_IMAGE_MODELS;
+
+  // Empty means "use Venice". Held here rather than derived from the Venice
+  // selects, so switching back and forth does not lose which local model was
+  // last chosen.
+  const [localImgModel, setLocalImgModel] = usePersistentState('venice_local_img_model', '');
+  const [localEditModel, setLocalEditModel] = usePersistentState('venice_local_edit_model', '');
 
   const generateImage = async () => {
     if (!imgPrompt.trim()) { toast('Prompt is required', 'error'); return; }
@@ -652,6 +663,37 @@ Current context: User is requesting images of Elara at the safari camp, now spec
             .find((m) => m.role === 'user' && m.images?.length)?.images?.[0];
           if (!source) throw new Error('No attached image to edit - drop one in first');
 
+          const localEdit = LOCAL_EDIT_MODELS.find((m) => m.id === localEditModel);
+          if (localEdit) {
+            // The picture is a data: URL in the conversation and the graph
+            // loads by filename from ComfyUI's input directory. Same hop the
+            // reel pipelines make, same helper.
+            const staged = await stageAsInput(source, `venice-edit-${Date.now()}.png`);
+            const promptId = await submitGenerate(localEdit.id, {
+              image: staged,
+              prompt: args.instruction || args.prompt || chatInput,
+              ...(localEdit.negative && args.negative_prompt
+                ? { negative: args.negative_prompt } : {}),
+              seed: Math.floor(Math.random() * 1_000_000_000),
+            });
+            const files = await pollGeneration({
+              promptId, workflowId: localEdit.id, resultKey: 'images',
+            });
+            const urls = files.map(viewUrl);
+            setChatMessages((prev) => {
+              const updated = [...prev];
+              updated[assistantMsgIndex] = {
+                role: 'assistant',
+                content: assistantContent || `Edited on your GPU with ${localEdit.label}.`,
+                images: urls,
+              };
+              return updated;
+            });
+            saveToGlobalGallery(urls, 'local-edit');
+            toast('Image edited', 'success');
+            return;
+          }
+
           const editRes = await fetch(`${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.VENICE_IMAGE_EDIT}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -702,12 +744,15 @@ Current context: User is requesting images of Elara at the safari camp, now spec
           // chat's own select is the text model, which is a different thing.
           const imgModelToUse = args.model || imgModel || 'flux-2-pro';
 
-          if (imgModelToUse.startsWith('local:')) {
-            const workflowId = imgModelToUse.slice('local:'.length);
+          const localImg = LOCAL_IMAGE_MODELS.find((m) => m.id === localImgModel);
+          if (localImg) {
+            const workflowId = localImg.id;
             try {
               const promptId = await submitGenerate(workflowId, {
                 prompt: imagePrompt,
-                negative: args.negative_prompt || '',
+                // Only when the graph has somewhere to put it.
+                ...(localImg.negative && args.negative_prompt
+                  ? { negative: args.negative_prompt } : {}),
                 width: args.width || 1024,
                 height: args.height || 1024,
                 // Not exposed to the model. It asks for a picture; how many
@@ -724,7 +769,7 @@ Current context: User is requesting images of Elara at the safari camp, now spec
                   role: 'assistant',
                   content: assistantContent && assistantContent !== 'Generating image...'
                     ? assistantContent
-                    : `Generated locally with ${workflowId}.`,
+                    : `Generated on your GPU with ${localImg.label}.`,
                   images: urls,
                 };
                 return updated;
@@ -1140,6 +1185,39 @@ Current context: User is requesting images of Elara at the safari camp, now spec
                     >
                       {(editModels.length ? editModels : [editModel]).filter(Boolean).map((m) => (
                         <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  {/* Your own GPU. Empty means Venice, so these two are the
+                      only place the question is answered - a separate on/off
+                      would let a Venice model be picked while something else
+                      quietly overrode it. */}
+                  <label className="flex items-center gap-1.5 whitespace-nowrap text-[11px] text-emerald-300/60">
+                    Local&nbsp;image
+                    <select
+                      value={localImgModel}
+                      onChange={(e) => setLocalImgModel(e.target.value)}
+                      title="Generate on this machine instead of Venice. Free, unmetered, and as fast as your GPU."
+                      className="max-w-[150px] rounded-lg fedda-input px-2 py-1 text-[11px] focus:border-emerald-500/40"
+                    >
+                      <option value="">Use Venice</option>
+                      {LOCAL_IMAGE_MODELS.map((m) => (
+                        <option key={m.id} value={m.id}>{m.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="flex items-center gap-1.5 whitespace-nowrap text-[11px] text-emerald-300/60">
+                    Local&nbsp;edit
+                    <select
+                      value={localEditModel}
+                      onChange={(e) => setLocalEditModel(e.target.value)}
+                      title="Edit an attached image on this machine instead of Venice."
+                      className="max-w-[150px] rounded-lg fedda-input px-2 py-1 text-[11px] focus:border-emerald-500/40"
+                    >
+                      <option value="">Use Venice</option>
+                      {LOCAL_EDIT_MODELS.map((m) => (
+                        <option key={m.id} value={m.id}>{m.label}</option>
                       ))}
                     </select>
                   </label>
