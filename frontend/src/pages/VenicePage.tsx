@@ -7,7 +7,7 @@ import { BACKEND_API } from '../config/api';
 import { PipelineCancelled, pollGeneration, stageAsInput, submitGenerate, viewUrl } from './tools/reelPipeline';
 import { usePersistentState } from '../hooks/usePersistentState';
 import { characterMatchesFamily, fetchCharacters, loadSheet, type Character, type Sheet } from '../lib/characters';
-import { matchesFamily, loraFileName } from '../lib/loraLabel';
+import { matchesFamily, loraFileName, normalizeLoraPath } from '../lib/loraLabel';
 import { Sparkles, Download, ImageIcon, Loader2, AlertCircle, Hash, Sliders, Send, Trash2, Globe, Settings } from 'lucide-react';
 
 /**
@@ -252,6 +252,25 @@ export function VenicePage() {
   const [localCharacter, setLocalCharacter] = usePersistentState('venice_local_character', '');
   const [charSheet, setCharSheet] = useState<Sheet | null>(null);
   const [localCharLora, setLocalCharLora] = usePersistentState('venice_local_char_lora', '');
+  const [localExtraLora, setLocalExtraLora] = usePersistentState('venice_local_extra_lora', '');
+
+  // The whole library, for the LoRAs that are not filed under a character -
+  // styles, fixers, Lightning speedups. fetchCharacters cannot see them.
+  const [allLoras, setAllLoras] = useState<string[]>([]);
+  useEffect(() => {
+    fetch(`${BACKEND_API.BASE_URL}${BACKEND_API.ENDPOINTS.LORA_LIST}`)
+      .then((r) => r.json())
+      .then((d) => setAllLoras(d?.loras ?? []))
+      .catch(() => setAllLoras([]));
+  }, []);
+
+  const extraLoraOptions = useMemo(() => {
+    const model = LOCAL_IMAGE_MODELS.find((x) => x.id === localImgModel);
+    if (!model) return [];
+    return allLoras.filter((path) =>
+      matchesFamily(path, model.family)
+      && !normalizeLoraPath(path).startsWith('characters/'));
+  }, [allLoras, localImgModel]);
 
   // The character's LoRAs this workflow can actually load. Several is normal -
   // they are checkpoints from one training run - and which one is loaded
@@ -854,6 +873,13 @@ Current context: User is requesting images of Elara at the safari camp, now spec
               // appearance after, covering what the weights do not carry.
               const chosen = feddaChars.find((c) => c.name === localCharacter);
               const charLora = activeCharLora;
+              // Character first: the chain applies in order, and the likeness
+              // should be the thing a style is laid over rather than under.
+              const extra = extraLoraOptions.includes(localExtraLora) ? localExtraLora : '';
+              const loraStack = [
+                ...(charLora ? [{ name: charLora.path, strength: 1.0 }] : []),
+                ...(extra ? [{ name: extra, strength: 1.0 }] : []),
+              ];
               const bits = [
                 charSheet?.trigger?.trim() || (charLora ? chosen!.name.toLowerCase() : ''),
                 imagePrompt,
@@ -862,7 +888,7 @@ Current context: User is requesting images of Elara at the safari camp, now spec
 
               const promptId = await submitGenerate(workflowId, {
                 prompt: charLora ? bits.join(', ') : imagePrompt,
-                ...(charLora ? { loras: [{ name: charLora.path, strength: 1.0 }] } : {}),
+                ...(loraStack.length ? { loras: loraStack } : {}),
                 // Only when the graph has somewhere to put it.
                 ...(localImg.negative && args.negative_prompt
                   ? { negative: args.negative_prompt } : {}),
@@ -883,6 +909,7 @@ Current context: User is requesting images of Elara at the safari camp, now spec
                   content: agentText(assistantContent)
                     || `Generated on your GPU with ${localImg.label}`
                       + (charLora ? ` as ${chosen!.name} (${loraFileName(charLora.path)})` : '')
+                      + (extra ? ` over ${loraFileName(extra)}` : '')
                       + '.',
                   images: urls,
                 };
@@ -1381,6 +1408,25 @@ Current context: User is requesting images of Elara at the safari camp, now spec
                       >
                         {charLoraOptions.map((l) => (
                           <option key={l.path} value={l.path}>{loraFileName(l.path)}</option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  {/* Not called Style: the list also holds Lightning
+                      speedups and fixers, and some of those change what the
+                      workflow needs. Hence off by default. */}
+                  {extraLoraOptions.length > 0 && (
+                    <label className="flex items-center gap-1.5 whitespace-nowrap text-[11px] text-emerald-300/60">
+                      Extra
+                      <select
+                        value={localExtraLora}
+                        onChange={(e) => setLocalExtraLora(e.target.value)}
+                        title="A second LoRA stacked over the character - styles, fixers, speedups."
+                        className="max-w-[170px] rounded-lg fedda-input px-2 py-1 text-[11px] focus:border-emerald-500/40"
+                      >
+                        <option value="">No extra</option>
+                        {extraLoraOptions.map((path) => (
+                          <option key={path} value={path}>{loraFileName(path)}</option>
                         ))}
                       </select>
                     </label>
