@@ -439,6 +439,48 @@ class LoRAService:
 
     # ─── Characters ─────────────────────────────────────────────────────────
 
+    @staticmethod
+    def _sheet_claimed_loras(sheet_path) -> List[str]:
+        """Paths a sheet claims, from a `loras:` list in its front matter.
+
+        Deliberately not a YAML parse: the sheets are hand-written prose with a
+        small header, adding a dependency to read six lines would be a poor
+        trade, and a strict parser turns a typo into an exception instead of a
+        skipped line. Reads until the list stops looking like a list.
+
+            ---
+            name: Sara
+            loras:
+              - krea2/sara-krea-060825.safetensors
+              - zimage_turbo/Sara_zimage1.safetensors
+            ---
+        """
+        try:
+            text = sheet_path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return []
+
+        claimed: List[str] = []
+        in_list = False
+        for raw in text.splitlines():
+            line = raw.rstrip()
+            if not in_list:
+                if line.strip().lower().startswith("loras:"):
+                    in_list = True
+                continue
+            stripped = line.strip()
+            # A dash and then a value.  closes the front matter and is not
+            # an item: startswith("-") alone read it as one and claimed "--".
+            if stripped.startswith("- "):
+                value = stripped[1:].strip().strip("\"'")
+                if value:
+                    claimed.append(value.replace("\\", "/"))
+                continue
+            # Anything that is not a list item ends the list, including the
+            # closing --- and a blank line.
+            break
+        return claimed
+
     def get_characters(self) -> List[Dict[str, Any]]:
         """Group installed LoRAs into characters.
 
@@ -488,13 +530,40 @@ class LoRAService:
                 continue
 
             sheet = mds[0] if has_lone_sheet else None
+
+            # LoRAs the sheet claims from elsewhere. Matched on the normalised
+            # path because ComfyUI reports separators per folder, not per
+            # platform - see the note in CLAUDE.md.
+            owned = list(loras)
+            missing: List[str] = []
+            if sheet:
+                have = {(l.get("path") or "").replace("\\", "/").lower() for l in owned}
+                by_path = {
+                    (i.get("path") or "").replace("\\", "/").lower(): i
+                    for i in installed.values()
+                }
+                for claim in self._sheet_claimed_loras(sheet):
+                    key = claim.lower()
+                    if key in have:
+                        continue
+                    found = by_path.get(key)
+                    if found:
+                        owned.append(found)
+                        have.add(key)
+                    else:
+                        missing.append(claim)
+
             characters.append({
                 "name": folder.split("/")[-1],
                 "folder": folder,
                 "sheet": str(sheet.relative_to(self.lora_dir)) if sheet else None,
                 "has_sheet": sheet is not None,
+                # Named rather than dropped: a claim that does not resolve is
+                # what someone needs telling, and a quietly shorter list reads
+                # as a missing LoRA rather than a typo in the sheet.
+                "missing_claims": missing,
                 "loras": sorted(
-                    ({"path": l["path"], "file": l["name"], "size_mb": l["size_mb"]} for l in loras),
+                    ({"path": l["path"], "file": l["name"], "size_mb": l["size_mb"]} for l in owned),
                     key=lambda x: x["file"].lower(),
                 ),
             })
