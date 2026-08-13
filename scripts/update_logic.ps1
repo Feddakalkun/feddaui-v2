@@ -531,7 +531,15 @@ if (Test-Path $ComfyReq) {
     }
 }
 
-# Florence2 requires transformers >= 4.45 for is_flash_attn_greater_or_equal_2_10
+# Florence2 requires transformers >= 4.45 for is_flash_attn_greater_or_equal_2_10,
+# and less than 5. The floor was here and the ceiling was not, so an unbounded
+# --upgrade answered "at least 4.45" with 5.14.1. Florence2 ships its own model
+# code and its own _beam_search, written against the 4.x generation API; on 5.x
+# it indexed out of range and raised a CUDA device-side assert, which poisons
+# the context so every later CUDA call in the process fails as well.
+#
+# No custom node here declares an upper bound, and the highest floor asked for
+# is 4.57.1 - so the newest 4.x satisfies all of them.
 $TransformersVersion = & $PyExe -c "import transformers; print(transformers.__version__)" 2>$null
 $NeedsTransformersUpgrade = $true
 if ($TransformersVersion -match '^(\d+)\.(\d+)') {
@@ -541,8 +549,14 @@ if ($TransformersVersion -match '^(\d+)\.(\d+)') {
 if ($NeedsTransformersUpgrade) {
     Write-Host "  Upgrading transformers (Florence2 fix)..." -ForegroundColor White
     Write-Host "    (may take a minute)" -ForegroundColor DarkGray
-    & $PyExe -m pip install --upgrade transformers --no-warn-script-location 2>&1
-    Write-Host "  transformers upgraded OK" -ForegroundColor Green
+    Invoke-Pip -PyExe $PyExe -Label "transformers" `
+        -PipArgs @("-m","pip","install","--upgrade","transformers>=4.45,<5","--no-warn-script-location") | Out-Null
+    $NowTransformers = & $PyExe -c "import transformers; print(transformers.__version__)" 2>$null
+    if ($NowTransformers) {
+        Write-Host "  transformers at $($NowTransformers.Trim())" -ForegroundColor Green
+    } else {
+        Write-Host "  [WARN] transformers did not import after the upgrade - see logs\update_pip.log." -ForegroundColor Yellow
+    }
 } else {
     Write-Host "  transformers OK ($TransformersVersion)" -ForegroundColor Green
 }
