@@ -269,6 +269,25 @@ try {
         Write-Host "  Nothing that generates an image will work until this is fixed." -ForegroundColor Yellow
         Write-Host "  The rest of the app (Venice, gallery, settings) still loads." -ForegroundColor DarkGray
         Write-Host ""
+
+        # The commonest cause has a repair, and nobody would guess it exists.
+        # A comfy_kitchen built for a newer torch than the cu124 wheels can
+        # give stops ComfyUI importing at all; repair_comfy.ps1 walks that
+        # back, testing after each step. Harmless when the fault is something
+        # else - it reports that the import works and changes nothing.
+        $Repair = Join-Path $RootPath "scripts\repair_comfy.ps1"
+        if (Test-Path $Repair) {
+            $ans = Read-Host "  Try to repair it now? Press Enter to try, or type N to skip"
+            if ($ans -notmatch '^\s*[Nn]') {
+                & powershell -NoProfile -ExecutionPolicy Bypass -File $Repair -RootPath $RootPath
+                Write-Host ""
+                Write-Host "  Close this window and start FEDDA again." -ForegroundColor Yellow
+                Write-Host ""
+                Read-Host "  Press Enter to close"
+                exit 0
+            }
+            Write-Host ""
+        }
     }
     if (-not $backendOk) {
         Show-ServiceOutput | Out-Null
