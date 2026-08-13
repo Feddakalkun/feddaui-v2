@@ -82,6 +82,44 @@ const saveToGlobalGallery = (urls: string[], source = 'venice') => {
  * of the three ways wiring fails in CLAUDE.md - so krea2 saying false here is
  * what stops a negative prompt being written and quietly ignored.
  */
+/**
+ * Written into the bubble while a tool call is in flight. Named because four
+ * places have to recognise it and not mistake it for something the agent said.
+ */
+const GENERATING = 'Generating image...';
+
+/** What the agent actually wrote, or nothing if it is still the placeholder. */
+const agentText = (content: string) => (content && content !== GENERATING ? content : '');
+
+/**
+ * Sizes the edit graph is happy with - the same four the Rapid Edit page
+ * offers. The graph's ImageScale is pinned to 768x768 with crop disabled, so
+ * whatever goes in comes out at the ratio picked here.
+ */
+const EDIT_SIZES = [
+  { w: 768, h: 768 },
+  { w: 768, h: 1024 },
+  { w: 1024, h: 768 },
+  { w: 832, h: 1216 },
+];
+
+/**
+ * The closest of those to the source picture's own shape. The page asks the
+ * user; chat has no one to ask, and defaulting to square quietly squashed
+ * every portrait that came through it.
+ */
+async function editSizeFor(src: string): Promise<{ width: number; height: number }> {
+  const ratio = await new Promise<number>((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img.naturalWidth / Math.max(img.naturalHeight, 1));
+    img.onerror = () => resolve(1);
+    img.src = src;
+  });
+  const best = EDIT_SIZES.reduce((a, b) =>
+    Math.abs(a.w / a.h - ratio) <= Math.abs(b.w / b.h - ratio) ? a : b);
+  return { width: best.w, height: best.h };
+}
+
 interface LocalModel {
   id: string;
   label: string;
@@ -674,7 +712,7 @@ Current context: User is requesting images of Elara at the safari camp, now spec
                   const firstCall = toolCalls.find(Boolean);
                   if (firstCall && (firstCall.name === 'generate_image'
                     || firstCall.name === 'edit_image') && !assistantContent) {
-                    assistantContent = 'Generating image...';
+                    assistantContent = GENERATING;
                     setChatMessages(prev => {
                       const updated = [...prev];
                       updated[assistantMsgIndex] = { role: 'assistant', content: assistantContent };
@@ -715,6 +753,8 @@ Current context: User is requesting images of Elara at the safari camp, now spec
               prompt: args.instruction || args.prompt || chatInput,
               ...(localEdit.negative && args.negative_prompt
                 ? { negative: args.negative_prompt } : {}),
+              // Without these the graph forces 768x768 on everything.
+              ...(await editSizeFor(source)),
               seed: Math.floor(Math.random() * 1_000_000_000),
             });
             const files = await pollGeneration({
@@ -725,7 +765,8 @@ Current context: User is requesting images of Elara at the safari camp, now spec
               const updated = [...prev];
               updated[assistantMsgIndex] = {
                 role: 'assistant',
-                content: assistantContent || `Edited on your GPU with ${localEdit.label}.`,
+                content: agentText(assistantContent)
+                  || `Edited on your GPU with ${localEdit.label}.`,
                 images: urls,
               };
               return updated;
@@ -757,7 +798,8 @@ Current context: User is requesting images of Elara at the safari camp, now spec
               // Appended rather than used as a fallback: when the agent wrote
               // something of its own, the model name used to vanish, which is
               // exactly the question the user asked.
-              content: `${assistantContent ? assistantContent + '\n\n' : ''}_Edited with ${editData.model}_`,
+              content: `${agentText(assistantContent) ? agentText(assistantContent) + '\n\n' : ''}`
+                + `_Edited with ${editData.model}_`,
               images: edited,
             };
             return updated;
@@ -821,9 +863,8 @@ Current context: User is requesting images of Elara at the safari camp, now spec
                 const updated = [...prev];
                 updated[assistantMsgIndex] = {
                   role: 'assistant',
-                  content: assistantContent && assistantContent !== 'Generating image...'
-                    ? assistantContent
-                    : `Generated on your GPU with ${localImg.label}${charLora ? ` as ${chosen!.name}` : ''}.`,
+                  content: agentText(assistantContent)
+                    || `Generated on your GPU with ${localImg.label}${charLora ? ` as ${chosen!.name}` : ''}.`,
                   images: urls,
                 };
                 return updated;
@@ -867,9 +908,8 @@ Current context: User is requesting images of Elara at the safari camp, now spec
           if (imgData && imgData.success !== false) {
             const newImgs: string[] = veniceImageUrls(imgData);
 
-            const finalContent = assistantContent && assistantContent !== 'Generating image...' 
-              ? assistantContent 
-              : `Here are ${newImgs.length} images of Elara at the safari camp in a sunset setting:`;
+            const finalContent = agentText(assistantContent)
+              || `Here are ${newImgs.length} images:`;
 
             setChatMessages(prev => {
               const updated = [...prev];
