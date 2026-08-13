@@ -1631,3 +1631,175 @@ the uv download all work on a machine that has neither tool on PATH.
 `Venv-Pip` calls through uv were started but not finished, and whether Pixaroma
 and iTools install from the vendored copies rather than cloning is still unknown.
 The test folder is cleaned and ready for a full run.
+
+---
+
+## 2026-08-12/13 — stand-in session: the installer, the update, and a ceiling
+
+Written by the agent covering while the main one was at its limit. Everything
+below is committed and pushed; `main` ends at `29e9f07`.
+
+### The shape almost everything took
+
+Eight separate defects this session, and most were one shape: **something failed
+or was already finished, and said nothing about it.** Worth carrying forward as a
+first suspicion, because it was right nearly every time.
+
+- the launcher captured ComfyUI's startup to a log and then skipped it, so a
+  crash showed as silence (`Get-Content -Wait -Tail 0` attached *after* a 120s
+  wait)
+- the installer's closing screen printed "ALL DONE - FEDDA is installed"
+  regardless of the inner exit code
+- `install.ps1`'s pinned-dependency sync called `$PyExe`, which is defined
+  nowhere in that file - both calls threw, so it had **never once run** while
+  printing "ComfyUI pins synced OK" every time
+- `npm install` announced "Frontend dependencies installed" whatever npm returned
+- the media downloader was complete, routed, backed by a working endpoint, and
+  `hidden: true`
+- `_memory_block` was wired into `chat_edit_turn`, the endpoint of the Qwen-only
+  page that `ChatWorkflowPage` replaced, so 25 stored facts never reached the
+  agent people actually use
+
+### The installer is a bootstrapper now, on purpose
+
+The user's point, and it is the right frame: the `.bat` is a standalone download
+that `update.bat` cannot reach and `git pull` never touches. Every copy on a disk
+is frozen at the moment it was fetched. So only what must happen *before the repo
+exists* belongs in it - fetching git and node, cloning, and refusing to launch an
+install that did not finish. Everything else goes in `scripts/`.
+
+What it does now: a preflight of eight checks before the first byte is
+downloaded, Enter/N consent, a quick-launch gate that requires
+`Smoke Test: PASSED` in `logs/install_report.txt`, explained repair screens for
+both "self-test failed" and "never finished" (each asks first, and cancelling
+leaves the disk untouched), and a version check against
+`installer/installer_rev.txt` on `main`.
+
+**`INSTALLER_REV` and `installer_rev.txt` must move together.** Bump one without
+the other and the installer lies in one direction or the other.
+
+The preflight is plain text. An ANSI version came first and had to be thrown
+away: the ESC captured via `prompt $E` expanded inside ordinary words and printed
+"Everything" as garbage.
+
+### The release asset was four days and six fixes stale
+
+`feddakalkun.com` serves a GitHub release asset. It was still the 8 August build:
+13,432 bytes, no quick-launch, no portable git/node - it **required Git and
+Node.js already installed** and offered `winget`. Nine people had downloaded it.
+Replaced with `gh release upload v2.0 ... --clobber` and verified byte-identical
+against the local file.
+
+That also corrected a wrong claim made earlier in the session: the tester who
+lost an evening was *not* stranded by the quick-launch gate, because the build he
+had did not contain one.
+
+### The update destroyed three commits, and now refuses to
+
+`update_code.ps1` did `git reset --hard origin/main`. Correct for an install -
+they never commit - and wrong here: it erased three commits made minutes earlier
+and printed "Code updated successfully". The reflog had them; that is luck.
+
+It now counts `origin/main..HEAD` and stops with the list when it is non-zero. On
+a user's machine the answer is always zero.
+
+### cu124 is the real ceiling, and it arrived on its own
+
+The long one. Full detail is in `CLAUDE.md` under "The ComfyUI version is three
+different things"; the short version:
+
+- a fresh install pins ComfyUI `a2840e75` = **v0.18.1, dated April**
+- `update_logic.ps1` then resets ComfyUI to `origin/master`, so the first update
+  discards the pin - two users on the same FEDDA can be a dozen versions apart
+- ComfyUI ≥0.32.0 **cannot run on torch 2.6.0**, and 2.6.0 is the newest the
+  cu124 channel has (cu126 has 2.13.0, cu128 has 2.11.0)
+- `install.ps1` already sends RTX 50-series to cu128, so a 5090 install is fine
+  and a 3090 is not
+
+This stopped being theoretical mid-session: an update pulled ComfyUI to master
+and left the app dead. Neither comfy-kitchen version carries it - `0.2.31`
+(master's pin) fails `import comfy.utils` on `list[int]`, and `0.2.26` lacks
+`int8_attention_is_available`, which master's attention module calls. Rolling the
+pin back moved the failure instead of removing it.
+
+**The machine is deliberately held at ComfyUI `v0.30.0-1-g14b05228`.** Two guards
+now keep it there: the pin sync and the ComfyUI update each record what they are
+about to replace, import `comfy.model_base, comfy.ldm.modules.attention`
+afterwards, and roll back if that fails.
+
+That import matters. The first guard checked `comfy.utils`, which **passed while
+the app was broken** - the failing call lives in `attention.py` and `utils` never
+reaches it.
+
+### The update also broke Florence2, via transformers
+
+`update_logic.ps1` had a floor (`>= 4.45`, for Florence2) and no ceiling, so an
+unbounded `--upgrade` answered it with **transformers 5.14.1**. Florence2 ships
+its own model code and its own `_beam_search` written against the 4.x generation
+API; on 5.x it indexed out of range and raised a **CUDA device-side assert**.
+
+That poisons the CUDA context, so every later CUDA call in the process fails -
+including `system_stats`, which is what actually filled the console. One cause,
+printed everywhere except where it happened. Now capped `>=4.45,<5`; the machine
+is on 4.57.6. Nothing here declares an upper bound and the highest floor asked
+for is 4.57.1, so newest-4.x satisfies everyone.
+
+### LTX-2.5: parked, with the reasons written down
+
+Needs ComfyUI 0.32.0, so it is behind everything above. The weights are seven
+files in the gated `Lightricks/LTX-2.5` repo (list in `CLAUDE.md`); FEDDA already
+stores an `hf_token`, which is what a gated repo needs. The standalone package in
+`H:\Fedda-Hub\LTX2_5` contains **no ComfyUI nodes** - it clones Lightricks' own
+inference package and drives `ltx_pipelines.distilled` as a CLI.
+
+Useful regardless: **frames must be 8k+1**, dimensions step by 64, 24 fps.
+
+### Features added
+
+- **`Tour`** (`components/ui/Tour.tsx`) - the first walkthrough, built to be
+  reused. Steps anchor on a `data-tour` attribute rather than a class or DOM
+  path, so restyling cannot silently break one, and a step whose anchor is
+  missing still shows, centred. `WorkflowSection` takes a `dataTour` prop. Reel
+  Machine has the first five-step tour and a "How it works" replay button.
+- **Voice cloning from a video URL** - `/api/tts/voices/from-url`. Audio only, a
+  start/end trim, saved as a named Chatterbox voice. No `FFmpegExtractAudio`
+  postprocessor: it wants a directory holding both `ffmpeg.exe` and
+  `ffprobe.exe`, and imageio-ffmpeg ships one version-named binary and no
+  ffprobe, so yt-dlp discarded a completed download.
+- **Media Downloader switched on** - was hidden, complete, and not even marked
+  `wip`. Verified against the running backend.
+- **Reel Machine visible**, still `wip` - dependencies all present, but no full
+  run has been watched, and present dependencies are not a working reel.
+- **The chat agent got its memory** and a schema-derived opening line: it now
+  asks for a required file when there is one instead of "What are we making?".
+  Results no longer take over the source slot - there is a "Use as source"
+  button instead.
+
+### Traps worth not repeating
+
+- **Heredocs eat backslashes.** `"scripts\run_update.bat"` piped through one
+  became `scripts<CR>un_update.bat` and PowerShell answered "Illegal characters
+  in path". Write patch scripts to a file.
+- **`repr()` prints a real CR as `\r`**, which reads exactly like a literal
+  backslash-r unless you notice it is not doubled. That cost a wrong "the file is
+  clean" call.
+- `install_fast_log.txt` only captures `Write-Step`. Anything written with
+  `Write-Host` - the whole pin-sync block, for one - reaches no log at all.
+- The `Update failed (non-fatal)` lines during node updates are mostly false:
+  `From https://github.com/...` is git writing progress to stderr, not an error.
+
+### Open
+
+1. **The tester's `app\logs\install_report.txt`** - still the only thing that can
+   say what failed on his first install. He should re-download the installer
+   regardless; his build required Git and Node preinstalled.
+2. **Reel Machine** needs one watched end-to-end run before `wip` comes off.
+3. **cu124** - not urgent, nothing forces it, but it is a wall and it is now
+   documented.
+4. **The feddakalkun.com OG image** - `og:image` and `twitter:image` point at
+   `og-image-fedda.jpeg`; the user wants the site's own background,
+   `/assets/rabbit-bg.jpeg`. **The website source is not in this repository** and
+   was not found on disk, so nothing was changed. Note that `rabbit-bg.jpeg`
+   sits in `/assets/` beside hashed bundles - safer to copy it to the site root
+   and point there. Facebook and X cache OG images; their debuggers have to be
+   run afterwards.
