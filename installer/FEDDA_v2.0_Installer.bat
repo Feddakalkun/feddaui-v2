@@ -2,6 +2,10 @@
 setlocal EnableDelayedExpansion
 title FEDDA v2.0 One-Click Installer
 set "APP_NAME=FEDDA Hub v2.0"
+:: Must match installer/installer_rev.txt in the repo. Bump both together when
+:: this file changes in a way that is worth re-downloading for.
+set "INSTALLER_REV=2026-08-12.1"
+set "INSTALLER_REV_URL=https://raw.githubusercontent.com/Feddakalkun/Fedda_hub_v2.0/main/installer/installer_rev.txt"
 
 :: ===========================================================================
 ::  Already installed? Then this file is just the launcher.
@@ -407,6 +411,19 @@ if defined WRITE_OK (
 ) else (
     echo [FAIL]  cannot write here - move this out of Program Files
     set "PREFLIGHT_BAD=1"
+)
+
+<nul set /p "=This installer . . . . . . .  "
+set "LATEST_REV="
+for /F "usebackq delims=" %%r in (`powershell -NoProfile -Command "try { (Invoke-WebRequest -UseBasicParsing -TimeoutSec 6 -Uri '%INSTALLER_REV_URL%').Content.Trim() } catch { '' }" 2^>nul`) do set "LATEST_REV=%%r"
+if not defined LATEST_REV (
+    echo [ -- ]  rev !INSTALLER_REV! - could not check for a newer one
+) else if /i "!LATEST_REV!"=="!INSTALLER_REV!" (
+    echo [ OK ]  rev !INSTALLER_REV! - up to date
+) else (
+    echo [WARN]  rev !INSTALLER_REV!, but !LATEST_REV! is out
+    echo                                 Download this installer again from feddakalkun.com.
+    echo                                 It updates itself for nobody - update.bat cannot reach it.
 )
 
 <nul set /p "=Ollama, optional . . . . . .  "
