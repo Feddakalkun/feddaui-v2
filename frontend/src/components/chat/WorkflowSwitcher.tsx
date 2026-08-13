@@ -69,8 +69,6 @@ type Entry = {
   /** Custom nodes ComfyUI does not have. A workflow can have every model and
       still die on one of these, which is what "ready" used to miss. */
   missingNodes: string[];
-  poster?: string;
-  poster916?: string;
 };
 
 export const WorkflowSwitcher = () => {
@@ -81,7 +79,6 @@ export const WorkflowSwitcher = () => {
     try { return localStorage.getItem(OPEN_KEY) === '1'; } catch { return false; }
   });
   const [query, setQuery] = useState('');
-  const [peek, setPeek] = useState<{ entry: Entry; x: number; y: number } | null>(null);
   const [readiness, setReadiness] = useState<
     Record<string, { ready: boolean; missing: number; missing_nodes?: string[] }> | null>(null);
 
@@ -127,12 +124,6 @@ export const WorkflowSwitcher = () => {
           ready: readiness ? Boolean(readiness[id]?.ready) : true,
           missing: readiness?.[id]?.missing ?? 0,
           missingNodes: readiness?.[id]?.missing_nodes ?? [],
-          poster: m.card?.poster,
-          // The strip has its own portrait art, published beside the landscape
-          // set under a matching filename. Deriving the path keeps one source
-          // of truth; anything not rendered yet falls back to the landscape
-          // card rather than showing a gap.
-          poster916: m.card?.poster?.replace('/cards/bunny/', '/cards/bunny916/'),
         }];
       }));
   }, [families, readiness]);
@@ -158,15 +149,6 @@ export const WorkflowSwitcher = () => {
     });
   };
 
-  // The preview would otherwise hang over a card that has scrolled away.
-  useEffect(() => {
-    if (!peek) return undefined;
-    const drop = () => setPeek(null);
-    window.addEventListener('scroll', drop, true);
-    return () => window.removeEventListener('scroll', drop, true);
-  }, [peek]);
-
-  const src = (e: Entry) => e.poster916 || e.poster;
 
   return (
     <div className="shrink-0">
@@ -210,74 +192,32 @@ export const WorkflowSwitcher = () => {
               type="button"
               disabled={!e.ready}
               onClick={() => pick(e.id)}
-              onMouseEnter={(ev) => {
-                const r = ev.currentTarget.getBoundingClientRect();
-                setPeek({ entry: e, x: r.left + r.width / 2, y: r.bottom });
-              }}
-              onMouseLeave={() => setPeek(null)}
               title={e.ready ? `${e.label} — ${e.family}` : `${e.label} — ${whyNot(e)}`}
               className={cn(
-                'relative h-16 w-9 shrink-0 overflow-hidden rounded-md bg-[#141420] ring-1 transition',
-                !e.ready ? 'cursor-not-allowed opacity-30 ring-white/5 grayscale'
-                  : e.id === workflowId ? 'ring-cyan-400/80'
-                  : 'ring-white/10 hover:ring-white/40',
+                'relative flex h-16 w-[104px] shrink-0 flex-col justify-center gap-0.5',
+                'overflow-hidden rounded-md bg-[#141420] px-2 py-1.5 text-left ring-1 transition',
+                !e.ready ? 'cursor-not-allowed opacity-40 ring-white/5'
+                  : e.id === workflowId ? 'ring-cyan-400/80 bg-cyan-500/10'
+                  : 'ring-white/10 hover:bg-white/[0.06] hover:ring-white/40',
               )}
             >
-              {/* No art for this module yet. The captions live inside the
-                  pictures, so a card without one used to render as an empty
-                  rectangle with nothing to read and no way to tell which
-                  workflow it was. The label is not as nice as the art and it
-                  is always better than a blank. */}
-              {!src(e) && (
-                <span className="flex h-full w-full items-center justify-center px-1 text-center text-[8px] font-bold uppercase leading-tight tracking-wide text-white/45">
-                  {e.label}
-                </span>
-              )}
-              {src(e) && (
-                <img
-                  src={src(e)}
-                  alt=""
-                  loading="lazy"
-                  onError={(ev) => {
-                    // A flag, not a src comparison: the browser resolves src to
-                    // an absolute URL, so comparing it against the relative
-                    // path never matches and the handler would retry forever.
-                    const img = ev.currentTarget;
-                    if (e.poster && !img.dataset.fellBack) {
-                      img.dataset.fellBack = '1';
-                      img.src = e.poster;
-                    }
-                  }}
-                  className="h-full w-full object-cover"
-                />
-              )}
-              {!e.ready && (
-                <Lock className="absolute inset-0 m-auto h-3 w-3 text-white/70" />
-              )}
+              <span
+                className={cn(
+                  'line-clamp-2 text-[10px] font-semibold leading-tight',
+                  e.id === workflowId ? 'text-cyan-100' : 'text-white/80',
+                )}
+              >
+                {e.label}
+              </span>
+              <span className="flex items-center gap-1 truncate text-[8px] uppercase tracking-wider text-white/30">
+                {!e.ready && <Lock className="h-2 w-2 shrink-0" />}
+                {e.family}
+              </span>
             </button>
           ))}
         </div>
       )}
 
-      {/* Fixed, so it escapes the strip's own scroll clipping. No caption:
-          every card has its title baked into the art already. */}
-      {peek && src(peek.entry) && (
-        <div
-          className={cn(
-            'pointer-events-none fixed z-50 w-40 -translate-x-1/2 overflow-hidden rounded-xl',
-            'shadow-2xl shadow-black/80 ring-1 ring-white/20',
-            !peek.entry.ready && 'grayscale',
-          )}
-          style={{ left: peek.x, top: peek.y + 8 }}
-        >
-          <img src={src(peek.entry)} alt="" className="w-full" />
-          {!peek.entry.ready && (
-            <span className="absolute inset-x-0 bottom-0 bg-black/80 px-1.5 py-1 text-center text-[10px] font-semibold text-white/70">
-              {whyNot(peek.entry)}
-            </span>
-          )}
-        </div>
-      )}
     </div>
   );
 };
