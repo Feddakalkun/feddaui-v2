@@ -45,9 +45,39 @@ function Test-FeddaUpdate {
 
         $remote = ($remoteLine -split "\s+")[0]
         if ($remote -and $remote -ne $local.Trim()) {
-            Write-Host "  A newer version of FEDDA is available." -ForegroundColor Yellow
-            Write-Host "  Close this window and run update.bat to get it." -ForegroundColor DarkGray
+            # Offer it rather than mention it. Telling someone to close the
+            # window and find another file is a step most people skip, and an
+            # install that never updates is how a fixed bug keeps being hit.
+            #
+            # Safe here and nowhere later: this runs before any service starts,
+            # so nothing is swapped under a session already in use - which is
+            # why the check only ever reported before.
             Write-Host ""
+            Write-Host "  A newer version of FEDDA is available." -ForegroundColor Yellow
+            Write-Host "  Updating takes a minute or two and keeps your models," -ForegroundColor DarkGray
+            Write-Host "  outputs and settings." -ForegroundColor DarkGray
+            Write-Host ""
+            $answer = Read-Host "  Press Enter to update now, or type N to skip"
+            if ($answer -match '^\s*[Nn]') {
+                Write-Host "  Skipped. Run update.bat whenever you want it." -ForegroundColor DarkGray
+                Write-Host ""
+                return
+            }
+
+            $Updater = Join-Path $Root "scriptsun_update.bat"
+            if (-not (Test-Path $Updater)) {
+                Write-Host "  [WARN] scriptsun_update.bat is missing - update by hand." -ForegroundColor Yellow
+                return
+            }
+            Write-Host ""
+            & cmd /c "`"$Updater`""
+            Write-Host ""
+            Write-Host "  ------------------------------------------------------------" -ForegroundColor Green
+            Write-Host "   Update finished. Start FEDDA again to run the new version." -ForegroundColor Green
+            Write-Host "  ------------------------------------------------------------" -ForegroundColor Green
+            Write-Host ""
+            Read-Host "  Press Enter to close"
+            exit 0
         }
     } catch { }
 }
