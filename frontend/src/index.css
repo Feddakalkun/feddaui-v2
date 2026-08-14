@@ -1388,6 +1388,25 @@ body {
   height: 100%;
 }
 
+/* With a mask brush there is a second child under the preview, and the rules
+   above give the preview the row's whole height - so the button overflowed and
+   landed on top of the prompt mode toggle below. Here the row is a column: the
+   preview takes what is left, the button keeps its own line. Scoped to the
+   modifier so every upload page without a brush keeps the layout it had. */
+.cockpit-io-row .cockpit-upload-row.has-mask-brush {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.cockpit-io-row .cockpit-upload-row.has-mask-brush .workflow-upload-preview,
+.cockpit-io-row .cockpit-upload-row.has-mask-brush .workflow-upload-drop {
+  height: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 /* The thumbnail-plus-filename strip was built for a short bar. In the tall
    side-by-side box the source image fills it, matching the live preview
    opposite, with the filename as a caption rather than centred text.

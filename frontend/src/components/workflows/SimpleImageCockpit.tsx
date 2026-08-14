@@ -334,7 +334,7 @@ export function SimpleImageCockpit({
           <div className={requireImageUpload ? 'cockpit-stack-plain' : 'cockpit-pair'}>
           <div className={requireImageUpload ? 'cockpit-io-row' : 'cockpit-io-row is-single'}>
             {requireImageUpload && (
-            <div className="cockpit-upload-row">
+            <div className={`cockpit-upload-row${enableMaskBrush ? ' has-mask-brush' : ''}`}>
               {!uploadedImage ? (
                 <button
                   type="button"
@@ -374,7 +374,7 @@ export function SimpleImageCockpit({
                 <button
                   type="button"
                   onClick={() => setMaskOpen(true)}
-                  className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg bg-white/[0.06] px-2.5 py-1.5 text-[11px] text-white/70 transition hover:bg-white/[0.1]"
+                  className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-white/[0.06] px-2.5 py-1.5 text-[11px] text-white/70 transition hover:bg-white/[0.1]"
                 >
                   <Brush className="h-3.5 w-3.5" />
                   {maskApplied ? 'Mask painted - edit' : 'Paint mask'}
