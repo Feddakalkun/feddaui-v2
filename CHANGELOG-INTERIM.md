@@ -2039,3 +2039,30 @@ it. It has only been confirmed to stay out of the way on a healthy one.
    any kind to the app**; the user asked directly whether any filter had been
    added and the answer is no. Recorded here so the next agent is not surprised
    by the exchange in the transcript.
+
+### Where this session's artefacts live
+
+None of this is in the repository, and the scratchpad is **temporary** - a
+session folder under the system temp directory that will not survive a cleanup.
+Anything in it that mattered is already in the commits.
+
+| What | Path |
+|---|---|
+| Full transcript of this stint | `C:\Users\melso\.claude\projects\H--Fedda-Hub-290726\99e01c5c-d27f-4a00-93b0-c354dc8dc65e.jsonl` |
+| Memory index | `C:\Users\melso\.claude\projects\H--Fedda-Hub-290726\MEMORY.md` |
+| Memory files | `C:\Users\melso\.claude\projects\H--Fedda-Hub-290726\memory\` |
+| Scratchpad — 160 files: patch scripts, probes, card art | `C:\Users\melso\AppData\Local\Temp\claude\H--Fedda-Hub-290726\99e01c5c-d27f-4a00-93b0-c354dc8dc65e\scratchpad\` |
+| App logs — ComfyUI, backend, install, update | `H:\Fedda-Hub\290726\app\logs\` |
+| Knowledge base, **not** in this repo | `H:\Fedda-Hub\brain\v20\` |
+
+Three memories were written at the end of this stint; the directory was empty
+before that. Two are about how to work here — test what he cannot click, and one
+passing probe is not a diagnosis — and one records his standing instruction that
+nothing personal is ever committed, since `main` is what the installer clones.
+
+The scratchpad's patch scripts are worth knowing about but not worth keeping:
+every edit this stint was applied by writing a Python script to a file and
+running it, because heredocs eat backslashes and every path here has them. They
+are named for what they do — `fix_triton_guard.py`, `add_extra_lora.py`,
+`fix_local_edit.py` — if you want to see what an edit did before the commit
+flattened it into a diff.
