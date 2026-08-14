@@ -25,6 +25,7 @@ import { LtxFlfPage } from './ltx/LtxFlfPage';
 import { LtxMultiFramePage } from './ltx/LtxMultiFramePage';
 import { FluxHeadSwapPage } from './fluxklein/FluxHeadSwapPage';
 import { KleinInpaintPage } from './fluxklein/KleinInpaintPage';
+import { HiDreamInpaint } from './hidream/HiDreamInpaint';
 import { KleinNsfwV2Page } from './fluxklein/KleinNsfwV2Page';
 import { KleinNsfwEditPage } from './fluxklein/KleinNsfwEditPage';
 import { Klein9bFaceSwapPage } from './fluxklein/Klein9bFaceSwapPage';
@@ -48,6 +49,7 @@ export const IMAGE_WORKFLOW_PAGES: Record<string, ComponentType> = {
   'flux-uncensored-txt2img': FluxKleinUncensoredTxt2Img,
   'flux-headswap': FluxHeadSwapPage,
   'klein-inpaint': KleinInpaintPage,
+  'hidream-inpaint': HiDreamInpaint,
   'klein-nsfw-v2': KleinNsfwV2Page,
   'klein-nsfw-edit': KleinNsfwEditPage,
   'klein-9b-faceswap': Klein9bFaceSwapPage,

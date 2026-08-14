@@ -337,6 +337,37 @@
       "notes": "FLUX2 Klein txt2img workflow with stricter LoRA safety filtering."
     },
     {
+      "id": "hidream",
+      "label": "HiDream",
+      "pack": "booster",
+      "area": "image",
+      "enabled": true,
+      "tabs": [
+        "hidream-inpaint"
+      ],
+      "workflows": [
+        "hidream-inpaint"
+      ],
+      "custom_nodes": [
+        "ComfyUI-Easy-Use",
+        "ComfyUI-Inpaint-CropAndStitch",
+        "ComfyUI-KJNodes",
+        "ComfyUI-Studio-nodes",
+        "ComfyUI-Styles_CSV_Loader",
+        "comfy-image-saver",
+        "was-node-suite-comfyui"
+      ],
+      "models": [
+        "hidreamI1FP8Uncensored_fastV033Alpha.safetensors",
+        "hidream-vae.safetensors",
+        "clip_l_hidream.safetensors",
+        "clip_g_hidream.safetensors",
+        "t5xxl_fp8_e4m3fn_scaled.safetensors",
+        "llama_3.1_8b_instruct_fp8_scaled.safetensors"
+      ],
+      "notes": "HiDream I1 inpainting; the mask travels in the source image's alpha channel, painted by the brush in the cockpit. Its own module rather than inheriting flux-klein: it needs ComfyUI-Inpaint-CropAndStitch, which flux-klein does not declare, and none of flux-klein's Florence2 or segment-anything dependencies. The UNET is not in the graph's HuggingFaceDownloader list and has to be present already."
+    },
+    {
       "id": "ideogram",
       "label": "Ideogram",
       "pack": "booster",

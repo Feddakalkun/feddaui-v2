@@ -72,6 +72,8 @@ interface Txt2ImgPageConfig {
   characterPromptPlaceholder?: string;
   promptPresets?: SimpleImagePromptPreset[];
 
+  /** Inpaint: offer the mask brush on the upload. */
+  enableMaskBrush?: boolean;
   /** Outpaint: show the extend-edges panel and send left/top/right/bottom. */
   showOutpaintSettings?: boolean;
   showMaskSettings?: boolean;
@@ -169,6 +171,7 @@ export const Txt2ImgPage = ({
   characterPromptPlaceholder,
   promptPresets = [],
 
+  enableMaskBrush = false,
   showOutpaintSettings = false,
   showMaskSettings = false,
   maskFace: propMaskFace,
@@ -972,6 +975,7 @@ export const Txt2ImgPage = ({
         onCancel={handleCancel}
         resultImage={currentImage}
 
+        enableMaskBrush={enableMaskBrush}
         showOutpaintSettings={showOutpaintSettings}
         outpaintLeft={outpaintLeft}
         setOutpaintLeft={setOutpaintLeft}

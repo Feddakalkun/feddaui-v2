@@ -15,6 +15,7 @@ export type SourceModuleId =
   | 'ltx-video'
   | 'minimax-h3'
   | 'flux-klein'
+  | 'hidream'
   | 'flux-klein-uncensored'
   | 'krea2-txt2img'
   | 'ideogram';
@@ -284,6 +285,20 @@ export const FEDDA_MODULES: FeddaModule[] = [
     defaultTab: 'z-image-dual-lora',
     Icon: Sparkles,
     card: { poster: '/cards/bunny/z-image-dual-lora.jpeg' },
+  },
+  {
+    id: 'hidream-inpaint',
+    sourceModuleId: 'hidream',
+    label: 'HiDream Inpaint',
+    description: 'Paint over part of a picture and regenerate only that area.',
+    area: 'image',
+    pack: 'booster',
+
+    tabs: ['hidream-inpaint'],
+    workflows: ['hidream-inpaint'],
+    defaultTab: 'hidream-inpaint',
+    Icon: Sparkles,
+    card: { poster: '/cards/bunny/klein-inpaint.jpeg' },
   },
   {
     id: 'klein-inpaint',

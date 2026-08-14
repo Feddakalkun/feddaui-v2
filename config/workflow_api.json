@@ -3843,5 +3843,90 @@
         "label": "CFG (LoRA off)"
       }
     }
+  },
+  "hidream-inpaint": {
+    "name": "HiDream Inpaint (Uncensored)",
+    "filename": "hidream/HIDREAM_INPAINT.json",
+    "description": "Paint a mask over part of a picture and regenerate only that area with HiDream I1. The mask travels in the image's alpha channel, so the page must supply an RGBA upload - see the brush in the cockpit.",
+    "inputs": {
+      "image": {
+        "node_id": "378",
+        "input_key": "image",
+        "type": "string",
+        "label": "Source image (masked)"
+      },
+      "prompt": {
+        "node_id": "365",
+        "input_key": "string",
+        "type": "string",
+        "label": "Prompt"
+      },
+      "negative": {
+        "node_id": "366",
+        "input_key": "string",
+        "type": "string",
+        "label": "Negative Prompt"
+      },
+      "style": {
+        "node_id": "369",
+        "input_key": "styles",
+        "type": "string",
+        "label": "Style"
+      },
+      "seed": {
+        "node_id": "371",
+        "input_key": "seed",
+        "type": "number",
+        "label": "Seed"
+      },
+      "steps": {
+        "node_id": "371",
+        "input_key": "steps",
+        "type": "number",
+        "label": "Steps"
+      },
+      "cfg": {
+        "node_id": "371",
+        "input_key": "cfg",
+        "type": "number",
+        "label": "CFG"
+      },
+      "denoise": {
+        "node_id": "371",
+        "input_key": "denoise",
+        "type": "number",
+        "label": "Change Strength"
+      },
+      "shift": {
+        "node_id": "364",
+        "input_key": "shift",
+        "type": "number",
+        "label": "Shift"
+      },
+      "mask_expand": {
+        "node_id": "380",
+        "input_key": "mask_expand_pixels",
+        "type": "number",
+        "label": "Mask grow"
+      },
+      "mask_blend": {
+        "node_id": "380",
+        "input_key": "mask_blend_pixels",
+        "type": "number",
+        "label": "Mask blend"
+      },
+      "unet_name": {
+        "node_id": "372",
+        "input_key": "unet_name",
+        "type": "string",
+        "label": "Model"
+      },
+      "vae_name": {
+        "node_id": "374",
+        "input_key": "vae_name",
+        "type": "string",
+        "label": "VAE"
+      }
+    }
   }
 }

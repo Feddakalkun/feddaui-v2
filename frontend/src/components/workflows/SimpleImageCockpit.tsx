@@ -1,7 +1,8 @@
 import { useState, type Dispatch, type RefObject, type SetStateAction } from 'react';
-import { ChevronDown, Loader2, Maximize2, Plus, RefreshCw, Sparkles, Upload, X } from 'lucide-react';
+import { Brush, ChevronDown, Loader2, Maximize2, Plus, RefreshCw, Sparkles, Upload, X } from 'lucide-react';
 import { PromptAgentBox } from './PromptAgentBox';
 import { PromptBuilderPanel } from './PromptBuilderPanel';
+import { MaskBrush } from './MaskBrush';
 import { PromptAssistant, type PromptContext } from '../ui/PromptAssistant';
 import { LoraCharacterCard } from '../ui/LoraCharacterCard';
 import { BACKEND_API } from '../../config/api';
@@ -142,6 +143,8 @@ interface SimpleImageCockpitProps {
   setOutpaintBottom?: (value: number) => void;
   outpaintFeather?: number;
   setOutpaintFeather?: (value: number) => void;
+  /** Inpainting: offer a brush that paints the mask into the image's alpha. */
+  enableMaskBrush?: boolean;
   showMaskSettings?: boolean;
   maskFace?: boolean;
   setMaskFace?: (value: boolean) => void;
@@ -243,6 +246,7 @@ export function SimpleImageCockpit({
   outpaintFeather = 60,
   setOutpaintFeather,
 
+  enableMaskBrush = false,
   showMaskSettings = false,
   maskFace = true,
   setMaskFace,
@@ -273,6 +277,8 @@ export function SimpleImageCockpit({
 }: SimpleImageCockpitProps) {
   const [presetsOpen, setPresetsOpen] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
+  const [maskOpen, setMaskOpen] = useState(false);
+  const [maskApplied, setMaskApplied] = useState(false);
   const visibleLoras = loraEntries.length > 0 ? loraEntries : [{ name: '', strength: 1.0 }];
   const presetGroups = promptPresets.reduce<Record<string, SimpleImagePromptPreset[]>>((groups, preset) => {
     const group = preset.group || 'Presets';
@@ -361,6 +367,19 @@ export function SimpleImageCockpit({
                   <span>{uploadedImageName}</span>
                 </button>
               )}
+              {/* Inpainting reads its mask from the alpha channel of the image
+                  it is given, so without a way to paint one the run has nothing
+                  to change and returns the picture untouched. */}
+              {enableMaskBrush && uploadedImage && (
+                <button
+                  type="button"
+                  onClick={() => setMaskOpen(true)}
+                  className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg bg-white/[0.06] px-2.5 py-1.5 text-[11px] text-white/70 transition hover:bg-white/[0.1]"
+                >
+                  <Brush className="h-3.5 w-3.5" />
+                  {maskApplied ? 'Mask painted - edit' : 'Paint mask'}
+                </button>
+              )}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -442,6 +461,23 @@ export function SimpleImageCockpit({
             onPrompt={setPrompt}
           />
           </div>
+
+          {/* The editor replaces the uploaded image with an RGBA copy whose
+              painted area is transparent, then re-uploads it through the same
+              path as a normal upload - so the workflow needs no new input and
+              LoadImage's MASK output is populated for the first time. */}
+          {maskOpen && uploadedImage && (
+            <MaskBrush
+              imageUrl={uploadedImage}
+              busy={uploadingImage}
+              onCancel={() => setMaskOpen(false)}
+              onSave={async (file) => {
+                await onUploadImage?.(file);
+                setMaskApplied(true);
+                setMaskOpen(false);
+              }}
+            />
+          )}
 
           {/* Build the picture from dropdowns instead of a blank textarea. The
               catalogue supplies the wording; the model turns the selections into
