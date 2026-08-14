@@ -9,7 +9,15 @@ import { Eraser, Loader2, RotateCcw, Undo2, X } from 'lucide-react';
  * ComfyUI's LoadImage returns MASK as `1 - alpha`, so the region to be
  * regenerated must end up **transparent**, not opaque. A workflow reading
  * LoadImage's MASK output therefore needs an RGBA PNG whose painted area has
- * alpha 0 - which is exactly what the editor's own clipspace files contain.
+ * alpha 0 - which is what the editor's own clipspace files contain.
+ *
+ * What that costs, and it is not optional: a browser canvas stores alpha
+ * premultiplied, so a pixel written at alpha 0 keeps no colour. The picture
+ * under the mask is gone, and LoadImage flattens it to black - measured on a
+ * real upload, RGB 8,7,6 under the mask against 130,121,113 outside. Any
+ * consumer of this file must therefore regenerate the masked area outright
+ * (denoise 1.0); a lower denoise keeps a share of black and returns it. Sending
+ * the mask as its own file is the only way to keep those pixels.
  *
  * Two canvases rather than one: `base` holds the untouched picture, `paint`
  * holds the strokes. Compositing only at export means the brush can be undone

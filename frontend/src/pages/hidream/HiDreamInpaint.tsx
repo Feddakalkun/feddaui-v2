@@ -8,12 +8,22 @@ import { Txt2ImgPage } from '../zimage/ZImageTxt2Img';
  * without a brush the upload arrives fully opaque, the mask is empty, and a run
  * returns the picture unchanged while reporting success.
  *
- * The defaults were measured rather than guessed (2026-08-14). Against the same
- * image, mask and seed: dpmpp_sde at cfg 1.2 produced garbled text where
- * deis/beta at cfg 1.0 followed the prompt - HiDream Fast is distilled and
- * degrades above cfg 1.0. Denoise has a narrow usable window: 0.55 left the
- * original untouched, 0.85 and 1.0 replaced the object being edited rather than
- * editing it. 0.72 sits in the middle of what works, roughly 0.65-0.78.
+ * Sampler and cfg were measured (2026-08-14): dpmpp_sde at cfg 1.2 produced
+ * garbled text where deis/beta at cfg 1.0 followed the prompt - HiDream Fast is
+ * distilled and degrades above cfg 1.0.
+ *
+ * Denoise is 1.0 and cannot usefully be lower. The mask rides in the alpha
+ * channel, and a browser canvas stores premultiplied alpha - so a pixel set to
+ * alpha 0 loses its colour, and LoadImage hands the sampler a black hole where
+ * the picture used to be (measured on a real upload: RGB 8,7,6 under the mask
+ * against 130,121,113 outside). Anything below 1.0 keeps a share of that black
+ * and returns it, which is why 0.72 painted a black blob and 0.55 "left the
+ * original untouched" - it was preserving black, not the original.
+ *
+ * At 1.0 the masked area is regenerated from noise while InpaintCropImproved's
+ * surrounding context (1.2x the mask) still conditions it, which is ordinary
+ * inpainting and unaffected by what the destroyed pixels were. Low-denoise
+ * editing needs the mask sent as its own file rather than in the alpha channel.
  */
 export const HiDreamInpaint = () => {
   return (
@@ -37,7 +47,7 @@ export const HiDreamInpaint = () => {
       maxCfg={3}
       showStrengthControl
       strengthLabel="Change strength"
-      defaultStrength={0.72}
+      defaultStrength={1.0}
       defaultNegative=""
       characterPromptLabel="Prompt"
       characterPromptPlaceholder="What should appear in the painted area"
