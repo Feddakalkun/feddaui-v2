@@ -754,14 +754,21 @@ Write-Step "Nodes: $Installed installed, $Skipped already present, $Failed faile
 # version fix into a torch generation swap nobody asked for.
 
 # xformers assigns to jitted_fn.src, and newer triton made that a property whose
-# setter takes no value - so importing xformers.ops raises TypeError and takes
-# diffusers, seven custom nodes and local TTS down with it. Nothing here asks for
-# a new triton on purpose: tbg-etur's requirements say triton-windows>=3.0 with no
-# ceiling, so installing that node's requirements fetches whatever is newest.
+# setter takes no value - so importing xformers.ops raises TypeError, which takes
+# diffusers and several custom nodes down with it (Lotus, SeedVR2, both
+# FramePackWrappers). Nothing asks for a new triton on purpose: tbg-etur's
+# requirements say triton-windows>=3.0 with no ceiling, so installing that node's
+# requirements fetches whatever is newest.
+#
+# Both conditions are checked, because fixing only the first is what broke a
+# working install: on 3.2.0 xformers imported and ComfyUI still would not start,
+# since triton's runtime could not compile its CUDA helper. That needs Python.h,
+# which the step above provides, and it is verified here rather than assumed.
 #
 # The version wanted is torch's own declared pin, not a constant - a cu128 install
 # is on a different torch generation with a different triton.
 $ErrorActionPreference = "Continue"
+$TritonProbe = "from triton.runtime.driver import driver; driver.active.utils"
 & $VenvPy -c "import xformers.ops" 2>$null | Out-Null
 if ($LASTEXITCODE -ne 0) {
     $WantTriton = & $VenvPy -c "import importlib.metadata as m
@@ -772,12 +779,17 @@ print(r[0].replace(' ','').split('==')[1].split(';')[0] if r else '')" 2>$null
         $HadTriton = & $VenvPy -c "import importlib.metadata as m; print(m.version('triton-windows'))" 2>$null
         Write-Host "  xformers cannot import - pinning triton to $WantTriton (torch's own pin)..." -ForegroundColor White
         & $VenvPy -m pip install "triton-windows==$WantTriton.*" --no-warn-script-location --quiet 2>&1 | Out-Null
+        # Both, in this order. The second is the one that decides whether
+        # ComfyUI comes up at all.
         & $VenvPy -c "import xformers.ops" 2>$null | Out-Null
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "  xformers imports again." -ForegroundColor Green
+        $XformersOk = ($LASTEXITCODE -eq 0)
+        & $VenvPy -c "$TritonProbe" 2>$null | Out-Null
+        $DriverOk = ($LASTEXITCODE -eq 0)
+        if ($XformersOk -and $DriverOk) {
+            Write-Host "  xformers imports and triton compiles." -ForegroundColor Green
         } elseif ($HadTriton) {
-            # A working unknown beats a tidy version number.
-            Write-Host "  [WARN] that did not help - putting triton back." -ForegroundColor Yellow
+            # A ComfyUI that starts with a few dead nodes beats one that does not.
+            Write-Host "  [WARN] triton $WantTriton does not work here - putting $($HadTriton.Trim()) back." -ForegroundColor Yellow
             & $VenvPy -m pip install "triton-windows==$($HadTriton.Trim())" --no-warn-script-location --quiet 2>&1 | Out-Null
         }
     }

@@ -539,15 +539,49 @@ if (Test-Path $ComfyReq) {
 }
 
 
+# The embeddable distribution ships no C headers and no import library, so
+# anything that has to be compiled fails on "Cannot open include file:
+# 'Python.h'" - which reads like a broken toolchain and is not. install.ps1 adds
+# them, but only on a fresh install, so every machine set up before that step
+# existed is still missing them. triton's runtime compiles a CUDA helper at
+# startup and is one of the things that fails without them.
+$IncDir = Join-Path $RootPath "python_embeded\Include"
+$LibDir = Join-Path $RootPath "python_embeded\libs"
+if (-not (Test-Path (Join-Path $IncDir "Python.h"))) {
+    Write-Host "  Adding Python headers (needed to compile C extensions)..." -ForegroundColor White
+    try {
+        $NuPkg = Join-Path $RootPath "python_nuget.zip"
+        $NuDir = Join-Path $RootPath "_python_nuget"
+        & curl.exe -L -s -o "$NuPkg" "https://www.nuget.org/api/v2/package/python/3.11.9" --retry 3 --retry-delay 2
+        if ($LASTEXITCODE -ne 0) { throw "download failed" }
+        Expand-Archive -Path $NuPkg -DestinationPath $NuDir -Force
+        New-Item -ItemType Directory -Path $IncDir, $LibDir -Force | Out-Null
+        Copy-Item (Join-Path $NuDir "tools\include\*") $IncDir -Recurse -Force
+        Copy-Item (Join-Path $NuDir "tools\libs\*")    $LibDir -Recurse -Force
+        Remove-Item $NuDir -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item $NuPkg -Force -ErrorAction SilentlyContinue
+        Write-Host "  Python headers installed." -ForegroundColor Green
+    } catch {
+        Write-Host "  [WARN] Could not add Python headers - source builds will fail." -ForegroundColor Yellow
+    }
+}
+
 # xformers assigns to jitted_fn.src, and newer triton made that a property whose
-# setter takes no value - so importing xformers.ops raises TypeError and takes
-# diffusers, seven custom nodes and local TTS down with it. Nothing here asks for
-# a new triton on purpose: tbg-etur's requirements say triton-windows>=3.0 with no
-# ceiling, so installing that node's requirements fetches whatever is newest.
+# setter takes no value - so importing xformers.ops raises TypeError, which takes
+# diffusers and several custom nodes down with it (Lotus, SeedVR2, both
+# FramePackWrappers). Nothing asks for a new triton on purpose: tbg-etur's
+# requirements say triton-windows>=3.0 with no ceiling, so installing that node's
+# requirements fetches whatever is newest.
+#
+# Both conditions are checked, because fixing only the first is what broke a
+# working install: on 3.2.0 xformers imported and ComfyUI still would not start,
+# since triton's runtime could not compile its CUDA helper. That needs Python.h,
+# which the step above provides, and it is verified here rather than assumed.
 #
 # The version wanted is torch's own declared pin, not a constant - a cu128 install
 # is on a different torch generation with a different triton.
 $ErrorActionPreference = "Continue"
+$TritonProbe = "from triton.runtime.driver import driver; driver.active.utils"
 & $PyExe -c "import xformers.ops" 2>$null | Out-Null
 if ($LASTEXITCODE -ne 0) {
     $WantTriton = & $PyExe -c "import importlib.metadata as m
@@ -559,12 +593,17 @@ print(r[0].replace(' ','').split('==')[1].split(';')[0] if r else '')" 2>$null
         Write-Host "  xformers cannot import - pinning triton to $WantTriton (torch's own pin)..." -ForegroundColor White
         Invoke-Pip -PyExe $PyExe -Label "triton-windows" `
             -PipArgs @("-m","pip","install","triton-windows==$WantTriton.*","--no-warn-script-location") | Out-Null
+        # Both, in this order. The second is the one that decides whether
+        # ComfyUI comes up at all.
         & $PyExe -c "import xformers.ops" 2>$null | Out-Null
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "  xformers imports again." -ForegroundColor Green
+        $XformersOk = ($LASTEXITCODE -eq 0)
+        & $PyExe -c "$TritonProbe" 2>$null | Out-Null
+        $DriverOk = ($LASTEXITCODE -eq 0)
+        if ($XformersOk -and $DriverOk) {
+            Write-Host "  xformers imports and triton compiles." -ForegroundColor Green
         } elseif ($HadTriton) {
-            # A working unknown beats a tidy version number.
-            Write-Host "  [WARN] that did not help - putting triton back." -ForegroundColor Yellow
+            # A ComfyUI that starts with a few dead nodes beats one that does not.
+            Write-Host "  [WARN] triton $WantTriton does not work here - putting $($HadTriton.Trim()) back." -ForegroundColor Yellow
             Invoke-Pip -PyExe $PyExe -Label "triton-windows" `
                 -PipArgs @("-m","pip","install","triton-windows==$($HadTriton.Trim())","--no-warn-script-location") | Out-Null
         }
