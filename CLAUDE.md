@@ -157,8 +157,21 @@ if output ever looks truncated again.
 
 ## Handover
 
-`HANDOFF.md` is what was in flight when the
-previous session ended: recent changes, open decisions, and the traps that
-cost time. `CHANGELOG-INTERIM.md` is a running log to append to
-while the project changes hands - it is what carries work across a handover,
-because commit messages explain a change but not the sequence.
+**The handover notes are not in this repository, and must not be put back.**
+This repo is public - the installer clones it over plain https - so a handover
+written for the next agent is a handover published to everyone. They live with
+the rest of the knowledge base:
+
+| File | What |
+|---|---|
+| `H:\Fedda-Hub\brain\v20\CHANGELOG-INTERIM.md` | the running log; append after every change |
+| `H:\Fedda-Hub\brain\v20\HANDOFF-repo-2026-08-11.md` | what was in flight at that date |
+| `H:\Fedda-Hub\brain\v20\BREADCRUMBS.md` | the long engineering log |
+
+The changelog is what carries work across a handover, because commit messages
+explain a change but not the sequence. `.gitignore` covers all of these by name
+so `git add -A` cannot pull them back in.
+
+Commit messages are public too. They are the right place for why a change was
+made; they are the wrong place for who tested it, what a character is called, or
+anything about a conversation.

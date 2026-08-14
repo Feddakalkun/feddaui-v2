@@ -100,3 +100,12 @@ config/prompt_library.json
 docs/
 config/thumb_cache/
 config/agent_memory.json
+
+# Internal working notes. The repository is public - the installer clones it
+# over plain https - so a handover written for the next agent is a handover
+# published to everyone. These live in H:\Fedda-Hub\brain\v20\ instead,
+# alongside the rest of the knowledge base.
+CHANGELOG-INTERIM.md
+HANDOFF.md
+HANDOFF-*.md
+BREADCRUMBS.md
