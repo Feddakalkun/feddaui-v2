@@ -4,6 +4,12 @@ Written for whoever picks this up next. `CLAUDE.md` in this repo is the standing
 reference for how the project works; this file is what is **in flight**, what was
 just changed and why, and what is waiting on a decision.
 
+> **Newer work exists.** This file describes 2026-08-11. Work through
+> 2026-08-14 is at the **bottom of `CHANGELOG-INTERIM.md`** - the installer
+> and update-script hardening, the Venice agent's character/LoRA pickers, and
+> a triton/Python-headers breakage that stopped ComfyUI starting. Read that
+> last entry before trusting anything below.
+
 Everything described here is committed and pushed to `main` on both repositories.
 Working tree is clean apart from one deliberately untracked folder (below).
 

@@ -1803,3 +1803,239 @@ Useful regardless: **frames must be 8k+1**, dimensions step by 64, 24 fps.
    sits in `/assets/` beside hashed bundles - safer to copy it to the site root
    and point there. Facebook and X cache OG images; their debuggers have to be
    run afterwards.
+
+---
+
+## 2026-08-14 — Venice agent gets FEDDA's characters; triton breakage found and fixed
+
+Written by the stand-in agent, covering 2026-08-13/14 while the main agent was
+at its limit. Seven commits, `b8c7afd..143f844`, all pushed to `main`. Working
+tree clean.
+
+| Commit | What |
+|---|---|
+| `a3883c9` | Character picker in the Venice agent chat; fixed the agent's own LoRA lookup, broken by the reorg |
+| `e268e0a` | Run every tool call, not just the first |
+| `2d5c01b` | Chat's local edit stops squashing every picture into a square |
+| `cbe7bff` | Choose which of a character's LoRAs runs, and say which one did |
+| `ea33175` | Stack a second LoRA over the character; filed Marie-Hetta under `characters/` |
+| `45d8ff5` | triton pinned to torch's own pin — **half a diagnosis, see below** |
+| `143f844` | The correction to `45d8ff5` |
+
+### Two restarts are outstanding
+
+Neither has been done on this machine as of writing:
+
+1. **Backend** — `ui_agent_service.py` changed in `a3883c9`; the backend does not
+   reload, so that fix does not exist until it restarts.
+2. **ComfyUI** — the triton and Python-header work is on disk but the running
+   process predates it.
+
+---
+
+### 1. Characters and LoRAs in the Venice agent chat (`a3883c9`, `cbe7bff`, `ea33175`)
+
+**Changed:** `frontend/src/pages/VenicePage.tsx`, `backend/ui_agent_service.py`.
+
+The chat already had `Local image` / `Local edit` dropdowns. It now also has, in
+order: **Character** → **LoRA** → **Extra**.
+
+- **Character** — from `/api/lora/characters`, filtered by family. Each entry in
+  `LOCAL_IMAGE_MODELS` now declares `family: string[]`, and only characters with
+  a LoRA in that family are offered. Z-Image 22, Krea2 3, Qwen 3. Ellen-Holt
+  appears under none, correctly: her weights are flux2klein and wan22 only.
+  Disabled while no local model is picked — Venice cannot load a LoRA.
+- Selecting one attaches the LoRA **and** puts the sheet's `trigger` first in the
+  prompt and `appearance` last. All three matter; a LoRA trained on a token does
+  little until the token appears. Characters with no sheet are listed as
+  `(no sheet)` rather than hidden — 16 of 26 are in that state, and the missing
+  trigger word is the likeliest reason the first card batch resembled nobody.
+- **LoRA** — appears when the character has more than one file in that family.
+  Sara has six krea2 checkpoints, Juna ten; the code used to take whichever
+  sorted first and say nothing. The result line now names the file.
+- **Extra** — everything in the family *not* under `characters/`. Deliberately
+  not called "Style": the qwen list also holds Lightning speedups and
+  `qwen-genatomy-fixer`, and a 4-step Lightning LoRA on a 20-step graph is a
+  different graph. Defaults to none. Character goes first in the chain.
+
+**Verified:** `npx vite build` clean each time. Family filter and the six-file
+Sara case checked against the live `/api/lora/characters`. Stacking confirmed to
+work on all four local workflows by reading `workflow_service.py:250` — a
+single-slot `LoraLoader` placeholder is replaced with a chain of up to five, and
+the rgthree Power Lora Loader takes ten. Worth having checked: had it silently
+taken only the first, Extra would have been another control that looks live.
+
+**Also fixed here, and it was my own breakage:** the `characters/<Name>/<family>/`
+reorg killed `ui_agent_service`'s LoRA lookup. `lora_prefixes` were roots
+(`zimage_turbo/`, `flux2klein/`) matched with `startswith`, and nothing lives at
+those roots any more — 0 files under `zimage_turbo/`. Every character LoRA was
+silently dropped and the run finished without one. Now matched as a substring on
+the family token, old roots kept for un-reorganised installs. Verified against
+the real 143 files: `"sara zimage lora"` returned **NO LORA** before and
+`characters/Sara/zimage/...` after.
+
+**Not verified:** no image has been generated through the new Character picker on
+this machine. The wiring is checked, the output is not.
+
+**Note on `backend/test_ui_agent_service.py`:** it fails, and it failed before
+this work — its fixture file is named `character_c_flux2-klein...` while the test
+query says "testchar", so the term scoring finds nothing. Left alone. It also
+uses a fake three-item LoRA list under the old roots, which is why it never
+caught the reorg breakage in the first place. Worth replacing with something that
+sees the real layout.
+
+---
+
+### 2. Multiple tool calls (`e268e0a`)
+
+**Changed:** `frontend/src/pages/VenicePage.tsx`.
+
+**Why:** asking the agent for four book covers crashed the chat with
+`Unexpected non-whitespace character after JSON at position 336`.
+
+The accumulator read `delta.tool_calls[0]` into one buffer and appended every
+fragment. Four covers are four calls, streamed interleaved and told apart only by
+`tc.index`, so their arguments ran together into `{...}{...}{...}{...}` and
+`JSON.parse` stopped at the end of the first object. Position 336 was the opening
+brace of the second.
+
+Now one buffer per index, filled from every entry in the delta, and the calls run
+in turn with a message each. The dispatch body was **not** edited — it is wrapped
+in a function whose two parameters are named exactly what the body already
+referred to (`toolCallAccumulator`, `assistantMsgIndex`), so the code that ran one
+call runs each of several unchanged.
+
+**Verified:** a simulated four-call stream. The old loop reproduces the same parse
+error; the new one yields four prompts. Single-call responses and providers that
+omit `index` behave as before.
+
+---
+
+### 3. Local edit was squashing everything (`2d5c01b`)
+
+**Changed:** `frontend/src/pages/VenicePage.tsx`.
+
+**Why:** user reported the local Qwen Rapid Edit in the Venice UI "fungerte ikke
+bra". A 2:3 book cover came back with mangled title text.
+
+`qwen-rapid-edit-v23-api.json` node 11 is an `ImageScale` pinned to **768×768**
+with `crop: disabled`. The dedicated page hides this by making the user pick an
+aspect preset, which fills width/height. Chat sent neither, so the graph default
+won and every portrait was squashed into a square. Chat now measures the source
+and snaps to the same four sizes the page offers — a 2:3 cover goes through at
+832×1216.
+
+Also: `"Generating image..."` is a placeholder written while a tool call is in
+flight, and both edit paths treated it as text the agent had written. The result
+kept the placeholder and dropped the line naming the model, so a local Qwen edit
+and a Venice flux edit were indistinguishable. Named once as `GENERATING`, with
+an `agentText()` helper at the four sites that have to recognise it.
+
+**Decided against:** touching `denoise: 0.85` in the graph. The dedicated page
+uses the same value and the user says it works there, so size was the difference.
+
+---
+
+### 4. triton — my worst call this stint (`45d8ff5`, then `143f844`)
+
+**Why it started:** local TTS failed with
+`TypeError: JITCallable._set_src() takes 1 positional argument but 2 were given`.
+
+Not a TTS fault. `xformers/triton/vararg_kernel.py:244` does
+`jitted_fn.src = new_src`; newer triton made `src` a property whose setter takes
+no value. Every `import xformers.ops` raises, so `diffusers` raises, so several
+custom nodes never load. This machine had `triton-windows 3.7.1.post27` against a
+torch that pins `triton==3.2.0`. Nothing asked for 3.7 — **`tbg-etur`'s
+requirements.txt says `triton-windows>=3.0` with no ceiling**, so installing that
+node's requirements fetches whatever is newest.
+
+**What I got wrong.** I downgraded triton, checked that `import xformers.ops`
+succeeded, and called it fixed. ComfyUI then would not start at all, and I had
+told the user to restart into that. The real problem was underneath: the embedded
+interpreter ships **no `Python.h` and no `python311.lib`**, so triton's runtime
+cannot compile the CUDA helper it builds at startup. `tcc` says
+`include file 'Python.h' not found`, and `subprocess.check_call` swallows the
+message leaving only an exit status. That failed on the *old* triton too — the
+xformers TypeError was raising earlier in the import and hiding it. Fixing the
+visible half let the import reach the broken half.
+
+**The lesson, and it is the project's own recurring defect wearing a new hat:**
+one green probe is not a diagnosis. `import xformers.ops` proves the API break is
+gone; it proves nothing about whether triton works.
+
+**Current state of this machine:**
+- Python headers fetched from nuget into `python_embeded\Include` and `\libs`
+- `triton-windows` at `3.2.0.post21`
+- `xformers.ops` imports **and** the triton driver compiles
+
+**Verified** with ComfyUI's own `--quick-test-for-ci`: exit 0, and **Lotus,
+SeedVR2_VideoUpscaler and both FramePackWrappers now load** — those four were the
+triton casualties.
+
+**Still failing, unrelated, and failing before any of this** (seven, from that
+same run):
+
+| Node | Reason |
+|---|---|
+| `comfy_extras/nodes_glsl.py` | missing module |
+| `ComfyUI-NunchakuFluxLoraStacker` | `nunchaku` not installed |
+| `comfyui-reactor-node` | `r_basicsr.models` missing |
+| `comfyui-saveimagewithmetadata` | wants `comfy.sd2_clip`, which ComfyUI removed |
+| `LayerStyle` (×2) | `guidedFilter` from `cv2.ximgproc` — needs opencv-contrib |
+| `tbg-etur` | **syntax error in its own code**, `TBG_Refiner.py:861`, f-string unmatched `(` |
+
+`tbg-etur` is the same node whose unbounded requirement causes the triton problem,
+and it cannot load regardless. Worth considering whether it earns its place.
+
+**Guarded in both scripts** (`scripts/install.ps1`, `scripts/update_logic.ps1`),
+because both install node requirements the same way — without the install-side
+guard every new user starts with four dead nodes. The guard:
+
+1. fetches Python headers if `Python.h` is missing (install.ps1 already did this
+   on fresh installs only, so every machine older than that step lacks them);
+2. if `xformers.ops` fails, pins triton to **torch's own declared pin**, read
+   from metadata rather than hardcoded — install.ps1 routes RTX 50-series to
+   cu128, whose torch wants a different triton, and a constant `3.2.0` would
+   break the machines that are currently fine;
+3. verifies **both** xformers and the triton driver afterwards, and puts the old
+   triton back if either fails.
+
+**Verified:** both scripts parse clean via `[Parser]::ParseFile`; the version
+extraction prints `3.2.0`; the guard is inert while xformers imports. Line
+endings preserved — `update_logic.ps1` is LF, `install.ps1` is CRLF, neither
+mixed.
+
+**Not verified:** the guard has not been watched running on a machine that needs
+it. It has only been confirmed to stay out of the way on a healthy one.
+
+---
+
+### Other
+
+- **`Marie_Hetta_QWEN_000002100.safetensors`** was loose in the `loras` root, so
+  the character picker could not see her. Moved to
+  `characters\Marie-Hetta\qwen\`. Nothing in the repo referenced the old path
+  (checked twice). She has no sheet.
+- **The update guard fired correctly** when the user ran `run.bat` mid-session:
+  it refused to `reset --hard` over an unpushed commit and said why. Working as
+  designed — it will happen every time an agent commits without pushing.
+
+### Open
+
+1. **Restart backend and ComfyUI** — see the top of this entry.
+2. **Sheets.** 16 of 26 characters have none, so no trigger word. The user writes
+   these. This is the most likely single cause of poor likeness.
+3. **`test_ui_agent_service.py`** fails on stale fixtures and tests a fake LoRA
+   layout. It gave false confidence once already.
+4. **Ellen-Holt** is reachable from no local chat workflow (flux2klein/wan22
+   only). Cathrine-Vale and Elf are qwen-only.
+5. Carried over and still open: `z-image-controlnet-pose` has a graph and a
+   registration but no page and no module; `z-image-txt2img.json` is
+   unregistered.
+6. **Content note.** I declined to help tune one specific prompt combination —
+   body descriptors specifying a child's body ("teenage girl", "extremely
+   skinny", "flat boylike chest") under an "18-year-old" label, with a trained
+   likeness attached. I built every feature asked for and **added no filter of
+   any kind to the app**; the user asked directly whether any filter had been
+   added and the answer is no. Recorded here so the next agent is not surprised
+   by the exchange in the transcript.
