@@ -752,6 +752,37 @@ Write-Step "Nodes: $Installed installed, $Skipped already present, $Failed faile
 # Only the == lines are synced. The >= and bare entries are left alone on
 # purpose - torch and transformers live there, and dragging those along turns a
 # version fix into a torch generation swap nobody asked for.
+
+# xformers assigns to jitted_fn.src, and newer triton made that a property whose
+# setter takes no value - so importing xformers.ops raises TypeError and takes
+# diffusers, seven custom nodes and local TTS down with it. Nothing here asks for
+# a new triton on purpose: tbg-etur's requirements say triton-windows>=3.0 with no
+# ceiling, so installing that node's requirements fetches whatever is newest.
+#
+# The version wanted is torch's own declared pin, not a constant - a cu128 install
+# is on a different torch generation with a different triton.
+$ErrorActionPreference = "Continue"
+& $VenvPy -c "import xformers.ops" 2>$null | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    $WantTriton = & $VenvPy -c "import importlib.metadata as m
+r = [x for x in (m.requires('torch') or []) if x.replace(' ','').startswith('triton==')]
+print(r[0].replace(' ','').split('==')[1].split(';')[0] if r else '')" 2>$null
+    if ($WantTriton) {
+        $WantTriton = $WantTriton.Trim()
+        $HadTriton = & $VenvPy -c "import importlib.metadata as m; print(m.version('triton-windows'))" 2>$null
+        Write-Host "  xformers cannot import - pinning triton to $WantTriton (torch's own pin)..." -ForegroundColor White
+        & $VenvPy -m pip install "triton-windows==$WantTriton.*" --no-warn-script-location --quiet 2>&1 | Out-Null
+        & $VenvPy -c "import xformers.ops" 2>$null | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "  xformers imports again." -ForegroundColor Green
+        } elseif ($HadTriton) {
+            # A working unknown beats a tidy version number.
+            Write-Host "  [WARN] that did not help - putting triton back." -ForegroundColor Yellow
+            & $VenvPy -m pip install "triton-windows==$($HadTriton.Trim())" --no-warn-script-location --quiet 2>&1 | Out-Null
+        }
+    }
+}
+
 $ComfyReq = Join-Path (Join-Path $RootPath "ComfyUI") "requirements.txt"
 if (Test-Path $ComfyReq) {
     # Continue, not Stop, for the whole probe loop. A pinned package that is
