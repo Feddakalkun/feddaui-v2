@@ -91,6 +91,19 @@ PACKS: Dict[str, Dict[str, str]] = {
             }
         ],
     },
+    # Not a LoRA: a Z-Image Turbo checkpoint, so it needs models/unet and no
+    # subfolder - UNETLoader only lists what sits directly in that root.
+    "zimage_redzit2": {
+        "root": "unet",
+        "static_items": [
+            {
+                "name": "RedZiT2 2026HD (int8 convrot)",
+                "file": "redcraftMinimaxH3REDMIX_redzit222026HD.safetensors",
+                "url":  "https://civitai.com/api/download/models/3100874?fileId=2980681",
+                "size_mb": 6850,
+            }
+        ],
+    },
     "sd15": {
         "hf_repo":  "pmczip/SD1.5_LoRa_Models",
         "hf_type":  "model",
@@ -640,10 +653,18 @@ class LoRAService:
                 # Ensure the file field includes the correct subfolder for this pack
                 filename = f"{dest_subfolder}/{raw_file}" if dest_subfolder and not raw_file.startswith(dest_subfolder + "/") else raw_file
                 basename = Path(raw_file).stem
+                # A pack outside loras/ is not in the LoRA index, so asking that
+                # index would report it missing forever and the button would
+                # never stop offering a 6.7 GB download.
+                is_installed = (
+                    (self._pack_dir(pack) / raw_file).exists()
+                    if pack.get("root")
+                    else _normalize_lora_path(filename) in installed
+                )
                 items.append({
                     "name":        item.get("name") or basename.replace("_", " "),
                     "file":        filename,
-                    "installed":   _normalize_lora_path(filename) in installed,
+                    "installed":   is_installed,
                     "size_mb":     item.get("size_mb"),
                     "preview_url": item.get("preview_url"),
                 })
@@ -749,11 +770,25 @@ class LoRAService:
                 except Exception:
                     pass
 
+    def _pack_dir(self, pack: Dict[str, Any]) -> Path:
+        """Where a pack's files land.
+
+        Everything here was a LoRA until a checkpoint needed the same plumbing -
+        the Civitai token handling, the resume, the progress the Library already
+        shows. A pack may now name a different root under ComfyUI/models;
+        without one it stays in loras, so every existing pack is unaffected.
+        A diffusion model dropped into loras/ is invisible to UNETLoader, which
+        is the failure this avoids.
+        """
+        root = pack.get("root")
+        base = (self.lora_dir.parent / root) if root else self.lora_dir
+        return base / pack["dest"] if pack.get("dest") else base
+
     def download_single(self, pack_key: str, filename: str) -> Dict[str, Any]:
         if pack_key not in PACKS:
             return {"success": False, "error": "Unknown pack"}
         pack = PACKS[pack_key]
-        dest = self.lora_dir / pack["dest"] / filename
+        dest = self._pack_dir(pack) / filename
         if dest.exists() and dest.stat().st_size > 10_000:
             return {"success": True, "status": "already_installed"}
         url = self._hf_file_url(pack_key, filename)
@@ -776,7 +811,7 @@ class LoRAService:
 
         def _task() -> None:
             for item in pending:
-                dest = self.lora_dir / pack["dest"] / item["file"]
+                dest = self._pack_dir(pack) / item["file"]
                 url  = self._hf_file_url(pack_key, item["file"])
                 if not url:
                     continue

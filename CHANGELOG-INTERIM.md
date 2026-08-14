@@ -2098,3 +2098,45 @@ on 2. The .bat was the only place left calling it a failure.
 The installer is the one component that only ever executes on a machine you
 cannot watch. The gap is a real clean install into a throwaway folder, not a
 static check.
+
+## 2026-08-14 - a downloadable checkpoint, not just LoRAs
+
+**Changed:** `backend/lora_service.py`, `frontend/src/components/LoRADownloader.tsx`.
+RedZiT2 2026HD is now offered in the Library under Z-Image.
+
+**Why:** it is a Z-Image Turbo checkpoint quantised **int8 convrot** at 6.69 GB,
+replacing `z_image_turbo_bf16.safetensors` (12.3 GB), which four registered
+workflows load. int8 is native on Ampere where fp8 and nvfp4 are emulated, so it
+is the quantisation a 3090 actually wants, and it frees 5.6 GB.
+
+**How:** the service assumed everything was a LoRA - `dest` resolved under
+ComfyUI/models/loras unconditionally. A pack may now declare `root`; without one
+it stays in loras, so no existing pack changes. A diffusion model landing in
+loras/ is invisible to UNETLoader, which is the point of the addition. The
+Civitai token handling, resume and progress were already written for the Realism
+Engine pack and are reused unchanged.
+
+The catalogue's "installed" test also had to change: it asks the LoRA index,
+which can never contain a UNET, so the card would have offered a 6.7 GB download
+forever however many times it succeeded. Packs with a `root` check the file on
+disk instead.
+
+**Verified:** instantiated the service directly - `_pack_dir` returns
+ComfyUI/models/unet, the catalogue returns one item at 6850 MB with
+`installed: false`, and `_hf_file_url` returns the download URL. Name, size and
+URL come from the Civitai API (`model-versions/3100874`), not from reading the
+page: `7014706 KB` matches the 6.69 GB shown, and the type is "Diffusion Model".
+
+**Not verified:** nothing has been downloaded. The backend needs a restart before
+the Library offers it, and no generation has been run against RedZiT2.
+
+**Decided against:** `config/model_manifests/`. Those are generated from
+workflows by `generate_model_manifests.py`, carry a "do not edit by hand" header,
+and all 116 point at HuggingFace with no Civitai token handling. Reusing the
+service that already downloads from civitai.red left one code path rather than
+two.
+
+**Note for whoever swaps it in:** do not overwrite the bf16 file. RedZiT2 is a
+*merge*, not only a quantisation, so it has its own look, and the four z-image
+workflows are tuned against bf16 at 9 steps / CFG 1.1 / euler. Point one workflow
+at it first and compare.

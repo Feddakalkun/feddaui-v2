@@ -49,6 +49,9 @@ const FAMILY_PACKS: Record<LoRAFamily, PackConfig[]> = {
     'z-image':    [
         { key: 'zimage_turbo', title: 'Z-Image Turbo Celeb Pack', subtitle: 'pmczip/Z-Image-Turbo_Models' },
         { key: 'zimage_nsfw', title: 'Z-Image NSFW Pack', subtitle: 'qqnyanddld/nsfw-z-image-lora' },
+        // Not a LoRA - a checkpoint that replaces z_image_turbo_bf16 in the
+        // UNETLoader. Listed here because this is where a Z-Image user looks.
+        { key: 'zimage_redzit2', title: 'RedZiT2 2026HD (checkpoint)', subtitle: 'civitai.red - int8 convrot, 6.7 GB, uncensored' },
     ],
     qwen:         [],
     flux2klein:   [
