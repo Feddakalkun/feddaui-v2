@@ -2066,3 +2066,35 @@ running it, because heredocs eat backslashes and every path here has them. They
 are named for what they do — `fix_triton_guard.py`, `add_extra_lora.py`,
 `fix_local_edit.py` — if you want to see what an edit did before the commit
 flattened it into a diff.
+
+## 2026-08-14 — a correct refusal was being logged as a failure
+
+**Changed:** `scripts/run_update.bat`. It treated every non-zero exit as
+"FEDDA Update Failed". `update_code.ps1` uses **2 for a deliberate refusal** -
+unpushed commits it will not reset over - and **1 for an actual failure**.
+`5339509` taught `run.ps1` that difference but not this .bat, so the guard doing
+its job was written to the log as a breakage. The last real run, 2026-08-13
+22:56, is in the log as "Failed with exit code 2" when nothing was wrong.
+
+**Why:** it is how a correct refusal comes to look like an unstable updater.
+
+**Verified:** read `update_code.ps1` - `exit 2` at the unpushed-commits guard,
+`exit 1` on git failure, `exit 0` on success; and `run.ps1:76` already branches
+on 2. The .bat was the only place left calling it a failure.
+
+**Not verified / left broken - and this is the larger point:**
+
+- `logs/install_report.txt` is dated **2026-07-29**. Twenty-five commits have
+  touched `install.ps1` (9), `update_logic.ps1` (7), the installer .bat (6) and
+  `run.ps1` (5) since 08-11, and **not one has been through an actual install on
+  this machine**. The scripts parse and hold no undefined-variable bugs - checked
+  both, since `$PyExe` was exactly that class and is now properly defined - but
+  parsing is not running.
+- `scripts/smoke_clean_install.ps1` is **not** the verification for this. It is
+  dated 07-29, predates all of the above, and asserts things "should not be
+  present in v15". It validates a directory layout, not an install. Using it as
+  the gate would produce a green run that proves nothing.
+
+The installer is the one component that only ever executes on a machine you
+cannot watch. The gap is a real clean install into a throwaway folder, not a
+static check.

@@ -16,8 +16,14 @@ powershell -ExecutionPolicy Bypass -File "%ROOT_DIR%\scripts\update_code.ps1"
 
 set "UPDATE_EXIT=%errorlevel%"
 
+REM update_code.ps1 uses 2 for a deliberate refusal - unpushed commits it will not
+REM reset over - and 1 for an actual failure. Calling 2 "Failed" reports the guard
+REM doing its job as a breakage, which is how a correct refusal comes to look
+REM like an unstable updater.
 if !UPDATE_EXIT! equ 0 (
     echo [%date% %time%] FEDDA Update Completed Successfully >> "%LOG_FILE%"
+) else if !UPDATE_EXIT! equ 2 (
+    echo [%date% %time%] FEDDA Update Refused - nothing was changed. See the reason above. >> "%LOG_FILE%"
 ) else (
     echo [%date% %time%] FEDDA Update Failed with exit code !UPDATE_EXIT! >> "%LOG_FILE%"
 )
