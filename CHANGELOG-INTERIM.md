@@ -2140,3 +2140,67 @@ two.
 *merge*, not only a quantisation, so it has its own look, and the four z-image
 workflows are tuned against bf16 at 9 steps / CFG 1.1 / euler. Point one workflow
 at it first and compare.
+
+---
+
+## 2026-08-15 — HiDream Inpaint finished and made runnable
+
+Picked up mid-flight from the other agent, at the user's instruction, with the
+work uncommitted and nothing about it in this log. Commit `87d5486`.
+
+**Changed:** `config/modules.json` (new `hidream` module),
+`frontend/src/modules/registry.ts` (`sourceModuleId` and the `SourceModuleId`
+union), `frontend/src/components/workflows/MaskBrush.tsx` (undo fix). Committed
+alongside the other agent's uncommitted work: the graph, the page, the brush, the
+cockpit's Paint-mask button and `enableMaskBrush` through `Txt2ImgPage`.
+
+**Why:** the user asked for HiDream to have its own module rather than inherit
+flux-klein. Investigating that surfaced the reason it could not have run either
+way — `config/modules.json` is what the backend consults, and no module there
+listed `hidream-inpaint`, so `module_service` answered *"No module owns workflow
+'hidream-inpaint'"* and `/api/generate` would have refused. Page, card, graph and
+all 14 input registrations present, and the thing could not run.
+
+**Own module was the right call and not only a preference.** flux-klein does not
+declare `ComfyUI-Inpaint-CropAndStitch` at all — `klein-inpaint` uses core
+`InpaintModelConditioning` — so inheriting it would have swapped "nobody owns
+this" for "the manifest is incomplete". And HiDream never touches flux-klein's
+Florence2, segment-anything or LayerStyle.
+
+**How the seven packs were chosen.** By parsing each installed pack's
+`NODE_CLASS_MAPPINGS`, not by searching files for class names. The looser first
+pass credited core nodes (`LoadImage`, `VAEDecode`, `UNETLoader`, `SaveImage`) to
+whichever pack happened to mention them and would have put eight unnecessary
+packs in the manifest, three of which are not even in `nodes.json` — which is
+its own 403. `QuadrupleCLIPLoader` is core, in `comfy_extras/nodes_hidream.py`.
+Final list: ComfyUI-Easy-Use, ComfyUI-Inpaint-CropAndStitch, ComfyUI-KJNodes,
+ComfyUI-Studio-nodes, ComfyUI-Styles_CSV_Loader, comfy-image-saver,
+was-node-suite-comfyui.
+
+**Mask brush bug, fixed.** Undoing every stroke left `painted` true: the first
+stroke pushes an empty snapshot, so undoing it restored a blank canvas while
+`prev` was still a truthy ImageData, and the state came from
+`history.length > 0 || !!prev`. Save stayed enabled, the "nothing is masked yet"
+warning stayed hidden, and saving uploaded a fully opaque image — `LoadImage`'s
+MASK empty, run completes, picture unchanged, success reported. Exactly what that
+component's docstring exists to prevent. Now `setPainted(history.current.length > 0)`.
+
+**Verified:** `scripts/audit_wiring.py` with ComfyUI up — 55 workflows, **no
+finding against `hidream-inpaint`** on any of its 14 inputs: no missing node, no
+key that is not an input, nothing fed by a link. All seven packs are in
+`nodes.json` and on disk. All six models the graph loads are present
+(`hidreamI1FP8Uncensored_fastV033Alpha`, `hidream-vae`, and four CLIP files).
+`npx vite build` clean.
+
+**Not verified:** no inpaint has actually been run through the finished page. The
+wiring is checked; the output is not.
+
+**Open, and it matters for anyone but this machine:** the UNET the graph loads,
+`hidreamI1FP8Uncensored_fastV033Alpha.safetensors`, is **not** in the graph's own
+`HuggingFaceDownloader` list — that node offers `hidream_i1_fast_fp8` and a GGUF
+instead. The file exists here, so a new user gets a module that validates and a
+workflow that fails on a missing model. It wants a Library pack, using the
+`root` mechanism `9c1e4ac` just added for RedZiT2.
+
+**Also worth knowing:** the audit's three remaining wiring bugs are all
+`ideogram-txt2img` (`steps`, `mu`, `std` fed by links) and predate this work.
