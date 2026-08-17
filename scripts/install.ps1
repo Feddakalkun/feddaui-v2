@@ -570,7 +570,10 @@ function Venv-Pip {
 # ============================================================================
 Write-Header "STEP 2/7 - ComfyUI Core"
 
-$ComfyUICommit = "a2840e75"  # Pinned stable - includes LTXAV 2.3 model support
+# v0.33.1, the version verified against torch 2.10 with this node set. The old
+# pin, a2840e75, was v0.18.1 from April - far enough back that six registered
+# MiniMax workflows referenced core nodes that did not exist yet.
+$ComfyUICommit = "v0.33.1"
 $ComfyDir = Join-Path $RootPath "ComfyUI"
 
 if (-not (Test-Path $ComfyDir)) {
@@ -593,22 +596,30 @@ if (-not (Test-Path $ComfyDir)) {
 # ============================================================================
 Write-Header "STEP 3/7 - PyTorch + Dependencies"
 
-# RTX 50-series (Blackwell, sm_120) needs CUDA 12.8+ wheels; cu124 has no kernels for it.
-# Older cards stay on cu124 so existing 20/30/40-series installs behave exactly as before.
-$CudaChannel = "cu124"
-try {
-    $TorchGPUName = (Get-CimInstance Win32_VideoController | Where-Object { $_.Name -match "NVIDIA" } | Select-Object -First 1).Name
-    if ($TorchGPUName -match "RTX 50\d\d") {
-        $CudaChannel = "cu128"
-        Write-Step "RTX 50-series detected - using CUDA 12.8 wheels" "Yellow"
-    }
-} catch {}
+# One channel for every card. cu130 carries Blackwell kernels, so the 50-series
+# no longer needs a branch of its own, and cu124 - which receives no torch newer
+# than 2.6 - is left behind deliberately.
+#
+# 2.6 was the ceiling that kept ComfyUI at v0.18.1, and v0.18.1 has no MiniMax H3
+# nodes, no QuadrupleCLIPLoader and none of the Ideogram core nodes. Six MiniMax
+# workflows were registered here and could never have run.
+#
+# Pinned rather than latest: 2.10.0 + v0.33.1 is the pair verified on a 3090 with
+# this exact node set. cu130 also offers 2.11 through 2.13; none of them have been
+# tried here.
+$CudaChannel = "cu130"
+$TorchVersion = "2.10.0"
 
-Write-Step "Installing PyTorch ($CudaChannel)... this takes a few minutes"
-Venv-Pip "install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/$CudaChannel"
+Write-Step "Installing PyTorch $TorchVersion ($CudaChannel)... this takes a few minutes"
+Venv-Pip ("install torch==$TorchVersion+$CudaChannel torchvision==0.25.0+$CudaChannel " +
+          "torchaudio==$TorchVersion+$CudaChannel --index-url https://download.pytorch.org/whl/$CudaChannel")
 
-Write-Step "Installing xformers..."
-Venv-Pip "install xformers --index-url https://download.pytorch.org/whl/$CudaChannel"
+# No xformers. ComfyUI defaults to pytorch attention, the reference install that
+# proved this configuration has never had it, and it was the only reason triton
+# needed pinning. Installing it here is what made a triton upgrade able to stop
+# ComfyUI from starting at all.
+Write-Step "Pinning triton to the version this torch was built beside..."
+Venv-Pip "install triton-windows==3.6.0.post26"
 
 Write-Step "Installing ComfyUI requirements..."
 $ComfyReq = Join-Path $ComfyDir "requirements.txt"
@@ -671,12 +682,17 @@ if ($LASTEXITCODE -ne 0) {
     foreach ($pkg in $Deps) { Venv-Pip "install $pkg" }
 }
 
-# SageAttention for 40/50-series
+# SageAttention needs sm_80 or better, which is 30-series and up. The published
+# wheel is built for cu130 and torch 2.10 or higher, so it matches what is
+# installed above; `pip install sageattention` would build from source and fail
+# on a machine with no compiler.
 try {
     $GPUName = (Get-CimInstance Win32_VideoController | Where-Object { $_.Name -match "NVIDIA" } | Select-Object -First 1).Name
-    if ($GPUName -match "RTX 40\d\d" -or $GPUName -match "RTX 50\d\d") {
-        Write-Step "RTX 40/50 series detected - installing SageAttention..."
-        Venv-Pip "install sageattention"
+    if ($GPUName -match "RTX (30|40|50)\d\d") {
+        Write-Step "Installing SageAttention (replaces xformers)..."
+        $SageWheel = "https://github.com/woct0rdho/SageAttention/releases/download/v2.2.0-windows.post5/" +
+                     "sageattention-2.2.0%2Bcu130torch2.10.0andhigher.post5-cp310-abi3-win_amd64.whl"
+        Venv-Pip "install `"$SageWheel`""
     }
 } catch {}
 
@@ -753,47 +769,10 @@ Write-Step "Nodes: $Installed installed, $Skipped already present, $Failed faile
 # purpose - torch and transformers live there, and dragging those along turns a
 # version fix into a torch generation swap nobody asked for.
 
-# xformers assigns to jitted_fn.src, and newer triton made that a property whose
-# setter takes no value - so importing xformers.ops raises TypeError, which takes
-# diffusers and several custom nodes down with it (Lotus, SeedVR2, both
-# FramePackWrappers). Nothing asks for a new triton on purpose: tbg-etur's
-# requirements say triton-windows>=3.0 with no ceiling, so installing that node's
-# requirements fetches whatever is newest.
-#
-# Both conditions are checked, because fixing only the first is what broke a
-# working install: on 3.2.0 xformers imported and ComfyUI still would not start,
-# since triton's runtime could not compile its CUDA helper. That needs Python.h,
-# which the step above provides, and it is verified here rather than assumed.
-#
-# The version wanted is torch's own declared pin, not a constant - a cu128 install
-# is on a different torch generation with a different triton.
-$ErrorActionPreference = "Continue"
-$TritonProbe = "from triton.runtime.driver import driver; driver.active.utils"
-& $VenvPy -c "import xformers.ops" 2>$null | Out-Null
-if ($LASTEXITCODE -ne 0) {
-    $WantTriton = & $VenvPy -c "import importlib.metadata as m
-r = [x for x in (m.requires('torch') or []) if x.replace(' ','').startswith('triton==')]
-print(r[0].replace(' ','').split('==')[1].split(';')[0] if r else '')" 2>$null
-    if ($WantTriton) {
-        $WantTriton = $WantTriton.Trim()
-        $HadTriton = & $VenvPy -c "import importlib.metadata as m; print(m.version('triton-windows'))" 2>$null
-        Write-Host "  xformers cannot import - pinning triton to $WantTriton (torch's own pin)..." -ForegroundColor White
-        & $VenvPy -m pip install "triton-windows==$WantTriton.*" --no-warn-script-location --quiet 2>&1 | Out-Null
-        # Both, in this order. The second is the one that decides whether
-        # ComfyUI comes up at all.
-        & $VenvPy -c "import xformers.ops" 2>$null | Out-Null
-        $XformersOk = ($LASTEXITCODE -eq 0)
-        & $VenvPy -c "$TritonProbe" 2>$null | Out-Null
-        $DriverOk = ($LASTEXITCODE -eq 0)
-        if ($XformersOk -and $DriverOk) {
-            Write-Host "  xformers imports and triton compiles." -ForegroundColor Green
-        } elseif ($HadTriton) {
-            # A ComfyUI that starts with a few dead nodes beats one that does not.
-            Write-Host "  [WARN] triton $WantTriton does not work here - putting $($HadTriton.Trim()) back." -ForegroundColor Yellow
-            & $VenvPy -m pip install "triton-windows==$($HadTriton.Trim())" --no-warn-script-location --quiet 2>&1 | Out-Null
-        }
-    }
-}
+# No triton guard here any more. It existed because xformers assigned to
+# jitted_fn.src and newer triton made that read-only; xformers is no longer
+# installed, and torch 2.10 declares no triton pin for the guard to read.
+# triton is pinned outright beside the torch install instead.
 
 $ComfyReq = Join-Path (Join-Path $RootPath "ComfyUI") "requirements.txt"
 if (Test-Path $ComfyReq) {

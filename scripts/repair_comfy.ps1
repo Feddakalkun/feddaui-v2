@@ -30,7 +30,10 @@ if (-not $RootPath) { $RootPath = Split-Path $PSScriptRoot -Parent }
 
 $Py       = Join-Path $RootPath "python_embeded\python.exe"
 $ComfyDir = Join-Path $RootPath "ComfyUI"
-$Pinned   = "a2840e75"       # what install.ps1 checks out on a fresh install
+# What install.ps1 checks out on a fresh install. Was a2840e75 (v0.18.1)
+# while FEDDA sat on cu124; falling back to it now would undo a migrated
+# install and take the MiniMax H3 nodes away with it.
+$Pinned   = "v0.33.1"
 
 # Known to import on torch 2.6, newest first. 0.2.26 is the version this was
 # verified against; the two below it are there in case a future torch or a

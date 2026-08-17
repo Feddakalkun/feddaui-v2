@@ -169,18 +169,84 @@ if (-not (Test-Path $ComfyDir)) {
 # ============================================================================
 # 0. UPDATE COMFYUI CORE
 # ============================================================================
-Write-Host "`n[0/3] Updating ComfyUI core..." -ForegroundColor Yellow
+# ---------------------------------------------------------------------------
+# PyTorch generation migration: cu124 -> cu130
+# ---------------------------------------------------------------------------
+# cu124 receives no torch newer than 2.6.0, and ComfyUI has needed newer than
+# that since 0.32. An install left on cu124 is stuck on ComfyUI v0.18.1, which
+# has no MiniMax H3 nodes, no QuadrupleCLIPLoader and none of the Ideogram core
+# nodes - six MiniMax workflows were registered here and could never run.
+#
+# Verified on a 3090 with this node set before shipping: node classes the audit
+# could not find went from 14 to 1, and failed custom-node imports from 7 to 5.
+#
+# Runs once. An install already on cu130 skips the whole block.
+$ErrorActionPreference = "Continue"
+$TorchNow = & $PyExe -c "import torch; print(torch.__version__)" 2>$null
+if ($TorchNow -and $TorchNow -match "\+cu124") {
+    Write-Host "`n[0/3] Moving PyTorch to CUDA 13.0 (one-time, several minutes)..." -ForegroundColor Yellow
+    Write-Host "  cu124 stopped at torch 2.6 and current ComfyUI will not start on it." -ForegroundColor DarkGray
+    $TorchWas = $TorchNow.Trim()
+
+    # xformers first, and it does not come back. It is the reason triton had to
+    # be pinned, ComfyUI uses pytorch attention without it, and leaving it
+    # installed against a torch it was not built for breaks every import of
+    # diffusers.
+    Invoke-Pip -PyExe $PyExe -Label "remove xformers" `
+        -PipArgs @("-m","pip","uninstall","-y","xformers") | Out-Null
+
+    Invoke-Pip -PyExe $PyExe -Label "torch 2.10.0+cu130" `
+        -PipArgs @("-m","pip","install","torch==2.10.0+cu130","torchvision==0.25.0+cu130",
+                   "torchaudio==2.10.0+cu130","--index-url","https://download.pytorch.org/whl/cu130",
+                   "--no-warn-script-location") | Out-Null
+
+    Invoke-Pip -PyExe $PyExe -Label "triton-windows" `
+        -PipArgs @("-m","pip","install","triton-windows==3.6.0.post26","--no-warn-script-location") | Out-Null
+
+    # Both, because a torch that imports but cannot see the card is not a
+    # working install - it is a silent fallback to CPU.
+    $TorchOk = & $PyExe -c "import torch; print('ok' if torch.cuda.is_available() else 'nocuda')" 2>$null
+    if ($TorchOk -and $TorchOk.Trim() -eq "ok") {
+        Write-Host "  PyTorch 2.10.0+cu130 installed and the GPU is visible." -ForegroundColor Green
+
+        # sm_80 and up, so 30-series and newer. The published wheel matches this
+        # torch; plain `pip install sageattention` builds from source and fails
+        # on a machine with no compiler.
+        try {
+            $GPUName = (Get-CimInstance Win32_VideoController | Where-Object { $_.Name -match "NVIDIA" } | Select-Object -First 1).Name
+            if ($GPUName -match "RTX (30|40|50)\d\d") {
+                $SageWheel = "https://github.com/woct0rdho/SageAttention/releases/download/v2.2.0-windows.post5/" +
+                             "sageattention-2.2.0%2Bcu130torch2.10.0andhigher.post5-cp310-abi3-win_amd64.whl"
+                Invoke-Pip -PyExe $PyExe -Label "sageattention" `
+                    -PipArgs @("-m","pip","install",$SageWheel,"--no-warn-script-location") | Out-Null
+            }
+        } catch { }
+    } else {
+        Write-Host "  [WARN] The new PyTorch does not work here - putting $TorchWas back." -ForegroundColor Yellow
+        Write-Host "  This downloads the old wheels again and takes a few minutes." -ForegroundColor DarkGray
+        $OldVer = $TorchWas -replace '\+.*$', ''
+        Invoke-Pip -PyExe $PyExe -Label "torch rollback" `
+            -PipArgs @("-m","pip","install","torch==$OldVer+cu124","--index-url",
+                       "https://download.pytorch.org/whl/cu124","--no-warn-script-location") | Out-Null
+        Write-Host "  FEDDA still runs on the old PyTorch; the newer workflows wait." -ForegroundColor Yellow
+    }
+}
+$ErrorActionPreference = "Stop"
+
+Write-Host "`n[1/3] Updating ComfyUI core..." -ForegroundColor Yellow
 try {
     Set-Location $ComfyDir
     $ErrorActionPreference = "Continue"
-    # ComfyUI is installed at a pinned commit (detached HEAD), so we can't
-    # just `git pull`. Fetch latest master and reset hard to it instead.
-    # Where it is now, so it can be put back. Recorded as a hash because the
-    # install leaves ComfyUI on a detached HEAD.
+    # A pin, not master. Tracking master meant two people on the same FEDDA
+    # release could be a dozen ComfyUI versions apart, and it is why an update
+    # could silently land on a version the installed torch cannot start.
+    # v0.33.1 is the version verified against torch 2.10 with this node set.
+    #
+    # Recorded as a hash because the install leaves ComfyUI on a detached HEAD.
+    $ComfyPin = "v0.33.1"
     $ComfyWas = (& $GitExe rev-parse HEAD 2>$null)
-    & $GitExe fetch origin master 2>&1 | Out-Null
-    & $GitExe checkout master 2>&1 | Out-Null
-    & $GitExe reset --hard origin/master 2>&1 | Out-Null
+    & $GitExe fetch --tags origin 2>&1 | Out-Null
+    & $GitExe checkout $ComfyPin 2>&1 | Out-Null
     $ErrorActionPreference = "Stop"
     Set-Location $RootPath
 
@@ -194,7 +260,7 @@ try {
     # utils never reaches it.
     & $PyExe -c "import sys; sys.path.insert(0, r'$ComfyDir'); import comfy.model_base, comfy.ldm.modules.attention" 2>$null | Out-Null
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "  ComfyUI core updated to latest master." -ForegroundColor Green
+        Write-Host "  ComfyUI core at $ComfyPin." -ForegroundColor Green
     } elseif ($ComfyWas) {
         Write-Host "  [WARN] The newer ComfyUI will not start on this PyTorch - going back." -ForegroundColor Yellow
         $ErrorActionPreference = "Continue"
@@ -566,49 +632,10 @@ if (-not (Test-Path (Join-Path $IncDir "Python.h"))) {
     }
 }
 
-# xformers assigns to jitted_fn.src, and newer triton made that a property whose
-# setter takes no value - so importing xformers.ops raises TypeError, which takes
-# diffusers and several custom nodes down with it (Lotus, SeedVR2, both
-# FramePackWrappers). Nothing asks for a new triton on purpose: tbg-etur's
-# requirements say triton-windows>=3.0 with no ceiling, so installing that node's
-# requirements fetches whatever is newest.
-#
-# Both conditions are checked, because fixing only the first is what broke a
-# working install: on 3.2.0 xformers imported and ComfyUI still would not start,
-# since triton's runtime could not compile its CUDA helper. That needs Python.h,
-# which the step above provides, and it is verified here rather than assumed.
-#
-# The version wanted is torch's own declared pin, not a constant - a cu128 install
-# is on a different torch generation with a different triton.
-$ErrorActionPreference = "Continue"
-$TritonProbe = "from triton.runtime.driver import driver; driver.active.utils"
-& $PyExe -c "import xformers.ops" 2>$null | Out-Null
-if ($LASTEXITCODE -ne 0) {
-    $WantTriton = & $PyExe -c "import importlib.metadata as m
-r = [x for x in (m.requires('torch') or []) if x.replace(' ','').startswith('triton==')]
-print(r[0].replace(' ','').split('==')[1].split(';')[0] if r else '')" 2>$null
-    if ($WantTriton) {
-        $WantTriton = $WantTriton.Trim()
-        $HadTriton = & $PyExe -c "import importlib.metadata as m; print(m.version('triton-windows'))" 2>$null
-        Write-Host "  xformers cannot import - pinning triton to $WantTriton (torch's own pin)..." -ForegroundColor White
-        Invoke-Pip -PyExe $PyExe -Label "triton-windows" `
-            -PipArgs @("-m","pip","install","triton-windows==$WantTriton.*","--no-warn-script-location") | Out-Null
-        # Both, in this order. The second is the one that decides whether
-        # ComfyUI comes up at all.
-        & $PyExe -c "import xformers.ops" 2>$null | Out-Null
-        $XformersOk = ($LASTEXITCODE -eq 0)
-        & $PyExe -c "$TritonProbe" 2>$null | Out-Null
-        $DriverOk = ($LASTEXITCODE -eq 0)
-        if ($XformersOk -and $DriverOk) {
-            Write-Host "  xformers imports and triton compiles." -ForegroundColor Green
-        } elseif ($HadTriton) {
-            # A ComfyUI that starts with a few dead nodes beats one that does not.
-            Write-Host "  [WARN] triton $WantTriton does not work here - putting $($HadTriton.Trim()) back." -ForegroundColor Yellow
-            Invoke-Pip -PyExe $PyExe -Label "triton-windows" `
-                -PipArgs @("-m","pip","install","triton-windows==$($HadTriton.Trim())","--no-warn-script-location") | Out-Null
-        }
-    }
-}
+# No triton guard here any more. It existed because xformers assigned to
+# jitted_fn.src and newer triton made that read-only; xformers is no longer
+# installed, and torch 2.10 declares no triton pin for the guard to read.
+# triton is pinned outright beside the torch install instead.
 
 # Florence2 requires transformers >= 4.45 for is_flash_attn_greater_or_equal_2_10,
 # and less than 5. The floor was here and the ceiling was not, so an unbounded

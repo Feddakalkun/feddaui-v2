@@ -100,23 +100,38 @@ pin away and lands on whatever master is that day. Two people on the same FEDDA
 release can be a dozen minor versions apart, and the machine this was written on
 was on v0.30.0 while a clean install beside it was on v0.18.1.
 
-**cu124 is a dead end, and that is the real ceiling.** ComfyUI 0.32.0 will not
-start on torch 2.6.0: `comfy_kitchen` registers a custom op typed
-`kernel_size: list[int]`, and `torch.library.infer_schema` in 2.6 rejects PEP 585
-generics. It is not a comfy-kitchen version problem - 0.2.30, which 0.32.0 pins,
-and 0.2.31 both fail identically. And 2.6.0 is the newest torch the cu124 channel
-has, while cu126 has 2.13.0 and cu128 has 2.11.0.
+**cu124 is behind us.** FEDDA installs **torch 2.10.0+cu130 with ComfyUI
+v0.33.1**, one channel for every card - cu130 carries Blackwell kernels, so the
+50-series no longer needs a branch. `update_logic.ps1` carries an existing cu124
+install across once and skips the step forever after.
 
-`install.ps1` already routes **RTX 50-series to cu128** and everything else to
-cu124, so a 50-series install is on a torch new enough for current ComfyUI and a
-3090 is not. Moving 20/30/40-series off cu124 drags xformers, sageattention and
-insightface with it, all built against that torch. Nothing forces it today, but
-cu124 receives no newer torch, so it arrives eventually whatever prompts it.
+What the old note here feared, and what actually happened when it was tried on a
+3090 with this node set:
 
-Investigated 2026-08-12 while looking at LTX-2.5, which needs ComfyUI 0.32.0 and
-is therefore parked behind all of the above. The LTX-2.5 weights themselves are
-seven files in the gated `Lightricks/LTX-2.5` repo; FEDDA already stores an
-`hf_token`, which is what a gated repo needs.
+| Feared | Result |
+|---|---|
+| xformers pins everything to cu124 | **Not needed at all.** ComfyUI uses pytorch attention; the reference install has never had it. Removing it also removed the reason triton had to be pinned. |
+| sageattention must be rebuilt | Prebuilt cu130 wheel, `woct0rdho/SageAttention` v2.2.0-windows.post5. |
+| insightface must be rebuilt | Untouched - it is onnxruntime-based, same version either side. |
+| numpy 2.x breaks the node packs | v0.33.1 does not require numpy 2. Only comfyui-reactor-node pins numpy, and it is broken for its own reasons. |
+
+Measured across the move: node classes the audit could not find went **14 to 1**,
+failed custom-node imports **7 to 5**, and the five that remain fail for reasons
+that have nothing to do with torch. ComfyUI serves 3059 node classes against
+2876.
+
+**What it unlocked.** v0.18.1 had no `MiniMaxH3ImageToVideo`,
+`MiniMaxH3ReferenceToVideo`, `QuadrupleCLIPLoader` or the Ideogram core nodes.
+Six MiniMax workflows were registered and could never have run.
+
+**ComfyUI is pinned now, in both install and update.** It used to track master,
+which is why two people on the same FEDDA release could be a dozen versions
+apart, and why an update could land on a version the installed torch could not
+start. Moving the pin means verifying the pair first.
+
+LTX-2.5 was parked behind all of this. It needs ComfyUI 0.32.0, which is now
+below the floor rather than above the ceiling; its weights are seven files in the
+gated `Lightricks/LTX-2.5` repo, and FEDDA already stores an `hf_token`.
 
 ## Local models
 
