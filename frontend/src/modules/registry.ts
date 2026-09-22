@@ -18,6 +18,7 @@ export type SourceModuleId =
   | 'hidream'
   | 'flux-klein-uncensored'
   | 'krea2-txt2img'
+  | 'flux-krea'
   | 'ideogram';
 
 export interface FeddaModule {
@@ -412,6 +413,19 @@ export const FEDDA_MODULES: FeddaModule[] = [
     defaultTab: 'krea2-turbo-txt2img',
     Icon: Sparkles,
     card: { poster: '/cards/bunny/krea2.jpeg' },
+  },
+  {
+    id: 'flux-krea',
+    sourceModuleId: 'flux-krea',
+    label: 'FLUX Krea',
+    description: 'FLUX Krea (GGUF Q8) \u2014 FLUX.1 dev finetune, high-quality 20-step.',
+    area: 'image',
+    pack: 'booster',
+
+    tabs: ['flux-krea-gguf-txt2img'],
+    workflows: ['flux-krea-gguf-txt2img'],
+    defaultTab: 'flux-krea-gguf-txt2img',
+    Icon: Sparkles,
   },
   {
     id: 'ideogram',

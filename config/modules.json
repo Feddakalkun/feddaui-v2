@@ -421,6 +421,26 @@
       "notes": "Talking-head lipsync workflows."
     },
     {
+      "id": "flux-krea",
+      "label": "FLUX Krea",
+      "pack": "booster",
+      "area": "image",
+      "enabled": true,
+      "tabs": [
+        "flux-krea-gguf-txt2img"
+      ],
+      "workflows": [
+        "flux-krea-gguf-txt2img"
+      ],
+      "custom_nodes": [
+        "ComfyUI-GGUF"
+      ],
+      "models": [
+        "FLUX Krea"
+      ],
+      "notes": "FLUX Krea (GGUF Q8) text-to-image - FLUX.1 Krea dev, high quality."
+    },
+    {
       "id": "krea2-txt2img",
       "label": "Krea2 Turbo",
       "pack": "booster",

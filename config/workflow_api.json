@@ -2503,6 +2503,55 @@
       }
     }
   },
+  "flux-krea-gguf-txt2img": {
+    "name": "FLUX Krea (GGUF Q8)",
+    "filename": "flux-krea/flux-krea-gguf-txt2img.json",
+    "description": "FLUX Krea text-to-image (GGUF Q8_0 - FLUX.1 dev finetune, 20-step, fits 24GB).",
+    "inputs": {
+      "prompt": {
+        "node_id": "6",
+        "input_key": "text",
+        "type": "string",
+        "label": "Prompt"
+      },
+      "seed": {
+        "node_id": "3",
+        "input_key": "seed",
+        "type": "number",
+        "label": "Seed"
+      },
+      "steps": {
+        "node_id": "3",
+        "input_key": "steps",
+        "type": "number",
+        "label": "Steps"
+      },
+      "cfg": {
+        "node_id": "3",
+        "input_key": "cfg",
+        "type": "number",
+        "label": "CFG"
+      },
+      "width": {
+        "node_id": "5",
+        "input_key": "width",
+        "type": "number",
+        "label": "Width"
+      },
+      "height": {
+        "node_id": "5",
+        "input_key": "height",
+        "type": "number",
+        "label": "Height"
+      },
+      "loras": {
+        "node_id": "15",
+        "input_key": "lora_name",
+        "type": "loras",
+        "label": "LoRAs"
+      }
+    }
+  },
   "krea2-turbo-txt2img-gguf": {
     "name": "Krea2 Turbo (GGUF)",
     "filename": "krea2/krea2-turbo-txt2img-gguf.json",
