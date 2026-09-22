@@ -26,6 +26,7 @@ import { ScailStudioPage } from './pages/tools/ScailStudioPage';
 import { ReelMachinePage } from './pages/tools/ReelMachinePage';
 import { ModuleUnavailablePage } from './pages/ModuleUnavailablePage';
 import { AgentShell } from './pages/AgentShell';
+import { FirstRunModal } from './components/ui/FirstRunModal';
 import {
   ACTIVE_TAB_STORAGE_KEY,
   APP_VERSION_LABEL,
@@ -124,6 +125,15 @@ function FeddaApp() {
   }, [view, activeTab, defaultTab, validTabs]);
 
   const [backFromTab, setBackFromTab] = useState<string | null>(null);
+
+  const [showSetup, setShowSetup] = useState(false);
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem('fedda_setup_hidden')) setShowSetup(true);
+    } catch {
+      /* private mode - just skip the first-run popup */
+    }
+  }, []);
 
   const parentViewForTab = (tab: string): ViewMode => {
     const module = findModuleForTab(tab, availableModules);
@@ -226,6 +236,7 @@ function FeddaApp() {
 
   return (
     <div className="flex h-screen theme-bg-app text-white overflow-hidden font-sans selection:bg-white/20">
+      {showSetup && <FirstRunModal onClose={() => setShowSetup(false)} />}
       <main className="flex-1 flex flex-col overflow-hidden theme-bg-main">
         <header className="h-14 border-b border-white/5 flex items-center px-6 shrink-0 z-10 justify-between backdrop-blur-sm bg-black/20">
           <div className="flex items-center gap-3">

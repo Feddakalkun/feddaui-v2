@@ -481,6 +481,68 @@ async def get_venice_key_status():
     return {"success": True, **venice_service.check(_venice_key())}
 
 
+class ModelFolderRequest(BaseModel):
+    path: str
+
+
+def _write_extra_model_paths(base_path: str) -> None:
+    """Point ComfyUI at an external models folder via extra_model_paths.yaml.
+
+    ComfyUI reads this file only at startup, so a change here needs a FEDDA
+    restart to take effect. The file is FEDDA-managed: an empty path removes it.
+    """
+    target = COMFY_DIR / "extra_model_paths.yaml"
+    if not base_path:
+        try:
+            if target.exists():
+                target.unlink()
+        except Exception:
+            pass
+        return
+    bp = base_path.replace("\\", "/")
+    types = [
+        "checkpoints", "loras", "vae", "clip", "clip_vision", "controlnet",
+        "diffusion_models", "text_encoders", "unet", "upscale_models",
+        "embeddings", "style_models", "hypernetworks", "gligen",
+    ]
+    lines = [
+        "# Written by FEDDA - points ComfyUI at an external models folder.",
+        "# Clear the folder in Setup (or delete this file) to stop using it.",
+        "fedda_external:",
+        "    base_path: " + bp,
+    ]
+    lines += ["    " + t + ": " + t for t in types]
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+@app.get("/api/settings/model-folder/status")
+async def get_model_folder_status():
+    data = load_settings()
+    p = (data.get("model_folder") or "").strip()
+    return {"success": True, "configured": bool(p), "path": p, "exists": bool(p) and Path(p).is_dir()}
+
+
+@app.post("/api/settings/model-folder")
+async def set_model_folder(req: ModelFolderRequest):
+    """Store models on another drive. Writes ComfyUI's extra_model_paths.yaml,
+    which ComfyUI reads at startup - so the response flags needs_restart."""
+    p = (req.path or "").strip().strip('"').strip()
+    data = load_settings()
+    if not p:
+        data["model_folder"] = ""
+        save_settings(data)
+        _write_extra_model_paths("")
+        return {"success": True, "configured": False, "path": "", "exists": False, "needs_restart": True}
+    folder = Path(p)
+    if not folder.is_dir():
+        raise HTTPException(status_code=400, detail="Folder not found: " + p)
+    data["model_folder"] = str(folder)
+    save_settings(data)
+    _write_extra_model_paths(str(folder))
+    return {"success": True, "configured": True, "path": str(folder), "exists": True, "needs_restart": True}
+
+
 @app.get("/api/venice/models")
 async def venice_models(type: str = ""):
     return _venice(venice_service.models, _venice_key(), type)

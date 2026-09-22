@@ -50,6 +50,8 @@ export const BACKEND_API = {
         SETTINGS_HF_TOKEN_STATUS: '/api/settings/hf-token/status',
         SETTINGS_VENICE_KEY: '/api/settings/venice-key',
         SETTINGS_VENICE_KEY_STATUS: '/api/settings/venice-key/status',
+        SETTINGS_MODEL_FOLDER: '/api/settings/model-folder',
+        SETTINGS_MODEL_FOLDER_STATUS: '/api/settings/model-folder/status',
         VENICE_MODELS: '/api/venice/models',
         VENICE_STYLES: '/api/venice/styles',
         VENICE_BALANCE: '/api/venice/balance',
