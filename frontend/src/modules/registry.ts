@@ -426,6 +426,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     workflows: ['flux-krea-gguf-txt2img'],
     defaultTab: 'flux-krea-gguf-txt2img',
     Icon: Sparkles,
+    card: { poster: '/cards/bunny/flux-krea.jpeg' },
   },
   {
     id: 'ideogram',
