@@ -679,7 +679,7 @@ if ($LASTEXITCODE -ne 0) {
 
 # Chatterbox TTS (natural voice engine). --no-deps on purpose: its pins would
 # downgrade transformers/numpy/diffusers/starlette. setuptools<81 for pkg_resources.
-& $PyExe -c "import chatterbox, pyloudnorm" 2>$null
+& $PyExe -W ignore -c "import chatterbox, pyloudnorm" 2>$null
 if ($LASTEXITCODE -ne 0) {
     Write-Host "  Installing Chatterbox TTS (natural voice engine)..." -ForegroundColor White
     & $PyExe -m pip install --no-deps chatterbox-tts --no-warn-script-location 2>&1
