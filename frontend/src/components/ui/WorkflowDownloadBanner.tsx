@@ -3,6 +3,7 @@ import { AlertTriangle, CheckCircle2, DownloadCloud } from 'lucide-react';
 import { ModelStatusModal } from './ModelStatusModal';
 import { useComfyExecution } from '../../contexts/ComfyExecutionContext';
 import { useWorkflowDownloadStatus } from '../../hooks/useWorkflowDownloadStatus';
+import { NodePackBanner } from './NodePackBanner';
 
 function fmtBytes(bytes: number): string {
   if (bytes >= 1_000_000_000) return `${(bytes / 1_000_000_000).toFixed(1)} GB`;
@@ -21,7 +22,7 @@ const DetailsLink = ({ onOpen }: { onOpen: () => void }) => (
   </button>
 );
 
-export const WorkflowDownloadBanner = ({ workflowId }: { workflowId: string }) => {
+const ModelBanner = ({ workflowId }: { workflowId: string }) => {
   // The banner answers "can I run this"; the modal answers everything else.
   const [detailOpen, setDetailOpen] = useState(false);
   const { isDownloaderNode } = useComfyExecution();
@@ -145,3 +146,11 @@ export const WorkflowDownloadBanner = ({ workflowId }: { workflowId: string }) =
 
   return null;
 };
+
+// Node packs first (a missing node blocks the run outright), then models.
+export const WorkflowDownloadBanner = ({ workflowId }: { workflowId: string }) => (
+  <>
+    <NodePackBanner workflowId={workflowId} />
+    <ModelBanner workflowId={workflowId} />
+  </>
+);

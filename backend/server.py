@@ -6534,6 +6534,85 @@ async def start_workflow_model_downloads(workflow_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def _workflow_node_manifest(workflow_id: str) -> list:
+    """[(folder, git_url), ...] of a workflow's non-core node packs, read from its
+    generated config/model_manifests/<id>.nodes.txt. Empty when there is none."""
+    mf = CONFIG_DIR / "model_manifests" / (workflow_id + ".nodes.txt")
+    packs = []
+    if not mf.exists():
+        return packs
+    for line in mf.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split()
+        if len(parts) >= 2:
+            packs.append((parts[0], parts[1]))
+    return packs
+
+
+@app.get("/api/workflow/node-status/{workflow_id}")
+async def get_workflow_node_status(workflow_id: str):
+    """Which of this workflow's custom-node packs are installed. Core packs ship
+    with the installer; heavier ones (GGUF, WAN, ...) install on demand."""
+    packs = _workflow_node_manifest(workflow_id)
+    cn = COMFY_DIR / "custom_nodes"
+    missing, installed = [], []
+    for folder, url in packs:
+        (installed if (cn / folder).is_dir() else missing).append({"folder": folder, "url": url})
+    return {
+        "success": True,
+        "ok": len(missing) == 0,
+        "missing": missing,
+        "installed": [p["folder"] for p in installed],
+    }
+
+
+def _install_workflow_nodes_sync(workflow_id: str) -> dict:
+    packs = _workflow_node_manifest(workflow_id)
+    cn = COMFY_DIR / "custom_nodes"
+    cn.mkdir(parents=True, exist_ok=True)
+    installed, failed = [], []
+    for folder, url in packs:
+        dest = cn / folder
+        if dest.is_dir():
+            continue
+        try:
+            subprocess.run(
+                ["git", "clone", "--depth", "1", url, str(dest)],
+                check=True, capture_output=True, text=True, timeout=300,
+            )
+            req = dest / "requirements.txt"
+            if req.exists():
+                subprocess.run(
+                    [sys.executable, "-m", "pip", "install", "-r", str(req)],
+                    check=True, capture_output=True, text=True, timeout=900,
+                )
+            installed.append(folder)
+        except Exception as e:
+            detail = getattr(e, "stderr", "") or str(e)
+            failed.append({"folder": folder, "error": str(detail)[-400:]})
+            try:
+                if dest.is_dir() and not (dest / ".git").is_dir():
+                    shutil.rmtree(dest, ignore_errors=True)
+            except Exception:
+                pass
+    return {
+        "success": len(failed) == 0,
+        "installed": installed,
+        "failed": failed,
+        "needs_restart": bool(installed),
+    }
+
+
+@app.post("/api/workflow/install-nodes/{workflow_id}")
+async def install_workflow_nodes(workflow_id: str):
+    """Git-clone + pip-install this workflow's missing node packs into ComfyUI.
+    ComfyUI loads custom nodes only at startup, so the response flags
+    needs_restart - the UI tells the user to restart FEDDA."""
+    return await asyncio.to_thread(_install_workflow_nodes_sync, workflow_id)
+
+
 class WanStoryRequest(BaseModel):
     images: List[str]                  # ComfyUI input filenames, in play order (2..20+)
     prompts: List[str] = []            # transition prompts (len images-1); missing -> default

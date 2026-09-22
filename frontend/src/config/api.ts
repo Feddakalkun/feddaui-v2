@@ -97,6 +97,8 @@ export const BACKEND_API = {
         HARDWARE_STATS: '/api/hardware/stats',
         WORKFLOW_LIST: '/api/workflow/list',
         WORKFLOW_MODEL_STATUS: '/api/workflow/model-status',
+        WORKFLOW_NODE_STATUS: '/api/workflow/node-status',
+        WORKFLOW_INSTALL_NODES: '/api/workflow/install-nodes',
         GENERATE: '/api/generate',
         GENERATE_STATUS: '/api/generate/status',
         LORA_LIST: '/api/lora/list',
