@@ -39,11 +39,13 @@ import { IdeogramTxt2ImgPage } from './ideogram/IdeogramTxt2ImgPage';
 import { HunyuanImg2VidPage } from './hunyuan/HunyuanImg2VidPage';
 import { Wan22XxxImg2VidPage } from './wan22/Wan22XxxImg2VidPage';
 import { Krea2Txt2Img } from './krea2/Krea2Txt2Img';
+import { FluxKreaTxt2Img } from './flux-krea/FluxKreaTxt2Img';
 
 export const IMAGE_WORKFLOW_PAGES: Record<string, ComponentType> = {
   'z-image': ZImageTxt2Img,
   'krea2-turbo-txt2img': Krea2Txt2Img,
   'krea2': Krea2Txt2Img,
+  'flux-krea-gguf-txt2img': FluxKreaTxt2Img,
   'z-image-txt2img': ZImageTxt2Img,
   'z-image-dual-lora': ZImageDualLoraPage,
   'flux-uncensored-txt2img': FluxKleinUncensoredTxt2Img,

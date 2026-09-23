@@ -59,6 +59,8 @@ interface Txt2ImgPageConfig {
   imageLabel?: string;
   enableLoras?: boolean;
   defaultSteps?: number;
+  defaultWidth?: number;
+  defaultHeight?: number;
   defaultCfg?: number;
   defaultNegative?: string;
   maxSteps?: number;
@@ -158,6 +160,8 @@ export const Txt2ImgPage = ({
   imageLabel = 'Reference Image',
   enableLoras = true,
   defaultSteps = 11,
+  defaultWidth = 1920,
+  defaultHeight = 1088,
   defaultCfg = 1.0,
   defaultNegative = 'blurry, ugly, bad proportions, low quality, artifacts, glossy skin, oily skin, plastic skin, shiny skin, airbrushed, overexposed',
   maxSteps = 25,
@@ -205,8 +209,8 @@ export const Txt2ImgPage = ({
   const [prompt, setPrompt] = usePersistentState(key('prompt'), '');
   const [negativePrompt, setNegativePrompt] = usePersistentState(key('negative'), defaultNegative);
   const [characterPrompt, setCharacterPrompt] = usePersistentState(key('character_prompt'), '');
-  const [width, setWidth] = usePersistentState(key('width_v2'), 1920);
-  const [height, setHeight] = usePersistentState(key('height_v2'), 1088);
+  const [width, setWidth] = usePersistentState(key('width_v2'), defaultWidth);
+  const [height, setHeight] = usePersistentState(key('height_v2'), defaultHeight);
 
   // Outpaint padding, in pixels per edge. Symmetric widening is the common case,
   // so that is the default rather than the graph's left-only 512.
