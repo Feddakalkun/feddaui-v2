@@ -17,9 +17,11 @@ interface SendToWorkflowMenuProps {
   kind: 'image' | 'video';
   /** compact = icon-only button (gallery hover), default = labelled button */
   compact?: boolean;
+  /** carried into the target workflow's prompt field */
+  prompt?: string;
 }
 
-export function SendToWorkflowMenu({ url, kind, compact = false }: SendToWorkflowMenuProps) {
+export function SendToWorkflowMenu({ url, kind, compact = false, prompt }: SendToWorkflowMenuProps) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -32,7 +34,7 @@ export function SendToWorkflowMenu({ url, kind, compact = false }: SendToWorkflo
   }, {});
 
   const send = (dest: WorkflowDestination) => {
-    setHandoff(url, kind);
+    setHandoff(url, kind, prompt);
     navigateToTab(dest.id);
     setOpen(false);
   };

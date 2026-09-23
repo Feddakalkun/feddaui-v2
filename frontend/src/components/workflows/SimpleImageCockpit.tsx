@@ -7,6 +7,7 @@ import { PromptAssistant, type PromptContext } from '../ui/PromptAssistant';
 import { LoraCharacterCard } from '../ui/LoraCharacterCard';
 import { BACKEND_API } from '../../config/api';
 import { LiveSamplingPreview } from './LiveSamplingPreview';
+import { SendToWorkflowMenu } from '../ui/SendToWorkflowMenu';
 
 export type SimpleImageLoraEntry = {
   name: string;
@@ -410,12 +411,23 @@ export function SimpleImageCockpit({
                 {/* The finished image, not a note saying one exists. The panel
                     goes live preview -> result and stays there until the next run. */}
                 {resultImage ? (
-                  <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-white/10 bg-black/20 p-3">
+                  <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 rounded-xl border border-white/10 bg-black/20 p-3">
                     <img
                       src={resultImage}
                       alt="Result"
-                      className="max-h-[620px] rounded-lg border border-white/10 object-contain"
+                      className="max-h-[560px] rounded-lg border border-white/10 object-contain"
                     />
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={onGenerate}
+                        disabled={isGenerating}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-white/12 bg-white/[0.05] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white/75 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <RefreshCw className="h-3 w-3" /> Regenerate
+                      </button>
+                      <SendToWorkflowMenu url={resultImage} kind="image" prompt={prompt} />
+                    </div>
                   </div>
                 ) : (
                   <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-white/10 bg-black/20 p-3">

@@ -4,7 +4,7 @@ import { useToast } from '../ui/Toast';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { useWorkflowRun } from '../../hooks/useWorkflowRun';
 import { useComfyExecution } from '../../contexts/ComfyExecutionContext';
-import { consumeHandoff } from '../../utils/workflowHandoff';
+import { consumeHandoff, takeHandoffPrompt } from '../../utils/workflowHandoff';
 import { uploadToComfy } from '../../utils/comfyUpload';
 import { WorkflowShell, WorkflowSection } from './WorkflowShell';
 import { PromptAgentBox } from '../workflows/PromptAgentBox';
@@ -326,6 +326,13 @@ export const WorkflowPage = ({
     }
     return undefined;
   });
+
+  // The prompt that rode along with the image/video, dropped into this page's
+  // prompt field so a send-to carries the words as well as the picture.
+  useEffect(() => {
+    const handedPrompt = takeHandoffPrompt();
+    if (handedPrompt) setPromptText(handedPrompt);
+  }, []);
 
   const missing = useMemo(() => {
     const slot = inputs.find((i) => !i.optional && !files[i.key]);

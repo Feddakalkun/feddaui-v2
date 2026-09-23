@@ -10,6 +10,7 @@
 
 const HANDOFF_KEY = 'fedda_workflow_handoff';
 const HANDOFF_TTL = 5_000;
+const HANDOFF_PROMPT_KEY = 'fedda_workflow_handoff_prompt';
 
 interface HandoffPayload {
   url: string;
@@ -17,10 +18,15 @@ interface HandoffPayload {
   ts: number;
 }
 
-export function setHandoff(url: string, kind: 'image' | 'video' | 'audio'): void {
+export function setHandoff(url: string, kind: 'image' | 'video' | 'audio', prompt?: string): void {
   try {
     const payload: HandoffPayload = { url, kind, ts: Date.now() };
     localStorage.setItem(HANDOFF_KEY, JSON.stringify(payload));
+    if (prompt && prompt.trim()) {
+      localStorage.setItem(HANDOFF_PROMPT_KEY, JSON.stringify({ prompt: prompt.trim(), ts: Date.now() }));
+    } else {
+      localStorage.removeItem(HANDOFF_PROMPT_KEY);
+    }
   } catch { /* ignore */ }
 }
 
@@ -37,6 +43,21 @@ export function consumeHandoff(kind: 'image' | 'video' | 'audio'): string | null
     }
     localStorage.removeItem(HANDOFF_KEY);
     return payload.url;
+  } catch {
+    return null;
+  }
+}
+
+/** Consume the prompt that rode along with a send-to, if fresh. */
+export function takeHandoffPrompt(): string | null {
+  try {
+    const raw = localStorage.getItem(HANDOFF_PROMPT_KEY);
+    if (!raw) return null;
+    localStorage.removeItem(HANDOFF_PROMPT_KEY);
+    const p = JSON.parse(raw) as { prompt?: string; ts?: number };
+    if (!p || typeof p.prompt !== 'string' || !p.prompt.trim()) return null;
+    if (Date.now() - (p.ts ?? 0) > HANDOFF_TTL) return null;
+    return p.prompt;
   } catch {
     return null;
   }
