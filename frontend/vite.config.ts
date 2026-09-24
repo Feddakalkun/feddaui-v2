@@ -59,6 +59,8 @@ viteLogger.error = (msg, options) => {
   originalError(msg, options)
 }
 
+const backendPort = process.env.FEDDA_BACKEND_PORT || '8000'
+
 export default defineConfig({
   customLogger: viteLogger,
   plugins: [react()],
@@ -91,12 +93,12 @@ export default defineConfig({
         configure: quietProxyErrors(),
       },
       '/api': {
-        target: 'http://127.0.0.1:8000',
+        target: `http://127.0.0.1:${backendPort}`,
         changeOrigin: true,
         configure: quietProxyErrors(),
       },
       '/ws': {
-        target: 'ws://127.0.0.1:8000',
+        target: `ws://127.0.0.1:${backendPort}`,
         ws: true,
         configure: quietProxyErrors(),
       },

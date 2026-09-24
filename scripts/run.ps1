@@ -253,7 +253,20 @@ try {
         -PassThru -NoNewWindow `
         -RedirectStandardOutput $Services[0].Out -RedirectStandardError $Services[0].Err
 
-    Write-Host "  [2/3] Starting backend on port 8000..." -ForegroundColor White
+    # Port 8000 is a common port; a foreign program holding it would crash
+    # uvicorn on bind and leave the UI with no backend ("Module Not Installed"
+    # everywhere). Pick the first free port from 8000 up and hand it to both the
+    # backend and vite's proxy, so a clash self-heals instead of breaking the app.
+    $BackendPort = 8000
+    while ($BackendPort -lt 8050 -and (Get-NetTCPConnection -LocalPort $BackendPort -State Listen -ErrorAction SilentlyContinue)) {
+        $BackendPort++
+    }
+    $env:FEDDA_BACKEND_PORT = "$BackendPort"
+    if ($BackendPort -ne 8000) {
+        Write-Host "  [note] Port 8000 was busy - using $BackendPort for the backend instead." -ForegroundColor DarkYellow
+    }
+
+    Write-Host "  [2/3] Starting backend on port $BackendPort..." -ForegroundColor White
     $BackendProc = Start-Process -FilePath $Python `
         -ArgumentList "`"$BackendPy`"" `
         -WorkingDirectory (Split-Path $BackendPy -Parent) `
@@ -261,7 +274,7 @@ try {
         -RedirectStandardOutput $Services[1].Out -RedirectStandardError $Services[1].Err
 
     $comfyOk   = Wait-Port -Port 8199 -Name "ComfyUI (this can take ~30s)" -Proc $ComfyProc -TimeoutSec 120
-    $backendOk = Wait-Port -Port 8000 -Name "backend" -Proc $BackendProc -TimeoutSec 30
+    $backendOk = Wait-Port -Port $BackendPort -Name "backend" -Proc $BackendProc -TimeoutSec 30
 
     if (-not $comfyOk) {
         Show-ServiceOutput | Out-Null
@@ -303,7 +316,7 @@ try {
 
     Write-Host ""
     Write-Host "  All services live in this window:" -ForegroundColor White
-    Write-Host "    [COMFY] ComfyUI :8199   [BACK] backend :8000   [VITE] frontend :5173" -ForegroundColor DarkGray
+    Write-Host "    [COMFY] ComfyUI :8199   [BACK] backend :$BackendPort   [VITE] frontend :5173" -ForegroundColor DarkGray
     Write-Host "  Full logs in logs\*_live.log - press Ctrl+C to stop everything." -ForegroundColor DarkGray
     Write-Host ""
 
