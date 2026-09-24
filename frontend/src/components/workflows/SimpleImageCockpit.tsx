@@ -8,6 +8,7 @@ import { LoraCharacterCard } from '../ui/LoraCharacterCard';
 import { BACKEND_API } from '../../config/api';
 import { LiveSamplingPreview } from './LiveSamplingPreview';
 import { SendToWorkflowMenu } from '../ui/SendToWorkflowMenu';
+import { GlobalGalleryPanel } from '../layout/GlobalGalleryPanel';
 
 export type SimpleImageLoraEntry = {
   name: string;
@@ -318,7 +319,9 @@ export function SimpleImageCockpit({
 
 
   return (
-    <div className="mx-auto w-full max-w-[1540px] pb-3">
+    <div className="flex w-full">
+      <GlobalGalleryPanel />
+      <div className="mx-auto w-full max-w-[1540px] flex-1 min-w-0 pb-3">
       <section className="workflow-cockpit">
         <div className="workflow-cockpit-stack">
           {/*
@@ -441,6 +444,7 @@ export function SimpleImageCockpit({
             </div>
           </div>
 
+          <div className="flex min-w-0 flex-col gap-3">
           <PromptAssistant
             context={promptContext}
             workflowId={workflowId}
@@ -472,6 +476,7 @@ export function SimpleImageCockpit({
             image={uploadedImage ? uploadedImageName ?? null : null}
             onPrompt={setPrompt}
           />
+          </div>
           </div>
 
           {/* The editor replaces the uploaded image with an RGBA copy whose
@@ -905,6 +910,7 @@ export function SimpleImageCockpit({
           )}
         </button>
       </section>
+      </div>
     </div>
   );
 }

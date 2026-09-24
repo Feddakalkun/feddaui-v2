@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Download, ExternalLink, Images, PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { Download, ExternalLink, Images, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { loadStoredMedia, triggerMediaDownload, type MediaItem } from '../../utils/mediaStore';
 import { SendToWorkflowMenu } from '../ui/SendToWorkflowMenu';
 
@@ -107,7 +107,7 @@ export const GlobalGalleryPanel = () => {
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
       if (!isDragging.current) return;
-      const delta = startX.current - e.clientX;
+      const delta = e.clientX - startX.current;
       setWidth(Math.max(150, Math.min(420, startW.current + delta)));
     };
     const onUp = () => {
@@ -128,16 +128,9 @@ export const GlobalGalleryPanel = () => {
 
   return (
     <div
-      className="flex-shrink-0 flex overflow-hidden border-l border-white/[0.06] bg-[#07080d] transition-[width] duration-150"
+      className="flex-shrink-0 flex overflow-hidden border-r border-white/[0.06] bg-[#07080d] transition-[width] duration-150"
       style={{ width: collapsed ? '40px' : `${width}px` }}
     >
-      {!collapsed && (
-        <div
-          className="w-1 flex-shrink-0 bg-white/[0.03] hover:bg-violet-500/30 cursor-col-resize transition-colors"
-          onMouseDown={handleResizeStart}
-        />
-      )}
-
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <div className="h-[54px] border-b border-white/5 flex items-center flex-shrink-0 px-2 gap-1">
           {!collapsed && (
@@ -159,8 +152,8 @@ export const GlobalGalleryPanel = () => {
             className="h-7 w-7 rounded-lg flex items-center justify-center text-slate-600 hover:text-slate-300 hover:bg-white/[0.05] transition ml-auto flex-shrink-0"
           >
             {collapsed
-              ? <PanelRightOpen className="h-3.5 w-3.5" />
-              : <PanelRightClose className="h-3.5 w-3.5" />}
+              ? <PanelLeftOpen className="h-3.5 w-3.5" />
+              : <PanelLeftClose className="h-3.5 w-3.5" />}
           </button>
         </div>
 
@@ -185,6 +178,12 @@ export const GlobalGalleryPanel = () => {
           </div>
         )}
       </div>
+      {!collapsed && (
+        <div
+          className="w-1 flex-shrink-0 bg-white/[0.03] hover:bg-violet-500/30 cursor-col-resize transition-colors"
+          onMouseDown={handleResizeStart}
+        />
+      )}
     </div>
   );
 };
