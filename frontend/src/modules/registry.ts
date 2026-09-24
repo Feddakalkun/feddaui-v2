@@ -303,6 +303,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'klein-inpaint',
+    hidden: true,
     sourceModuleId: 'flux-klein',
     label: 'Edit',
     description: 'Uncensored FLUX2-Klein reference edit - describe the change, no mask.',
@@ -317,6 +318,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'flux-headswap',
+    hidden: true,
     sourceModuleId: 'flux-klein',
     label: 'Head Swap',
     description: 'Transplant a head onto another image with FLUX2-KLEIN + bfs-head LoRA.',
@@ -336,6 +338,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
     sourceModuleId: 'flux-klein',
     label: 'Unfiltered',
     description: 'FLUX2-KLEIN text-to-image on the unfiltered checkpoint.',
+    hidden: true,
     area: 'image',
     pack: 'booster',
 
@@ -363,6 +366,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'klein-nsfw-edit',
+    hidden: true,
     sourceModuleId: 'flux-klein',
     label: 'Unfiltered Edit',
     description: 'Edit a photo on the unfiltered checkpoint, then refine it through a Z-Image pass.',
@@ -376,6 +380,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'klein-9b-faceswap',
+    hidden: true,
     sourceModuleId: 'flux-klein',
     label: 'Head Swap 9B',
     description: 'Put the head from one picture onto another. Mask the face on the base image.',
@@ -473,6 +478,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'qwen-reference',
+    hidden: true,
     sourceModuleId: 'qwen-image',
     label: 'Qwen Reference',
     description: 'Edit or generate from a reference image + prompt.',
@@ -506,6 +512,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'qwen-rapid-edit-v23',
+    hidden: true,
     sourceModuleId: 'qwen-image',
     label: 'Qwen Rapid Edit',
     description: 'Rapid AIO v23 NSFW image editing.',
@@ -520,6 +527,7 @@ export const FEDDA_MODULES: FeddaModule[] = [
   },
   {
     id: 'qwen-multi-angle',
+    hidden: true,
     sourceModuleId: 'qwen-image',
     label: 'Qwen Multi Angle',
     description: 'Generate angle variants from one input.',
