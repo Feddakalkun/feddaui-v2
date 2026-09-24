@@ -71,8 +71,45 @@ export function ModuleProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Initial load, with retry. On a fresh install the browser can reach the
+  // backend's static files a moment before /api/modules/install-state is ready,
+  // or get one failed / empty read. Without a retry that single miss leaves
+  // availableModules empty for the whole session - the home loses its cards and
+  // every section falls back to "Module Not Installed". So keep trying until the
+  // manifest actually comes back populated.
   useEffect(() => {
-    void refreshModules();
+    let cancelled = false;
+    let attempt = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const load = async () => {
+      try {
+        const next = await fetchInstallState();
+        if (cancelled) return;
+        if (!next.modules.length && attempt < 15) {
+          // Reachable, but the manifest is not ready yet - treat as retryable.
+          attempt += 1;
+          timer = setTimeout(load, Math.min(500 * attempt, 4000));
+          return;
+        }
+        setBackendModules(next.modules);
+        setInstallState(next.installState);
+        setError(null);
+        setLoading(false);
+      } catch (err) {
+        if (cancelled) return;
+        attempt += 1;
+        setError(err instanceof Error ? err.message : 'Failed to load modules');
+        if (attempt < 20) {
+          timer = setTimeout(load, Math.min(500 * attempt, 4000));
+        } else {
+          setLoading(false);
+        }
+      }
+    };
+
+    void load();
+    return () => { cancelled = true; if (timer) clearTimeout(timer); };
   }, []);
 
   const enabledSourceIds = useMemo(() => buildEnabledSourceIds(backendModules), [backendModules]);
