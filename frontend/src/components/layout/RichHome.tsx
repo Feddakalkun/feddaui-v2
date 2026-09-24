@@ -188,6 +188,7 @@ export const RichHome = ({ onSelect }: RichHomeProps) => {
   const allCards = availableModules.filter((module) => module.card && (module.area === 'home' || module.area === 'system') && !module.hidden);
   // The agent is pulled out of the grid and rendered as its own banner.
   const chat = allCards.find((module) => module.id === 'chat-edit');
+  const imageStudio = allCards.find((module) => module.id === 'image-studio');
   const cards = allCards.filter((module) => module.id !== 'chat-edit');
   const topCards = cards.slice(0, 2);
   const bottomCards = cards.slice(2);
@@ -213,7 +214,6 @@ export const RichHome = ({ onSelect }: RichHomeProps) => {
       <div className="mx-auto flex h-full w-full max-w-7xl flex-col gap-3 px-6 pb-5 pt-3">
         <div className="shrink-0">
           <HFTokenReminder />
-          {chat && <ChatBanner module={chat} onSelect={onSelect} />}
         </div>
 
         {automations.length > 0 && (
@@ -234,15 +234,15 @@ export const RichHome = ({ onSelect }: RichHomeProps) => {
             width away. The rows still flex and still prefer to fit, but they
             will not squeeze a landscape card into a square - the page scrolls
             a little instead, which is the cheaper loss. */}
-        <div className="grid w-full shrink-0 gap-3 md:grid-cols-2">
-          {topCards.map((module) => (
-            <HomeCard key={module.id} module={module} onSelect={onSelect} />
-          ))}
-        </div>
-        <div className={`grid min-h-[104px] w-full flex-[2] auto-rows-fr gap-3 sm:grid-cols-2 ${bottomCols}`}>
-          {bottomCards.map((module) => (
-            <HomeCard key={module.id} module={module} onSelect={onSelect} />
-          ))}
+        <div className="grid w-full flex-1 content-center gap-4 md:grid-cols-2">
+          {imageStudio && <HomeCard module={imageStudio} onSelect={onSelect} />}
+          <div aria-disabled className="relative aspect-[3/2] cursor-not-allowed overflow-hidden rounded-lg border border-white/10 bg-[#08090d]">
+            <img src="/cards/bunny/video-studio.jpeg" alt="" className="absolute inset-0 h-full w-full object-cover opacity-40 grayscale" />
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40">
+              <span className="text-2xl font-black uppercase tracking-tight text-white/55">Video Studio</span>
+              <span className="rounded-md border border-white/15 bg-black/60 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white/50">Coming soon</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
