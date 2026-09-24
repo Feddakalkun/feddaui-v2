@@ -78,7 +78,7 @@
       "label": "Z-Image Advanced",
       "pack": "booster",
       "area": "image",
-      "enabled": true,
+      "enabled": false,
       "tabs": [
         "z-image-dual-lora",
         "z-image-controlnet-pose",
@@ -108,7 +108,7 @@
       "label": "SDXL Booster Pack",
       "pack": "booster",
       "area": "image",
-      "enabled": true,
+      "enabled": false,
       "tabs": [
         "sdxl-inpaint-automask",
         "sdxl-outpaint",
@@ -188,7 +188,7 @@
       "label": "FireRed Image Edit",
       "pack": "booster",
       "area": "image",
-      "enabled": true,
+      "enabled": false,
       "tabs": [
         "firered-v2",
         "firered-image-edit"
@@ -213,7 +213,7 @@
       "label": "WAN Video Tools",
       "pack": "booster",
       "area": "video",
-      "enabled": true,
+      "enabled": false,
       "tabs": [
         "video",
         "wan22-vid2vid",
@@ -261,7 +261,7 @@
       "label": "LTX Video Tools",
       "pack": "booster",
       "area": "video",
-      "enabled": true,
+      "enabled": false,
       "tabs": [
         "ltx",
         "ltx-img2vid",
@@ -341,7 +341,7 @@
       "label": "HiDream",
       "pack": "booster",
       "area": "image",
-      "enabled": true,
+      "enabled": false,
       "tabs": [
         "hidream-inpaint"
       ],
@@ -372,7 +372,7 @@
       "label": "Ideogram",
       "pack": "booster",
       "area": "image",
-      "enabled": true,
+      "enabled": false,
       "tabs": [
         "ideogram",
         "ideogram-txt2img"
@@ -400,7 +400,7 @@
       "label": "Lipsync",
       "pack": "booster",
       "area": "video",
-      "enabled": true,
+      "enabled": false,
       "tabs": [
         "lipsync-infinitetalk",
         "lipsync-multitalk"
@@ -425,7 +425,7 @@
       "label": "FLUX Krea",
       "pack": "booster",
       "area": "image",
-      "enabled": true,
+      "enabled": false,
       "tabs": [
         "flux-krea-gguf-txt2img"
       ],
@@ -465,7 +465,7 @@
     {
       "pack": "booster",
       "area": "video",
-      "enabled": true,
+      "enabled": false,
       "id": "minimax-h3",
       "name": "MiniMax H3",
       "workflows": [
