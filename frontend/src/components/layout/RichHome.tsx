@@ -235,7 +235,12 @@ export const RichHome = ({ onSelect }: RichHomeProps) => {
             will not squeeze a landscape card into a square - the page scrolls
             a little instead, which is the cheaper loss. */}
         <div className="grid w-full flex-1 content-center gap-4 md:grid-cols-2">
-          {imageStudio && <HomeCard module={imageStudio} onSelect={onSelect} />}
+          <button onClick={() => onSelect('image')} className="group relative aspect-[3/2] overflow-hidden rounded-lg border border-white/10 bg-[#08090d] transition hover:-translate-y-0.5 hover:border-white/25">
+            <img src="/cards/bunny/image-studio.jpeg" alt="Image Studio" className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center bg-gradient-to-t from-black/70 to-transparent p-5">
+              <span className="text-2xl font-black uppercase tracking-tight text-white/95 drop-shadow-lg">Image Studio</span>
+            </div>
+          </button>
           <div aria-disabled className="relative aspect-[3/2] cursor-not-allowed overflow-hidden rounded-lg border border-white/10 bg-[#08090d]">
             <img src="/cards/bunny/video-studio.jpeg" alt="" className="absolute inset-0 h-full w-full object-cover opacity-40 grayscale" />
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40">
